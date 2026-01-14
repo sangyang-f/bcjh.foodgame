@@ -7,10 +7,10 @@
     <meta name="viewport" id="viewport" content="width=device-width">
     <link rel="shortcut icon" href="favicon.ico?v=1" type="image/x-icon" />
     <link rel="stylesheet" type="text/css" href="css/style.min.css?v=1" />
-    <script type="text/javascript" src="js/script.min.js?v=1"></script>
-    <script type="text/javascript" src="js/common.min.js?v=3"></script>
+    <script type="text/javascript" src="js/script.min.js?v=2"></script>
+    <script type="text/javascript" src="js/common.min.js?v=4"></script>
     <link rel="stylesheet" type="text/css" href="css/food.min.css?v=1" />
-    <script type="text/javascript" src="js/food.min.js?v=3"></script>
+    <script type="text/javascript" src="js/food.min.js?v=4"></script>
     <link rel="stylesheet" type="text/css" href="css/image.css?v=7" />
     <script>
         $(function () {
@@ -930,8 +930,17 @@
                                     <optgroup label="支线任务"></optgroup>
                                 </select>
                             </div>
+                            <div class="select-wrapper" id="history-sub-rule-wrapper" style="display:none;">
+                                <select id="select-history-sub-rule" data-width="200px"
+                                    data-dropdown-align-right='auto'
+                                    data-none-selected-text='选择具体规则'>
+                                </select>
+                            </div>
                             <button id="btn-cal-rule-load" class="btn btn-danger" type="button">
                                 加载
+                            </button>
+                            <button id="btn-cal-history" class="btn btn-info" type="button">
+                                历史计算器
                             </button>
                             <div class="btn-group cal-menu hidden" data-toggle="buttons">
                                 <label class="btn btn-default">
@@ -1803,17 +1812,17 @@
                             <div>
                                 <div class="input-group">
                                     <div class="input-group-addon">菜类售价</div>
-                                    <input type="number" class="form-control" id="input-cal-activity-vegetable-price">
+                                    <input type="number" class="form-control" id="input-cal-activity-vegetable-price" aria-label="蔬菜售价">
                                     <div class="input-group-addon">%</div>
                                 </div>
                                 <div class="input-group">
                                     <div class="input-group-addon">面类售价</div>
-                                    <input type="number" class="form-control" id="input-cal-activity-creation-price">
+                                    <input type="number" class="form-control" id="input-cal-activity-creation-price" aria-label="面类售价">
                                     <div class="input-group-addon">%</div>
                                 </div>
                                 <div class="input-group">
                                     <div class="input-group-addon">鱼类售价</div>
-                                    <input type="number" class="form-control" id="input-cal-activity-fish-price">
+                                    <input type="number" class="form-control" id="input-cal-activity-fish-price" aria-label="鱼类售价">
                                     <div class="input-group-addon">%</div>
                                 </div>
                                 <div class="input-group">
@@ -2205,8 +2214,9 @@
                 <h4>
                     <span class="label label-primary">说明</span>
                 </h4>
-                <p class="text-primary">国外镜像 -
-                    <a href='https://foodgame.github.io'>https://foodgame.github.io</a> (国内访问会有速度慢和偶尔访问不了的情况)
+                <p class="text-primary">备用-(南风网址)
+                    <br>
+                    <a href='https://foodgamere.github.io'>https://foodgamere.github.io</a> 
                 </p>
                 <!-- <p class="text-primary">备份镜像 -
                     <a href='https://foodgame.top'>https://foodgame.top</a>
@@ -2247,7 +2257,8 @@
                 <h4>
                     <span class="label label-primary">联系</span>
                 </h4>
-                <p>贴吧1群 名字 L(图鉴网)</p>
+                <p>原作者：贴吧1群 名字 L(图鉴网)</p>
+                <p>现任：官方16群 - 南风未起</p>
                 <hr>
                 <h4>
                     <span class="label label-primary">更新</span>
