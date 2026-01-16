@@ -1433,3 +1433,37 @@ table.dataTable tr.selected td.select-checkbox:after,table.dataTable tr.selected
 
 
 
+
+/* 细分类型下拉框 - 使用input-group-mid样式 */
+#chef-global-subtype-wrapper.input-group-mid .bootstrap-select .dropdown-toggle {
+    border-top-left-radius: 0 !important;
+    border-bottom-left-radius: 0 !important;
+    border-top-right-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+    margin-left: -1px !important;
+}
+
+/* 光环细分类型下拉框 - 使用input-group-mid样式 */
+#chef-aura-subtype-wrapper.input-group-mid .bootstrap-select .dropdown-toggle {
+    border-top-left-radius: 0 !important;
+    border-bottom-left-radius: 0 !important;
+    border-top-right-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+    margin-left: -1px !important;
+}
+
+/* 含遗玉厨具按钮wrapper - 当细分类型显示时 */
+#chef-global-subtype-wrapper + .input-group-btn.input-group-last {
+    margin-left: -1px !important;
+}
+
+/* 含遗玉厨具按钮wrapper - 当光环细分类型显示时 */
+#chef-aura-subtype-wrapper + .input-group-btn.input-group-last {
+    margin-left: -1px !important;
+}
+
+/* 含遗玉厨具按钮 - input-group-last样式 */
+.input-group .input-group-btn.input-group-last .btn {
+    border-top-left-radius: 0 !important;
+    border-bottom-left-radius: 0 !important;
+}

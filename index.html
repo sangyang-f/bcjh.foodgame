@@ -8,9 +8,9 @@
     <link rel="shortcut icon" href="favicon.ico?v=1" type="image/x-icon" />
     <link rel="stylesheet" type="text/css" href="css/style.min.css?v=1" />
     <script type="text/javascript" src="js/script.min.js?v=2"></script>
-    <script type="text/javascript" src="js/common.min.js?v=4"></script>
-    <link rel="stylesheet" type="text/css" href="css/food.min.css?v=2" />
-    <script type="text/javascript" src="js/food.min.js?v=5"></script>
+    <script type="text/javascript" src="js/common.min.js?v=5"></script>
+    <link rel="stylesheet" type="text/css" href="css/food.min.css?v=3" />
+    <script type="text/javascript" src="js/food.min.js?v=6"></script>
     <link rel="stylesheet" type="text/css" href="css/image.css?v=7" />
     <script>
         $(function () {
@@ -428,15 +428,15 @@
                                     <option value='5' selected>技法</option>
                                     <option value='11' selected>技能</option>
                                     <option value='12' selected>采集</option>
-                                    <option value='16'>性别</option>
-                                    <option value='17'>调料</option>
-                                    <option value='23'>来源</option>
-                                    <option value='25' data-subtext="个人数据, 该列点击可编辑, 用来记录你该厨师佩戴的遗玉">遗玉</option>
-                                    <option value='26' data-subtext="个人数据, 该列点击可编辑, 用来记录你该厨师佩戴的厨具">厨具</option>
-                                    <option value='27'>修炼任务</option>
-                                    <option value='28' selected>修炼技能</option>
-                                    <option value='29' data-subtext="个人数据, 该列点击可编辑, 用来记录你是否已修炼该厨师">已修炼</option>
-                                    <option value='30' data-subtext="个人数据, 该列点击可编辑, 用来记录你是否已拥有该厨师">已有</option>
+                                    <option value='17'>性别</option>
+                                    <option value='18'>调料</option>
+                                    <option value='24'>来源</option>
+                                    <option value='26' data-subtext="个人数据, 该列点击可编辑, 用来记录你该厨师佩戴的遗玉">遗玉</option>
+                                    <option value='27' data-subtext="个人数据, 该列点击可编辑, 用来记录你该厨师佩戴的厨具">厨具</option>
+                                    <option value='28'>修炼任务</option>
+                                    <option value='29' selected>修炼技能</option>
+                                    <option value='30' data-subtext="个人数据, 该列点击可编辑, 用来记录你是否已修炼该厨师">已修炼</option>
+                                    <option value='31' data-subtext="个人数据, 该列点击可编辑, 用来记录你是否已拥有该厨师">已有</option>
                                 </select>
                             </div>
                             <div class="inline-wrapper" data-toggle="tooltip" title="是否使用厨具加成">
@@ -483,7 +483,7 @@
                                 </select>
                             </div>
                             <div class="input-group">
-                                <div class="inline-wrapper select-wrapper" data-toggle="tooltip" title="选择类型,过滤厨师">
+                                <div class="inline-wrapper select-wrapper input-group-first" data-toggle="tooltip" title="选择类型,过滤厨师">
                                     <select id="chk-chef-category" multiple class="selectpicker monitor-none"
                                         data-width="120px" data-dropdown-align-right='auto'
                                         data-none-selected-text="选择类型" data-selected-text-format="count"
@@ -494,6 +494,37 @@
                                         <option value="OpenTime">减时间</option>
                                         <option value="Material_Gain">加全素材</option>
                                         <option value="InvitationApearRate">江湖帖概率</option>
+                                        <option value="Global">基础修炼</option>
+                                        <option value="PriceAura">售价光环</option>
+                                        <option value="SkillAura">技法光环</option>
+                                    </select>
+                                </div>
+                                <div id="chef-global-subtype-wrapper" class="inline-wrapper select-wrapper input-group-mid" style="display:none;" data-toggle="tooltip" title="选择基础修炼细分类型">
+                                    <select id="chk-chef-global-subtype" multiple class="selectpicker monitor-none"
+                                        data-width="100px" data-dropdown-align-right='auto'
+                                        data-none-selected-text="细分类型" data-selected-text-format="count"
+                                        data-count-selected-text="{0} 细分" data-actions-box="true"
+                                        data-actions-box-only-clear="true" data-deselect-all-text="清空">
+                                        <option value="skill">技法</option>
+                                        <option value="price">菜谱售价</option>
+                                        <option value="limit">菜谱上限</option>
+                                        <option value="material">素材获得</option>
+                                        <option value="other">其他</option>
+                                    </select>
+                                </div>
+                                <div id="chef-aura-subtype-wrapper" class="inline-wrapper select-wrapper input-group-mid" style="display:none;" data-toggle="tooltip" title="选择光环技法类型">
+                                    <select id="chk-chef-aura-subtype" multiple class="selectpicker monitor-none"
+                                        data-width="100px" data-dropdown-align-right='auto'
+                                        data-none-selected-text="技法类型" data-selected-text-format="count"
+                                        data-count-selected-text="{0} 技法" data-actions-box="true"
+                                        data-actions-box-only-clear="true" data-deselect-all-text="清空">
+                                        <option value="Stirfry">炒</option>
+                                        <option value="Bake">烤</option>
+                                        <option value="Boil">煮</option>
+                                        <option value="Steam">蒸</option>
+                                        <option value="Fry">炸</option>
+                                        <option value="Knife">切</option>
+                                        <option value="Other">其他</option>
                                     </select>
                                 </div>
                                 <span class="input-group-btn input-group-last">
@@ -544,6 +575,21 @@
                                         同时
                                     </label>
                                 </span>
+                            </div>
+                            <div class="inline-wrapper select-wrapper" data-toggle="tooltip" title="选择采集类型组合">
+                                <select id="chk-chef-material-combo" class="selectpicker monitor-none"
+                                    data-width="130px" data-dropdown-align-right='auto' 
+                                    data-none-selected-text="选择采集组合"
+                                    data-actions-box="true" data-actions-box-only-clear="true"
+                                    data-deselect-all-text="清空">
+                                    <option value="" selected class="hidden"></option>
+                                    <option value="meat_creation">肉+面</option>
+                                    <option value="meat_veg">肉+菜</option>
+                                    <option value="meat_fish">肉+鱼</option>
+                                    <option value="creation_veg">面+菜</option>
+                                    <option value="creation_fish">面+鱼</option>
+                                    <option value="veg_fish">菜+鱼</option>
+                                </select>
                             </div>
                             <div class="inline-wrapper select-wrapper" data-toggle="tooltip" title="选择遗玉,过滤厨师">
                                 <select id="chk-chef-amber" multiple class="monitor-none" data-width="100px"
@@ -1424,6 +1470,7 @@
                                 <th>面</th>
                                 <th>菜</th>
                                 <th>鱼</th>
+                                <th>采集类型</th>
                                 <th>性别</th>
                                 <th>甜</th>
                                 <th>酸</th>
