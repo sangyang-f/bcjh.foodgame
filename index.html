@@ -8,9 +8,9 @@
     <link rel="shortcut icon" href="favicon.ico?v=1" type="image/x-icon" />
     <link rel="stylesheet" type="text/css" href="css/style.min.css?v=1" />
     <script type="text/javascript" src="js/script.min.js?v=2"></script>
-    <script type="text/javascript" src="js/common.min.js?v=5"></script>
+    <script type="text/javascript" src="js/common.min.js?v=6"></script>
     <link rel="stylesheet" type="text/css" href="css/food.min.css?v=3" />
-    <script type="text/javascript" src="js/food.min.js?v=6"></script>
+    <script type="text/javascript" src="js/food.min.js?v=7"></script>
     <link rel="stylesheet" type="text/css" href="css/image.css?v=7" />
     <script>
         $(function () {
@@ -428,20 +428,55 @@
                                     <option value='5' selected>技法</option>
                                     <option value='11' selected>技能</option>
                                     <option value='12' selected>采集</option>
-                                    <option value='17'>性别</option>
-                                    <option value='18'>调料</option>
-                                    <option value='24'>来源</option>
-                                    <option value='26' data-subtext="个人数据, 该列点击可编辑, 用来记录你该厨师佩戴的遗玉">遗玉</option>
-                                    <option value='27' data-subtext="个人数据, 该列点击可编辑, 用来记录你该厨师佩戴的厨具">厨具</option>
-                                    <option value='28'>修炼任务</option>
-                                    <option value='29' selected>修炼技能</option>
-                                    <option value='30' data-subtext="个人数据, 该列点击可编辑, 用来记录你是否已修炼该厨师">已修炼</option>
-                                    <option value='31' data-subtext="个人数据, 该列点击可编辑, 用来记录你是否已拥有该厨师">已有</option>
+                                    <option value='16'>采集期望值</option>
+                                    <option value='18'>性别</option>
+                                    <option value='19'>调料</option>
+                                    <option value='25'>来源</option>
+                                    <option value='27' data-subtext="个人数据, 该列点击可编辑, 用来记录你该厨师佩戴的遗玉">遗玉</option>
+                                    <option value='28' data-subtext="个人数据, 该列点击可编辑, 用来记录你该厨师佩戴的厨具">厨具</option>
+                                    <option value='29'>修炼任务</option>
+                                    <option value='30' selected>修炼技能</option>
+                                    <option value='31' data-subtext="个人数据, 该列点击可编辑, 用来记录你是否已修炼该厨师">已修炼</option>
+                                    <option value='32' data-subtext="个人数据, 该列点击可编辑, 用来记录你是否已拥有该厨师">已有</option>
                                 </select>
                             </div>
+                            <div class="inline-wrapper" data-toggle="tooltip" title="是否使用遗玉加成">
+                                <input type="checkbox" id="chk-chef-apply-ambers" data-toggle="toggle" data-on="遗玉加成开"
+                                    data-off="遗玉加成关" data-onstyle="default" data-width="105px" checked>
+                            </div>
+                            <div class="inline-wrapper select-wrapper chef-apply-ambers" data-toggle="tooltip" title="批量应用遗玉(最多设置三种,清空则使用厨师自身遗玉)">
+                                <select id="chk-chef-apply-amber-select" multiple class="selectpicker monitor-none"
+                                    data-width="150px" data-dropdown-align-right='auto' 
+                                    data-none-selected-text="批量应用遗玉"
+                                    data-live-search="true" data-live-search-placeholder="查找"
+                                    data-none-results-text="没有找到"
+                                    data-max-options="3"
+                                    data-selected-text-format="count>0"
+                                    data-count-selected-text="{0} 遗玉"
+                                    data-actions-box="true"
+                                    data-actions-box-only-clear="true"
+                                    data-deselect-all-text="清空">
+                                </select>
+                            </div>
+                            <label class="btn btn-default chef-apply-ambers" data-toggle="tooltip" title="将所有厨师心法盘设置为满级(不勾选为使用厨师自身等级)">
+                                <input type="checkbox" id="chk-chef-max-disk-level" class="monitor-none">
+                                <i class="fa fa-check glyphicon glyphicon-ok"></i>
+                                默认满级心法盘
+                            </label>
                             <div class="inline-wrapper" data-toggle="tooltip" title="是否使用厨具加成">
                                 <input type="checkbox" id="chk-chef-apply-equips" data-toggle="toggle" data-on="厨具加成开"
                                     data-off="厨具加成关" data-onstyle="default" data-width="105px" checked>
+                            </div>
+                            <div class="inline-wrapper select-wrapper chef-apply-equips" data-toggle="tooltip" title="为所有厨师设置厨具(清空则使用厨师自身厨具)">
+                                <select id="chk-chef-apply-equip-select" class="selectpicker monitor-none"
+                                    data-width="130px" data-dropdown-align-right='auto' 
+                                    data-none-selected-text="批量应用厨具"
+                                    data-live-search="true" data-live-search-placeholder="查找"
+                                    data-none-results-text="没有找到"
+                                    data-actions-box="true" data-actions-box-only-clear="true"
+                                    data-deselect-all-text="清空">
+                                    <option value="" selected class="hidden"></option>
+                                </select>
                             </div>
                             <div class="inline-wrapper" data-toggle="tooltip" title="是否使用修炼加成">
                                 <input type="checkbox" id="chk-chef-apply-ultimate" data-toggle="toggle" data-on="修炼加成开"
@@ -583,12 +618,12 @@
                                     data-actions-box="true" data-actions-box-only-clear="true"
                                     data-deselect-all-text="清空">
                                     <option value="" selected class="hidden"></option>
-                                    <option value="meat_creation">肉+面</option>
-                                    <option value="meat_veg">肉+菜</option>
-                                    <option value="meat_fish">肉+鱼</option>
-                                    <option value="creation_veg">面+菜</option>
-                                    <option value="creation_fish">面+鱼</option>
-                                    <option value="veg_fish">菜+鱼</option>
+                                    <option value="meat_creation">肉+面（苦）</option>
+                                    <option value="meat_veg">肉+菜（甜）</option>
+                                    <option value="meat_fish">肉+鱼（酸）</option>
+                                    <option value="creation_veg">面+菜（咸）</option>
+                                    <option value="creation_fish">面+鱼（鲜）</option>
+                                    <option value="veg_fish">菜+鱼（辣）</option>
                                 </select>
                             </div>
                             <div class="inline-wrapper select-wrapper" data-toggle="tooltip" title="选择遗玉,过滤厨师">
@@ -1124,7 +1159,7 @@
                                         <i class="fa fa-check glyphicon glyphicon-ok"></i>
                                         已配遗玉
                                     </label>
-                                    <label class="btn btn-default" data-toggle="tooltip" title="选择厨师时自动将心法盘等级设置为5级">
+                                    <label class="btn btn-default" data-toggle="tooltip" title="选择厨师时自动将心法盘等级设置为满级">
                                         <input type="checkbox" id="chk-cal-max-disk">
                                         <i class="fa fa-check glyphicon glyphicon-ok"></i>
                                         默认满级心法盘
@@ -1470,6 +1505,7 @@
                                 <th>面</th>
                                 <th>菜</th>
                                 <th>鱼</th>
+                                <th>采集期望值</th>
                                 <th>采集类型</th>
                                 <th>性别</th>
                                 <th>甜</th>
