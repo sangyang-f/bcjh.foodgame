@@ -10,7 +10,7 @@
     <script type="text/javascript" src="js/script.min.js?v=2"></script>
     <script type="text/javascript" src="js/common.min.js?v=7"></script>
     <link rel="stylesheet" type="text/css" href="css/food.min.css?v=3" />
-    <script type="text/javascript" src="js/food.min.js?v=8"></script>
+    <script type="text/javascript" src="js/food.min.js?v=9"></script>
     <link rel="stylesheet" type="text/css" href="css/image.css?v=7" />
     <script>
         $(function () {
@@ -129,19 +129,19 @@
                                     <option value='17' selected>一组</option>
                                     <option value='18'>总价</option>
                                     <option value='19' selected>总时间</option>
-                                    <option value='20' selected>金币效率</option>
-                                    <option value='21'>耗材料效率</option>
-                                    <option value='22'>耗调料效率</option>
-                                    <option value='23'>来源</option>
-                                    <option value='24'>解锁</option>
-                                    <option value='25'>合成</option>
-                                    <option value='27' selected>开业贵客</option>
-                                    <option value='28' data-subtext="第一次菜品升阶 (升优-升特-升神) 必来的贵客">升阶贵客</option>
-                                    <option value='29' data-subtext="第一次做神级菜品时贵客送的符文">神级符文</option>
-                                    <option value='30' selected>宴会贵客</option>
-                                    <option value='31' data-subtext="个人数据, 该列点击可编辑, 用来记录你当前做到的品阶">品阶</option>
-                                    <option value='32' data-subtext="个人数据, 该列点击可编辑, 用来记录你是否已经熟练该菜谱">已熟练</option>
-                                    <option value='33' data-subtext="个人数据, 该列点击可编辑, 用来记录你是否已拥有该菜谱">已有</option>
+                                    <option value='22' selected>金币效率</option>
+                                    <option value='23'>耗材料效率</option>
+                                    <option value='24'>耗调料效率</option>
+                                    <option value='25'>来源</option>
+                                    <option value='26'>解锁</option>
+                                    <option value='27'>合成</option>
+                                    <option value='29' selected>开业贵客</option>
+                                    <option value='30' data-subtext="第一次菜品升阶 (升优-升特-升神) 必来的贵客">升阶贵客</option>
+                                    <option value='31' data-subtext="第一次做神级菜品时贵客送的符文">神级符文</option>
+                                    <option value='32' selected>宴会贵客</option>
+                                    <option value='33' data-subtext="个人数据, 该列点击可编辑, 用来记录你当前做到的品阶">品阶</option>
+                                    <option value='34' data-subtext="个人数据, 该列点击可编辑, 用来记录你是否已经熟练该菜谱">已熟练</option>
+                                    <option value='35' data-subtext="个人数据, 该列点击可编辑, 用来记录你是否已拥有该菜谱">已有</option>
                                 </select>
                             </div>
                             <div class="inline-wrapper" data-toggle="tooltip" title="是否使用熟练加成">
@@ -151,6 +151,17 @@
                             <div class="inline-wrapper recipe-apply-ex" data-toggle="tooltip" title="使用已熟练或者全熟练加成">
                                 <input type="checkbox" id="chk-recipe-apply-ex-person" data-toggle="toggle"
                                     data-on="已熟练" data-off="全熟练" data-onstyle="default" data-width="80px" checked>
+                            </div>
+                            <div class="inline-wrapper select-wrapper" data-toggle="tooltip" title="选择品级查询（点击专精份数后可编辑进度查询剩余份数）">
+                                <select id="select-recipe-ex-gap" class="selectpicker monitor-none"
+                                    data-width="100px" data-dropdown-align-right='auto' data-none-selected-text="专精查询" data-actions-box="true" data-actions-box-only-clear="true" data-deselect-all-text="清空" data-hide-disabled="true">
+                                    <option value="" selected disabled></option>
+                                    <option value="1">可级</option>
+                                    <option value="2">优级</option>
+                                    <option value="3">特级</option>
+                                    <option value="4">神级</option>
+                                    <option value="5">传级</option>
+                                </select>
                             </div>
                             <div class="inline-wrapper hidden">
                                 <a id="btn-recipe-recal" class="btn btn-danger" data-toggle="tooltip"
@@ -1463,6 +1474,8 @@
                                 <th>一组</th>
                                 <th>总价</th>
                                 <th>总时间</th>
+                                <th>熟练份数</th>
+                                <th>熟练时间</th>
                                 <th>金币/h</th>
                                 <th>耗材料/h</th>
                                 <th>耗调料/h</th>
