@@ -9,8 +9,8 @@
     <link rel="stylesheet" type="text/css" href="css/style.min.css?v=1" />
     <script type="text/javascript" src="js/script.min.js?v=2"></script>
     <script type="text/javascript" src="js/common.min.js?v=7"></script>
-    <link rel="stylesheet" type="text/css" href="css/food.min.css?v=3" />
-    <script type="text/javascript" src="js/food.min.js?v=11"></script>
+    <link rel="stylesheet" type="text/css" href="css/food.min.css?v=4" />
+    <script type="text/javascript" src="js/food.min.js?v=12"></script>
     <link rel="stylesheet" type="text/css" href="css/image.css?v=7" />
     <script>
         $(function () {
@@ -1017,6 +1017,7 @@
                                     data-none-results-text='没有找到' data-none-selected-text='选择规则'>
                                     <optgroup label="正常营业">
                                         <option value='0'>正常营业</option>
+                                        <option value='guest-rate'>贵客率计算</option>
                                     </optgroup>
                                     <optgroup label="风云宴"></optgroup>
                                     <optgroup label="年兽"></optgroup>
@@ -2032,6 +2033,185 @@
                     <div id="pane-cal-custom">
                         <div class="cal-custom-item">
                             <div class="rule-desc"></div>
+                            
+                            <!-- 贵客率计算结果区域 -->
+                            <div class="guest-rate-calculator hidden" id="guest-rate-result">
+                                <div class="calc-result-header">
+                                    <h4>计算结果</h4>
+                                    <button class="btn-collapse" type="button">
+                                        <span class="glyphicon glyphicon-chevron-up"></span>
+                                    </button>
+                                </div>
+                                <div class="calc-result-content">
+                                    <div class="calc-result-row calc-data-row">
+                                        <div class="calc-result-item">
+                                            <label>贵客率:</label>
+                                            <span class="value" id="guest-rate-value">0%</span>
+                                        </div>
+                                        <div class="calc-result-item">
+                                            <label>暴击率:</label>
+                                            <span class="value" id="total-crit-rate">100%</span>
+                                        </div>
+                                        <div class="calc-result-item">
+                                            <label>时间:</label>
+                                            <span class="value" id="time-percentage">100%</span>
+                                        </div>
+                                    </div>
+                                    <div class="calc-result-row calc-data-row">
+                                        <div class="calc-result-item">
+                                            <label>实际贵客率:</label>
+                                            <span class="value" id="actual-guest-rate">10.05%</span>
+                                        </div>
+                                        <div class="calc-result-item">
+                                            <label>符文率:</label>
+                                            <span class="value" id="rune-rate">50%</span>
+                                        </div>
+                                        <div class="calc-result-item">
+                                            <label>百锅产出:</label>
+                                            <span class="value" id="hundred-pot-output">5.02</span>
+                                        </div>
+                                    </div>
+                                    <div class="calc-result-row calc-controls">
+                                        <div class="calc-control-group">
+                                            <label>星级</label>
+                                            <select class="selectpicker" id="star-level" data-width="70px" data-container="body">
+                                                <option value="1">1星</option>
+                                                <option value="2">2星</option>
+                                                <option value="3">3星</option>
+                                                <option value="4">4星</option>
+                                                <option value="5" selected>5星</option>
+                                            </select>
+                                        </div>
+                                        <div class="calc-control-group">
+                                            <label>品级</label>
+                                            <select class="selectpicker" id="quality-level" data-width="70px" data-container="body">
+                                                <option value="1" selected>可</option>
+                                                <option value="2">优</option>
+                                                <option value="3">特</option>
+                                                <option value="4">神</option>
+                                                <option value="5">传</option>
+                                            </select>
+                                        </div>
+                                        <div class="calc-control-group">
+                                            <label>份数</label>
+                                            <div class="input-group input-group-sm quantity-control">
+                                                <span class="input-group-btn">
+                                                    <button class="btn btn-default" type="button" id="quantity-minus">-</button>
+                                                </span>
+                                                <input type="number" class="form-control" id="quantity-value" value="7" min="1" max="999">
+                                                <span class="input-group-btn">
+                                                    <button class="btn btn-default" type="button" id="quantity-plus">+</button>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="calc-result-row calc-data-row">
+                                        <div class="calc-result-item">
+                                            <label>单位食材:</label>
+                                            <span class="value" id="unit-material">7.17</span>
+                                        </div>
+                                        <div class="calc-result-item">
+                                            <label>单位时间:</label>
+                                            <span class="value" id="unit-time">7.17</span>
+                                        </div>
+                                        <div class="calc-result-item">
+                                            <button class="btn btn-primary btn-sm" id="sync-guest-double">同贵客双菜谱</button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="double-recipe-section" style="display: none;">
+                                        <div class="calc-section-title">同贵客双菜谱实现贵客必来 品级默认可</div>
+                                        
+                                        <div class="calc-result-row">
+                                            <div class="calc-control-group">
+                                                <label>贵客率</label>
+                                                <div class="input-group input-group-sm">
+                                                    <input type="number" class="form-control" id="guest-rate-input" value="0" min="0" max="999">
+                                                    <span class="input-group-addon">%</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="calc-result-row calc-controls">
+                                            <div class="calc-control-group">
+                                                <label>星级</label>
+                                                <select class="selectpicker" id="star-level-2" data-width="70px">
+                                                    <option value="1">1星</option>
+                                                    <option value="2">2星</option>
+                                                    <option value="3">3星</option>
+                                                    <option value="4">4星</option>
+                                                    <option value="5" selected>5星</option>
+                                                </select>
+                                            </div>
+                                            <div class="calc-control-group">
+                                                <label>份数</label>
+                                                <div class="input-group input-group-sm quantity-control">
+                                                    <span class="input-group-btn">
+                                                        <button class="btn btn-default" type="button" id="quantity-minus-2">-</button>
+                                                    </span>
+                                                    <input type="number" class="form-control" id="quantity-value-2" value="7" min="1" max="999">
+                                                    <span class="input-group-btn">
+                                                        <button class="btn btn-default" type="button" id="quantity-plus-2">+</button>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div class="calc-result-item">
+                                                <label>实际贵客率:</label>
+                                                <span class="value" id="actual-guest-rate-2">10.05%</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="calc-result-row calc-controls">
+                                            <div class="calc-control-group">
+                                                <label>星级</label>
+                                                <select class="selectpicker" id="star-level-3" data-width="70px">
+                                                    <option value="1">1星</option>
+                                                    <option value="2">2星</option>
+                                                    <option value="3">3星</option>
+                                                    <option value="4">4星</option>
+                                                    <option value="5" selected>5星</option>
+                                                </select>
+                                            </div>
+                                            <div class="calc-control-group">
+                                                <label>份数</label>
+                                                <div class="input-group input-group-sm quantity-control">
+                                                    <span class="input-group-btn">
+                                                        <button class="btn btn-default" type="button" id="quantity-minus-3">-</button>
+                                                    </span>
+                                                    <input type="number" class="form-control" id="quantity-value-3" value="7" min="1" max="999">
+                                                    <span class="input-group-btn">
+                                                        <button class="btn btn-default" type="button" id="quantity-plus-3">+</button>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div class="calc-result-item">
+                                                <label>实际贵客率:</label>
+                                                <span class="value" id="actual-guest-rate-3">10.05%</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="calc-result-row calc-summary">
+                                            <div class="calc-summary-item">
+                                                <span>符文A</span>
+                                                <span class="value" id="rune-a-probability">5.02%</span>
+                                            </div>
+                                            <div class="calc-summary-item">
+                                                <span>符文B</span>
+                                                <span class="value" id="rune-b-probability">5.02%</span>
+                                            </div>
+                                            <div class="calc-summary-item">
+                                                <span>撒币</span>
+                                                <span class="value" id="scatter-probability">10.05%</span>
+                                            </div>
+                                            <div class="calc-summary-item">
+                                                <span>总实际贵客率:</span>
+                                                <span class="value highlight" id="total-guest-rate">20.1%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
                             <div class="selected-sum-wrapper">
                                 <span class='btn-resize glyphicon glyphicon-resize-small'></span>
                                 <div class="selected-sum"></div>

@@ -300,6 +300,10 @@ table.dataTable tbody>tr.selected,table.dataTable tbody>tr>.selected {
     z-index: 1701
 }
 
+.guest-rate-calculator .bootstrap-select .dropdown-menu {
+    z-index: 1310 !important;
+}
+
 .header-wrapper .bootstrap-select .dropdown-menu {
     margin-top: -5px
 }
@@ -1369,6 +1373,10 @@ table.dataTable tr.selected td.select-checkbox:after,table.dataTable tr.selected
     body.m-no-scroll {
         overflow-y: hidden
     }
+
+    .guest-rate-calculator {
+        max-width: 590px !important;
+    }
 }
 
 /* 套装下拉框三列布局 - 使用data-content和内联样式 */
@@ -1466,4 +1474,346 @@ table.dataTable tr.selected td.select-checkbox:after,table.dataTable tr.selected
 .input-group .input-group-btn.input-group-last .btn {
     border-top-left-radius: 0 !important;
     border-bottom-left-radius: 0 !important;
+}
+
+
+/* 贵客率计算器样式 - 表格风格 */
+.guest-rate-calculator {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    /* 与 .selected-item-wrapper 完全相同的宽度设置 */
+    max-width: 1310px;
+    margin-left: auto;
+    margin-right: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.calc-result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: #f5f5f5;
+    border-bottom: 1px solid #ddd;
+}
+
+.calc-result-header h4 {
+    margin: 0;
+    color: #333;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.calc-result-header .btn-collapse {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    color: #666;
+    font-size: 14px;
+}
+
+.calc-result-header .btn-collapse:hover {
+    color: #333;
+}
+
+.calc-result-content {
+    display: block;
+    padding: 10px;
+    overflow: visible;
+}
+
+.guest-rate-calculator.collapsed .calc-result-content {
+    display: none;
+}
+
+.guest-rate-calculator.collapsed .btn-collapse .glyphicon {
+    transform: rotate(180deg);
+}
+
+/* 贵客率计算器样式 - 表格风格 */
+.guest-rate-calculator {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    /* 与 .selected-item-wrapper 完全相同的宽度设置 */
+    max-width: 1190px;
+    margin-left: auto;
+    margin-right: auto;
+    display: flex;
+    flex-direction: column;
+}lt-row {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    padding: 5px 0;
+    position: relative;
+    z-index: 1;
+}
+
+.calc-result-row.calc-controls {
+    overflow: visible !important;
+    z-index: 1;
+    position: relative;
+}
+
+.calc-result-row.calc-controls:nth-child(1) {
+    z-index: 1;
+}
+
+.calc-result-row.calc-controls:nth-child(2) {
+    z-index: 1;
+}
+
+.calc-result-row.calc-controls:nth-child(3) {
+    z-index: 1;
+}
+
+.calc-result-row.calc-data-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0;
+    margin-bottom: 8px;
+    padding: 5px 0;
+}
+
+.calc-result-row.calc-data-row .calc-result-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    justify-content: flex-start;
+    padding: 0 10px;
+}
+
+.calc-result-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.calc-result-item label {
+    margin: 0;
+    font-weight: normal;
+    color: #333;
+    white-space: nowrap;
+    font-size: 13px;
+}
+
+.calc-result-item .value {
+    font-weight: bold;
+    color: #000;
+    font-size: 13px;
+}
+
+.calc-result-item .value.highlight {
+    color: #337ab7;
+    font-size: 14px;
+}
+
+.calc-controls {
+    background: #f9f9f9;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 0;
+    gap: 10px;
+    margin: 5px 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.calc-control-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.calc-control-group label {
+    font-size: 13px;
+    color: #333;
+    margin: 0;
+    white-space: nowrap;
+}
+
+.calc-control-group .form-control {
+    height: 30px;
+    font-size: 13px;
+    padding: 5px 8px;
+    display: inline-block;
+    width: auto;
+}
+
+.calc-control-group select.form-control {
+    width: 80px;
+}
+
+.quantity-control {
+    display: flex !important;
+    width: auto;
+    align-items: stretch;
+}
+
+.quantity-control .input-group-btn {
+    display: flex !important;
+    align-items: center;
+    flex-shrink: 0;
+    width: auto !important;
+}
+
+.quantity-control .input-group-btn .btn {
+    padding: 5px 10px !important;
+    font-size: 13px !important;
+    height: 30px !important;
+    min-width: 30px !important;
+    width: auto !important;
+    display: inline-block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    line-height: 20px !important;
+}
+
+.quantity-control .form-control {
+    text-align: center;
+    padding: 5px;
+    width: 50px;
+    flex-shrink: 0;
+}
+
+.calc-divider {
+    height: 1px;
+    background: #ddd;
+    margin: 10px 0;
+}
+
+.double-recipe-section {
+    overflow: visible;
+}
+
+.calc-section-title {
+    color: #337ab7;
+    font-weight: bold;
+    font-size: 13px;
+    margin: 10px 0 8px 0;
+    padding: 5px 0;
+    border-bottom: 1px solid #ddd;
+}
+
+.calc-summary {
+    padding: 8px 0;
+    margin-top: 8px;
+}
+
+.calc-summary-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-right: 15px;
+}
+
+.calc-summary-item span:first-child {
+    color: #333;
+    font-size: 13px;
+}
+
+.calc-summary-item .value {
+    font-weight: bold;
+    color: #000;
+    font-size: 13px;
+}
+
+#sync-guest-double {
+    white-space: nowrap;
+    padding: 5px 12px;
+    font-size: 13px;
+    height: 30px;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .calc-result-row {
+        /* 保持横向排列，自动换行 */
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    
+    .calc-result-item {
+        /* 不强制100%宽度，让元素自然排列 */
+        flex: 0 1 auto;
+        min-width: auto;
+    }
+    
+    .calc-control-group {
+        /* 不强制100%宽度 */
+        flex: 0 1 auto;
+        min-width: auto;
+    }
+    
+    .calc-controls {
+        /* 保持横向排列 */
+        flex-wrap: wrap;
+    }
+    
+    /* 小屏幕下调整按钮样式 */
+    #sync-guest-double {
+        font-size: 12px;
+        padding: 5px 10px;
+        height: auto;
+        min-height: 30px;
+        white-space: nowrap;
+        width: 100%;
+    }
+    
+    /* 确保包含按钮的容器不会超出 */
+    .calc-result-row.calc-data-row {
+        gap: 8px;
+    }
+    
+    .calc-result-row.calc-data-row .calc-result-item {
+        flex: 1 1 auto;
+        min-width: 0;
+        max-width: 100%;
+    }
+    
+    /* 让按钮所在的容器占满整行 */
+    .calc-result-row.calc-data-row .calc-result-item:last-child {
+        grid-column: 1 / -1;
+        justify-content: center;
+    }
+}
+
+/* 超小屏幕（宽度小于450px）进一步调整 */
+@media (max-width: 450px) {
+    /* 改为2列布局 */
+    .calc-result-row.calc-data-row {
+        grid-template-columns: 1fr 1fr;
+    }
+    
+    /* 按钮独占一行 */
+    .calc-result-row.calc-data-row .calc-result-item:last-child {
+        grid-column: 1 / -1;
+        justify-content: center;
+    }
+    
+    #sync-guest-double {
+        font-size: 13px;
+        padding: 6px 12px;
+        width: auto;
+        max-width: 90%;
+    }
+}
+
+
+/* 隐藏贵客率计算页面中的调料选择框*/
+#pane-cal-custom.guest-rate-mode .condiment-box {
+    display: none !important
+}
+
+#pane-cal-custom.guest-rate-mode .recipe-box .recipe-condiment {
+    display: none !important
 }
