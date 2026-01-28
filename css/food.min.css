@@ -936,6 +936,25 @@ table.history-table tr td.history-dt {
     font-weight: 700
 }
 
+/* 规则选择框折叠功能样式 */
+.dropdown-header.collapsible {
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    padding-right: 30px;
+}
+
+.dropdown-header .collapse-icon {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%) rotate(0deg);
+    transition: transform 0.2s;
+    border-top-width: 6px;
+    border-right-width: 6px;
+    border-left-width: 6px;
+}
+
 .dropdown-item .text .name {
     font-weight: 700;
     color: #555

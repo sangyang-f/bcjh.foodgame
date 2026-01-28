@@ -9,8 +9,8 @@
     <link rel="stylesheet" type="text/css" href="css/style.min.css?v=1" />
     <script type="text/javascript" src="js/script.min.js?v=2"></script>
     <script type="text/javascript" src="js/common.min.js?v=7"></script>
-    <link rel="stylesheet" type="text/css" href="css/food.min.css?v=4" />
-    <script type="text/javascript" src="js/food.min.js?v=12"></script>
+    <link rel="stylesheet" type="text/css" href="css/food.min.css?v=5" />
+    <script type="text/javascript" src="js/food.min.js?v=13"></script>
     <link rel="stylesheet" type="text/css" href="css/image.css?v=8" />
     <script>
         $(function () {
@@ -19,7 +19,7 @@
                 xhr: function () {
                     var xhr = $.ajaxSettings.xhr();
                     xhr.addEventListener("progress", function (e) {
-                        var total = 1896698;
+                        var total = 1897484;
                         if (e.lengthComputable) {
                             total = e.total;
                         }
@@ -1186,6 +1186,11 @@
                                         <input type="checkbox" id="chk-cal-got" class="monitor-none">
                                         <i class="fa fa-check glyphicon glyphicon-ok"></i>
                                         已有
+                                    </label>
+                                    <label class="btn btn-default" id="label-cal-ultimated" data-toggle="tooltip" title="只显示已修炼的厨师（需要先勾选已有）" style="display: none;">
+                                        <input type="checkbox" id="chk-cal-ultimated" class="monitor-none" disabled>
+                                        <i class="fa fa-check glyphicon glyphicon-ok"></i>
+                                        已修炼
                                     </label>
                                     <div class="inline-wrapper select-wrapper" data-toggle="tooltip" title="选择星级,过滤菜谱">
                                         <select id="chk-cal-recipe-rarity" multiple class="selectpicker monitor-none"
