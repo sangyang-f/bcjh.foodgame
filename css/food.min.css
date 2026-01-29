@@ -955,6 +955,104 @@ table.history-table tr td.history-dt {
     border-left-width: 6px;
 }
 
+/* 菜谱选择框符文分组标题样式 */
+.bootstrap-select .select-picker-recipe + .dropdown-menu .dropdown-header.collapsible,
+.dropdown-menu .dropdown-header.collapsible.recipe-rune-header {
+    font-size: 15px !important;
+    font-weight: 600 !important;
+    color: #333 !important;
+    padding-top: 12px !important;
+    padding-bottom: 8px !important;
+    margin-top: 8px !important;
+}
+
+/* 第一个符文分组不需要上边距 */
+.bootstrap-select .select-picker-recipe + .dropdown-menu .dropdown-header.collapsible:first-of-type,
+.dropdown-menu .dropdown-header.collapsible.recipe-rune-header:first-of-type {
+    margin-top: 0 !important;
+}
+
+/* 批量应用遗玉选择框样式 */
+.bootstrap-select.btn-group #chk-chef-apply-amber-select + .dropdown-menu,
+.bootstrap-select #chk-chef-apply-amber-select + .dropdown-menu,
+#chk-chef-apply-amber-select + .btn-group .dropdown-menu,
+.chef-apply-ambers .bootstrap-select .dropdown-menu {
+    min-width: 250px !important;
+    width: 250px !important;
+}
+
+#chk-chef-apply-amber-select + .dropdown-menu .dropdown-menu-inner,
+.chef-apply-ambers .dropdown-menu .dropdown-menu-inner {
+    overflow-x: hidden !important;
+}
+
+#chk-chef-apply-amber-select + .dropdown-menu ul,
+.chef-apply-ambers .dropdown-menu ul {
+    overflow-x: hidden !important;
+}
+
+#chk-chef-apply-amber-select + .dropdown-menu .inner,
+.chef-apply-ambers .dropdown-menu .inner {
+    overflow-x: hidden !important;
+}
+
+/* 隐藏水平滚动条 */
+#chk-chef-apply-amber-select + .dropdown-menu::-webkit-scrollbar-track:horizontal,
+.chef-apply-ambers .dropdown-menu::-webkit-scrollbar-track:horizontal {
+    display: none !important;
+}
+
+#chk-chef-apply-amber-select + .dropdown-menu::-webkit-scrollbar:horizontal,
+.chef-apply-ambers .dropdown-menu::-webkit-scrollbar:horizontal {
+    display: none !important;
+    height: 0 !important;
+}
+
+#chk-chef-apply-amber-select + .dropdown-menu .dropdown-header.collapsible,
+.chef-apply-ambers .dropdown-menu .dropdown-header.collapsible {
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    color: #337ab7 !important;
+    padding-top: 10px !important;
+    padding-bottom: 8px !important;
+    padding-right: 40px !important;
+}
+
+#chk-chef-apply-amber-select + .dropdown-menu .dropdown-header .collapse-icon,
+.chef-apply-ambers .dropdown-menu .dropdown-header .collapse-icon {
+    right: 25px !important;
+}
+
+/* 贵客率计算器分类标签样式 */
+.dropdown-menu .chef-category-tabs,
+.dropdown-menu .equip-category-tabs,
+.dropdown-menu .recipe-category-tabs {
+    margin: 5px 10px 5px 10px !important;
+    border-bottom: 1px solid #ddd !important;
+    list-style: none !important;
+    padding: 0 !important;
+    display: flex !important;
+    width: calc(100% - 20px) !important;
+}
+
+.dropdown-menu .chef-category-tabs li,
+.dropdown-menu .equip-category-tabs li,
+.dropdown-menu .recipe-category-tabs li {
+    flex: 1 !important;
+    text-align: center !important;
+    margin: 0 !important;
+}
+
+.dropdown-menu .chef-category-tabs li a,
+.dropdown-menu .equip-category-tabs li a,
+.dropdown-menu .recipe-category-tabs li a {
+    padding: 5px 8px !important;
+    display: block !important;
+    text-decoration: none !important;
+    white-space: nowrap !important;
+    font-size: 13px !important;
+}
+
 .dropdown-item .text .name {
     font-weight: 700;
     color: #555
@@ -1596,7 +1694,7 @@ table.dataTable tr.selected td.select-checkbox:after,table.dataTable tr.selected
 
 .calc-result-row.calc-data-row {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
     gap: 0;
     margin-bottom: 8px;
     padding: 5px 0;
@@ -1608,12 +1706,16 @@ table.dataTable tr.selected td.select-checkbox:after,table.dataTable tr.selected
     gap: 5px;
     justify-content: flex-start;
     padding: 0 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    min-width: 0;
 }
 
 .calc-result-item {
     display: inline-flex;
     align-items: center;
     gap: 5px;
+    white-space: nowrap;
 }
 
 .calc-result-item label {
@@ -1622,12 +1724,46 @@ table.dataTable tr.selected td.select-checkbox:after,table.dataTable tr.selected
     color: #333;
     white-space: nowrap;
     font-size: 13px;
+    flex-shrink: 0;
 }
 
 .calc-result-item .value {
     font-weight: bold;
     color: #000;
     font-size: 13px;
+    white-space: nowrap;
+    flex-shrink: 1;
+    min-width: 0;
+}
+
+/* 当容器宽度小于800px时，缩小字体 */
+@media (max-width: 550px) {
+    .calc-result-item label {
+        font-size: 12px;
+    }
+    
+    .calc-result-item .value {
+        font-size: 12px;
+    }
+    
+    .calc-result-item .value.highlight {
+        font-size: 13px;
+    }
+}
+
+/* 当容器宽度小于500px时，进一步缩小字体 */
+@media (max-width: 450px) {
+    .calc-result-item label {
+        font-size: 11px;
+    }
+    
+    .calc-result-item .value {
+        font-size: 11px;
+    }
+    
+    .calc-result-item .value.highlight {
+        font-size: 12px;
+    }
 }
 
 .calc-result-item .value.highlight {
@@ -1799,25 +1935,18 @@ table.dataTable tr.selected td.select-checkbox:after,table.dataTable tr.selected
         max-width: 100%;
     }
     
-    /* 让按钮所在的容器占满整行 */
     .calc-result-row.calc-data-row .calc-result-item:last-child {
-        grid-column: 1 / -1;
-        justify-content: center;
+        justify-content: flex-start;
     }
 }
 
-/* 超小屏幕（宽度小于450px）进一步调整 */
+/* 超小屏幕 */
 @media (max-width: 450px) {
-    /* 改为2列布局 */
+    /* 保持3列布局*/
     .calc-result-row.calc-data-row {
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
     }
     
-    /* 按钮独占一行 */
-    .calc-result-row.calc-data-row .calc-result-item:last-child {
-        grid-column: 1 / -1;
-        justify-content: center;
-    }
     
     #sync-guest-double {
         font-size: 13px;
