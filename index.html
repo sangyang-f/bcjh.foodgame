@@ -9,9 +9,10 @@
     <link rel="stylesheet" type="text/css" href="css/style.min.css?v=1" />
     <script type="text/javascript" src="js/script.min.js?v=2"></script>
     <script type="text/javascript" src="js/common.min.js?v=7"></script>
-    <link rel="stylesheet" type="text/css" href="css/food.min.css?v=6" />
-    <script type="text/javascript" src="js/guest.calculator.js?v=1"></script>
-    <script type="text/javascript" src="js/food.min.js?v=14"></script>
+    <link rel="stylesheet" type="text/css" href="css/food.min.css?v=7" />
+    <script type="text/javascript" src="js/guest.calculator.js?v=2"></script>
+    <script type="text/javascript" src="js/food.min.js?v=15"></script>
+    <script type="text/javascript" src="js/query.cultivate.js?v=1"></script>
     <link rel="stylesheet" type="text/css" href="css/image.css?v=8" />
     <script>
         $(function () {
@@ -1017,7 +1018,7 @@
                                     data-dropdown-align-right='auto' data-live-search-placeholder='查找'
                                     data-none-results-text='没有找到' data-none-selected-text='选择规则'>
                                     <optgroup label="正常营业">
-                                        <option value='0'>正常营业</option>
+                                        <option value='0'>正常营业/修炼查询</option>
                                         <option value='guest-rate'>贵客率计算</option>
                                     </optgroup>
                                     <optgroup label="风云宴"></optgroup>
@@ -1036,7 +1037,7 @@
                             <button id="btn-cal-rule-load" class="btn btn-danger" type="button">
                                 加载
                             </button>
-                            <button id="btn-cal-history" class="btn btn-info" type="button">
+                            <button id="btn-cal-history" class="btn btn-primary" type="button">
                                 历史计算器
                             </button>
                             <div class="btn-group cal-menu hidden" data-toggle="buttons">
@@ -1248,6 +1249,26 @@
                                     <button id="btn-cal-reset-custom" class="btn btn-default" type="button">
                                         清空过滤
                                     </button>
+                                    <button id="btn-cal-clear-selected" class="btn btn-default" type="button">
+                                        清空场上已选
+                                    </button>
+                                    <div id="unultimated-mode-wrapper" class="inline-wrapper hidden" style="margin-right: 5px;">
+                                        <input id="chk-unultimated-mode" type="checkbox" data-toggle="toggle"
+                                            data-on="修炼查询模式开" data-off="修炼查询模式关" data-onstyle="primary" data-offstyle="default" data-width="130px">
+                                    </div>
+                                    <div id="unultimated-chef-wrapper" class="inline-wrapper select-wrapper hidden" data-toggle="tooltip" title="选择查询修炼厨师">
+                                        <select id="select-cal-unultimated-chef" class="selectpicker monitor-none" multiple
+                                            data-width="140px" data-dropdown-align-right='auto'
+                                            data-none-selected-text="未修炼厨师" data-live-search="true"
+                                            data-live-search-placeholder="查找" data-none-results-text="没有找到"
+                                            data-max-options="3" data-max-options-text="最多选择3个"
+                                            data-selected-text-format="count" data-count-selected-text="{0}个厨师">
+                                        </select>
+                                    </div>
+                                    <div id="unultimated-chef-action-wrapper" class="btn-group hidden">
+                                        <button id="btn-unultimated-query" class="btn btn-default" type="button" onmouseup="this.blur()">查询</button>
+                                        <button id="btn-unultimated-config" class="btn btn-default" type="button" data-toggle="modal" data-target="#unultimated-config-modal">配置</button>
+                                    </div>
                                 </div>
                             </div>
                             <div class="pane-cal-recipes pane-cal-sub hidden">
@@ -2705,6 +2726,33 @@
             <div class="modal-content">
                 <div class="modal-body">
                     <a class="close" data-dismiss="modal"><span>&times;</span></a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal center" id="unultimated-config-modal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header text-center">
+                    <a class="close" data-dismiss="modal"><span>&times;</span></a>
+                    <span class="modal-title">厨师修炼查询配置</span>
+                </div>
+                <div class="modal-body">
+                    <p>
+                        <input type="checkbox" id="chk-unultimated-use-strong-equip" data-toggle="toggle" 
+                            data-on="开" data-off="关" data-onstyle="default" data-size="small" data-width="50px">
+                        <span class="setting-tip">
+                            使用强力厨具（加成100以上厨具）
+                        </span>
+                    </p>
+                    <p>
+                        <input type="checkbox" id="chk-unultimated-use-no-recipe" data-toggle="toggle" 
+                            data-on="开" data-off="关" data-onstyle="default" data-size="small" data-width="50px">
+                        <span class="setting-tip">
+                            使用未拥有菜谱
+                        </span>
+                    </p>
                 </div>
             </div>
         </div>

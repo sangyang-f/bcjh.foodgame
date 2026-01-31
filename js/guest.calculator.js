@@ -1177,8 +1177,10 @@ var GuestRateCalculator = (function($) {
         return result;
     }
     
-    // 全局变量：保存当前选中的分类，所有选择框共享
+    // 全局变量：保存当前选中的分类，每种选择框类型独立保存
     var globalChefCategory = null;
+    var globalEquipCategory = null;
+    var globalRecipeCategory = null;
     
     // 全局变量：保存符文分组的展开/收起状态
     var runeGroupExpandState = {};
@@ -1229,28 +1231,28 @@ var GuestRateCalculator = (function($) {
             var tabsHtml = '';
             
             if (selectorType === 'chef') {
-                // 厨师：全部、贵客、暴击、时间、符文
+                // 厨师：贵客、暴击、时间、符文、全部
                 tabsHtml = '<ul class="nav nav-tabs ' + tabsClass + '">' +
-                    '<li class="active"><a href="#" class="tab-all">全部</a></li>' +
-                    '<li><a href="#" class="tab-guest" data-category="guest-rate-category">贵客</a></li>' +
+                    '<li class="active"><a href="#" class="tab-guest" data-category="guest-rate-category">贵客</a></li>' +
                     '<li><a href="#" class="tab-crit" data-category="crit-category">暴击</a></li>' +
                     '<li><a href="#" class="tab-time" data-category="time-category">时间</a></li>' +
                     '<li><a href="#" class="tab-rune" data-category="rune-category">符文</a></li>' +
+                    '<li><a href="#" class="tab-all">全部</a></li>' +
                     '</ul>';
             } else if (selectorType === 'equip') {
-                // 厨具：全部、贵客、时间
+                // 厨具：贵客、时间、全部
                 tabsHtml = '<ul class="nav nav-tabs ' + tabsClass + '">' +
-                    '<li class="active"><a href="#" class="tab-all">全部</a></li>' +
-                    '<li><a href="#" class="tab-guest" data-category="guest-rate-category">贵客</a></li>' +
+                    '<li class="active"><a href="#" class="tab-guest" data-category="guest-rate-category">贵客</a></li>' +
                     '<li><a href="#" class="tab-time" data-category="time-category">时间</a></li>' +
+                    '<li><a href="#" class="tab-all">全部</a></li>' +
                     '</ul>';
             } else if (selectorType === 'recipe') {
-                // 菜谱：全部、金符文、银符文、铜符文
+                // 菜谱：金符文、银符文、铜符文、全部
                 tabsHtml = '<ul class="nav nav-tabs ' + tabsClass + '">' +
-                    '<li class="active"><a href="#" class="tab-all">全部</a></li>' +
-                    '<li><a href="#" class="tab-gold" data-category="gold-rune-category">金符文</a></li>' +
+                    '<li class="active"><a href="#" class="tab-gold" data-category="gold-rune-category">金符文</a></li>' +
                     '<li><a href="#" class="tab-silver" data-category="silver-rune-category">银符文</a></li>' +
                     '<li><a href="#" class="tab-bronze" data-category="bronze-rune-category">铜符文</a></li>' +
+                    '<li><a href="#" class="tab-all">全部</a></li>' +
                     '</ul>';
             }
             
@@ -1296,14 +1298,22 @@ var GuestRateCalculator = (function($) {
                     filterAndSortRecipes($select, currentOptionsHtml, categoryName === 'all' ? null : categoryName, sortKey);
                 } else {
                     // 厨师和厨具使用通用的过滤函数
-                    filterAndSortChefs($select, currentOptionsHtml, categoryName === 'all' ? null : categoryName, sortKey);
+                    filterAndSortChefs($select, currentOptionsHtml, categoryName === 'all' ? null : categoryName, sortKey, selectorType);
                 }
                 
                 return false;
             });
             
             // 立即应用保存的分类，避免闪动
-            var categoryToApply = globalChefCategory;
+            // 根据选择框类型获取对应的全局变量
+            var categoryToApply = null;
+            if (selectorType === 'chef') {
+                categoryToApply = globalChefCategory;
+            } else if (selectorType === 'equip') {
+                categoryToApply = globalEquipCategory;
+            } else if (selectorType === 'recipe') {
+                categoryToApply = globalRecipeCategory;
+            }
             
             if (categoryToApply) {
                 // 恢复标签选中状态
@@ -1324,14 +1334,34 @@ var GuestRateCalculator = (function($) {
                 if (selectorType === 'recipe') {
                     filterAndSortRecipes($select, currentOptionsHtml, categoryToApply.category, categoryToApply.sortKey);
                 } else {
-                    filterAndSortChefs($select, currentOptionsHtml, categoryToApply.category, categoryToApply.sortKey);
+                    filterAndSortChefs($select, currentOptionsHtml, categoryToApply.category, categoryToApply.sortKey, selectorType);
                 }
             } else {
-                $dropdown.find('.tab-all').parent().addClass('active');
+                // 初始化时根据选择框类型设置默认分类
+                var defaultCategory = null;
+                var defaultSortKey = null;
+                
+                if (selectorType === 'chef') {
+                    // 厨师默认选择"贵客"
+                    defaultCategory = 'guest-rate-category';
+                    defaultSortKey = 'guestRate';
+                    $dropdown.find('.tab-guest').parent().addClass('active');
+                } else if (selectorType === 'equip') {
+                    // 厨具默认选择"贵客"
+                    defaultCategory = 'guest-rate-category';
+                    defaultSortKey = 'guestRate';
+                    $dropdown.find('.tab-guest').parent().addClass('active');
+                } else if (selectorType === 'recipe') {
+                    // 菜谱默认选择"金符文"
+                    defaultCategory = 'gold-rune-category';
+                    defaultSortKey = 'recipeTime';
+                    $dropdown.find('.tab-gold').parent().addClass('active');
+                }
+                
                 if (selectorType === 'recipe') {
-                    filterAndSortRecipes($select, currentOptionsHtml, null, null);
+                    filterAndSortRecipes($select, currentOptionsHtml, defaultCategory, defaultSortKey);
                 } else {
-                    filterAndSortChefs($select, currentOptionsHtml, null, null);
+                    filterAndSortChefs($select, currentOptionsHtml, defaultCategory, defaultSortKey, selectorType);
                 }
             }
         });
@@ -1346,8 +1376,8 @@ var GuestRateCalculator = (function($) {
      * @param {string} sortKey - 排序键
      */
     function filterAndSortRecipes($select, originalHtml, categoryName, sortKey) {
-        // 保存当前选中的分类到全局变量（所有选择框共享）
-        globalChefCategory = {category: categoryName, sortKey: sortKey};
+        // 保存当前选中的分类到菜谱专用全局变量
+        globalRecipeCategory = {category: categoryName, sortKey: sortKey};
         
         var sp = $select.data('selectpicker');
         if (!sp) return;
@@ -2080,10 +2110,15 @@ var GuestRateCalculator = (function($) {
      * @param {string} originalHtml - 原始的 option HTML
      * @param {string} categoryName - 分类名称
      * @param {string} sortKey - 排序键
+     * @param {string} selectorType - 选择框类型：'chef' 或 'equip'
      */
-    function filterAndSortChefs($select, originalHtml, categoryName, sortKey) {
-        // 保存当前选中的分类到全局变量（所有选择框共享）
-        globalChefCategory = {category: categoryName, sortKey: sortKey};
+    function filterAndSortChefs($select, originalHtml, categoryName, sortKey, selectorType) {
+        // 保存当前选中的分类到对应的全局变量
+        if (selectorType === 'equip') {
+            globalEquipCategory = {category: categoryName, sortKey: sortKey};
+        } else {
+            globalChefCategory = {category: categoryName, sortKey: sortKey};
+        }
         
         var sp = $select.data('selectpicker');
         if (!sp) return;

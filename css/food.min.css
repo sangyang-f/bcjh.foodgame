@@ -1026,7 +1026,10 @@ table.history-table tr td.history-dt {
 /* 贵客率计算器分类标签样式 */
 .dropdown-menu .chef-category-tabs,
 .dropdown-menu .equip-category-tabs,
-.dropdown-menu .recipe-category-tabs {
+.dropdown-menu .recipe-category-tabs,
+.dropdown-menu .cultivation-category-tabs,
+.dropdown-menu .cultivation-equip-category-tabs,
+.dropdown-menu .cultivation-recipe-category-tabs {
     margin: 5px 10px 5px 10px !important;
     border-bottom: 1px solid #ddd !important;
     list-style: none !important;
@@ -1037,7 +1040,10 @@ table.history-table tr td.history-dt {
 
 .dropdown-menu .chef-category-tabs li,
 .dropdown-menu .equip-category-tabs li,
-.dropdown-menu .recipe-category-tabs li {
+.dropdown-menu .recipe-category-tabs li,
+.dropdown-menu .cultivation-category-tabs li,
+.dropdown-menu .cultivation-equip-category-tabs li,
+.dropdown-menu .cultivation-recipe-category-tabs li {
     flex: 1 !important;
     text-align: center !important;
     margin: 0 !important;
@@ -1045,7 +1051,10 @@ table.history-table tr td.history-dt {
 
 .dropdown-menu .chef-category-tabs li a,
 .dropdown-menu .equip-category-tabs li a,
-.dropdown-menu .recipe-category-tabs li a {
+.dropdown-menu .recipe-category-tabs li a,
+.dropdown-menu .cultivation-category-tabs li a,
+.dropdown-menu .cultivation-equip-category-tabs li a,
+.dropdown-menu .cultivation-recipe-category-tabs li a {
     padding: 5px 8px !important;
     display: block !important;
     text-decoration: none !important;
@@ -1964,4 +1973,15 @@ table.dataTable tr.selected td.select-checkbox:after,table.dataTable tr.selected
 
 #pane-cal-custom.guest-rate-mode .recipe-box .recipe-condiment {
     display: none !important
+}
+
+
+#btn-unultimated-config:focus,
+#btn-unultimated-config:active,
+#btn-unultimated-query:focus,
+#btn-unultimated-query:active {
+    outline: none;
+    box-shadow: none;
+    background-color: #fff;
+    border-color: #ccc;
 }
