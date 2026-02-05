@@ -301,7 +301,7 @@ table.dataTable tbody>tr.selected,table.dataTable tbody>tr>.selected {
 }
 
 .guest-rate-calculator .bootstrap-select .dropdown-menu {
-    z-index: 1310 !important;
+    z-index: 1800 !important;
 }
 
 .header-wrapper .bootstrap-select .dropdown-menu {
@@ -352,7 +352,10 @@ table.dataTable tbody>tr.selected,table.dataTable tbody>tr>.selected {
     margin-left: auto;
     margin-right: auto;
     margin-bottom: 10px;
-    align-items: center
+    align-items: center;
+    overflow: visible;
+    position: relative;
+    z-index: 100;
 }
 
 .selected-item {
@@ -540,6 +543,32 @@ table.dataTable tbody>tr.selected,table.dataTable tbody>tr>.selected {
 
 .recipe-box .recipe-ric .rank {
     padding-right: 5px
+}
+
+/* 品级颜色样式 */
+.recipe-box .recipe-ric .rank.rank-ke {
+    color: #000000;
+    font-weight: bold
+}
+
+.recipe-box .recipe-ric .rank.rank-you {
+    color: #28a745;
+    font-weight: bold
+}
+
+.recipe-box .recipe-ric .rank.rank-te {
+    color: #fd7e14;
+    font-weight: bold
+}
+
+.recipe-box .recipe-ric .rank.rank-shen {
+    color: #dc3545;
+    font-weight: bold
+}
+
+.recipe-box .recipe-ric .rank.rank-chuan {
+    color: #6f42c1;
+    font-weight: bold
 }
 
 .recipe-box .recipe-ric .condiment {
@@ -1564,6 +1593,30 @@ table.dataTable tr.selected td.select-checkbox:after,table.dataTable tr.selected
     display: inline !important;
 }
 
+/* 未修炼厨师选择框按钮中只显示厨师名字，隐藏星级和其他内容 */
+#unultimated-chef-wrapper .bootstrap-select .dropdown-toggle .filter-option-inner-inner > div {
+    line-height: normal !important;
+    padding: 0 !important;
+    border-bottom: none !important;
+}
+#unultimated-chef-wrapper .bootstrap-select .dropdown-toggle .filter-option-inner-inner .subtext,
+#unultimated-chef-wrapper .bootstrap-select .dropdown-toggle .filter-option-inner-inner br,
+#unultimated-chef-wrapper .bootstrap-select .dropdown-toggle .filter-option-inner-inner span:not(.name) {
+    display: none !important;
+}
+
+/* 菜谱神级方案查询选择框按钮中只显示菜谱名字，隐藏星级和技法信息 */
+#recipe-god-query-wrapper .bootstrap-select .dropdown-toggle .filter-option-inner-inner > div {
+    line-height: normal !important;
+    padding: 0 !important;
+    border-bottom: none !important;
+}
+#recipe-god-query-wrapper .bootstrap-select .dropdown-toggle .filter-option-inner-inner .subtext,
+#recipe-god-query-wrapper .bootstrap-select .dropdown-toggle .filter-option-inner-inner br,
+#recipe-god-query-wrapper .bootstrap-select .dropdown-toggle .filter-option-inner-inner span:not(.name) {
+    display: none !important;
+}
+
 
 
 
@@ -1650,6 +1703,8 @@ table.dataTable tr.selected td.select-checkbox:after,table.dataTable tr.selected
     display: block;
     padding: 10px;
     overflow: visible;
+    position: relative;
+    z-index: 10;
 }
 
 .guest-rate-calculator.collapsed .calc-result-content {
@@ -1672,6 +1727,8 @@ table.dataTable tr.selected td.select-checkbox:after,table.dataTable tr.selected
     margin-right: auto;
     display: flex;
     flex-direction: column;
+    position: relative;
+    z-index: 1;
 }lt-row {
     display: flex;
     gap: 15px;
@@ -1685,20 +1742,19 @@ table.dataTable tr.selected td.select-checkbox:after,table.dataTable tr.selected
 
 .calc-result-row.calc-controls {
     overflow: visible !important;
-    z-index: 1;
     position: relative;
 }
 
 .calc-result-row.calc-controls:nth-child(1) {
-    z-index: 1;
+    z-index: auto;
 }
 
 .calc-result-row.calc-controls:nth-child(2) {
-    z-index: 1;
+    z-index: auto;
 }
 
 .calc-result-row.calc-controls:nth-child(3) {
-    z-index: 1;
+    z-index: auto;
 }
 
 .calc-result-row.calc-data-row {
@@ -1859,6 +1915,27 @@ table.dataTable tr.selected td.select-checkbox:after,table.dataTable tr.selected
     overflow: visible;
 }
 
+/* 同贵客双菜谱区域的行层级设置 */
+.double-recipe-section .calc-result-row {
+    position: relative;
+}
+
+.double-recipe-section .calc-result-row.calc-controls:nth-of-type(1) {
+    z-index: 10;
+}
+
+.double-recipe-section .calc-result-row.calc-controls:nth-of-type(2) {
+    z-index: 9;
+}
+
+.double-recipe-section .calc-result-row.calc-controls:nth-of-type(3) {
+    z-index: 8;
+}
+
+.double-recipe-section .calc-result-row.calc-summary {
+    z-index: 1;
+}
+
 .calc-section-title {
     color: #337ab7;
     font-weight: bold;
@@ -1984,4 +2061,575 @@ table.dataTable tr.selected td.select-checkbox:after,table.dataTable tr.selected
     box-shadow: none;
     background-color: #fff;
     border-color: #ccc;
+}
+
+/* 
+   贵客率计算一键查询模块样式*/
+
+/* 计算结果头部按钮区域 */
+.calc-header-buttons {
+    display: inline-flex;
+    gap: 8px;
+    margin-left: 15px;
+}
+
+.calc-header-buttons .btn {
+    padding: 4px 10px;
+    font-size: 12px;
+}
+
+.calc-header-buttons .btn .glyphicon {
+    margin-right: 3px;
+}
+
+/* 查询设置弹窗样式 */
+#oneclick-settings-modal .modal-body {
+    max-height: 70vh;
+    overflow: visible;
+}
+
+#oneclick-settings-modal .modal-content {
+    overflow: visible;
+}
+
+/* 厨具选择框容器需要允许溢出 */
+#oneclick-settings-modal .oneclick-equip-select-wrapper {
+    position: relative;
+}
+
+#oneclick-settings-modal .settings-row {
+    margin-bottom: 15px;
+}
+
+#oneclick-settings-modal .setting-card {
+    background: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 10px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* 厨具选择行特殊布局：label和内容紧贴 */
+#oneclick-settings-modal .setting-card:has(#equip-selection-container) {
+    justify-content: flex-start;
+    gap: 10px;
+}
+
+#oneclick-settings-modal .setting-card label {
+    margin: 0;
+    font-size: 13px;
+    font-weight: normal;
+    color: #333;
+}
+
+/* 开关样式 */
+#oneclick-settings-modal .switch-container {
+    position: relative;
+}
+
+#oneclick-settings-modal .switch-container input[type="checkbox"] {
+    display: none;
+}
+
+#oneclick-settings-modal .switch-label {
+    display: inline-block;
+    width: 44px;
+    height: 22px;
+    background: #337ab7;
+    border-radius: 11px;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.3s;
+    margin: 0;
+}
+
+#oneclick-settings-modal .switch-label::after {
+    content: '';
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    background: #fff;
+    border-radius: 50%;
+    top: 2px;
+    left: 2px;
+    transition: left 0.3s;
+}
+
+#oneclick-settings-modal input[type="checkbox"]:checked + .switch-label {
+    background: #337ab7;
+}
+
+#oneclick-settings-modal input[type="checkbox"]:checked + .switch-label::after {
+    left: 24px;
+}
+
+/* "使用场上已有配置"开关特殊样式：关闭时灰色，开启时蓝色 */
+#oneclick-settings-modal #setting-useExistingConfig + .switch-label {
+    background: #ccc;
+}
+
+#oneclick-settings-modal #setting-useExistingConfig:checked + .switch-label {
+    background: #337ab7;
+}
+
+/* 符文选择区域样式 */
+#oneclick-settings-modal .rune-section {
+    margin-bottom: 15px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+#oneclick-settings-modal .rune-header {
+    background: #f5f5f5;
+    padding: 10px 15px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+#oneclick-settings-modal .rune-header:hover {
+    background: #eee;
+}
+
+#oneclick-settings-modal .rune-title {
+    font-weight: bold;
+    font-size: 14px;
+    color: #333;
+}
+
+#oneclick-settings-modal .rune-count {
+    color: #666;
+    font-size: 12px;
+    margin-left: 10px;
+}
+
+#oneclick-settings-modal .rune-header .glyphicon {
+    color: #666;
+}
+
+#oneclick-settings-modal .rune-list {
+    padding: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+#oneclick-settings-modal .rune-item {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 8px 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+    min-width: 120px;
+}
+
+#oneclick-settings-modal .rune-item:hover {
+    border-color: #337ab7;
+    background: #f0f7ff;
+}
+
+#oneclick-settings-modal .rune-item.selected {
+    background: #337ab7;
+    border-color: #337ab7;
+    color: #fff;
+}
+
+#oneclick-settings-modal .rune-item .rune-name {
+    font-size: 13px;
+    flex: 1;
+}
+
+#oneclick-settings-modal .rune-item .glyphicon {
+    font-size: 12px;
+}
+
+#oneclick-settings-modal .rune-item.selected .glyphicon {
+    color: #fff;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .calc-header-buttons {
+        display: flex;
+        margin-left: 0;
+        margin-top: 8px;
+    }
+    
+    .calc-result-header {
+        flex-wrap: wrap;
+    }
+    
+    #oneclick-settings-modal .rune-item {
+        min-width: calc(50% - 4px);
+    }
+}
+
+@media (max-width: 480px) {
+    #oneclick-settings-modal .rune-item {
+        min-width: 100%;
+    }
+    
+    .calc-header-buttons .btn {
+        padding: 3px 8px;
+        font-size: 11px;
+    }
+}
+
+/* 一键查询厨具选择框样式 */
+#oneclick-settings-modal .oneclick-equip-select-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+/* 自定义按钮样式 */
+#oneclick-settings-modal .oneclick-equip-custom-btn {
+    display: inline-flex;
+    align-items: center;
+    min-width: 200px;
+    max-width: 500px;
+    min-height: 34px;
+    padding: 4px 30px 4px 10px;
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    cursor: pointer;
+    position: relative;
+}
+
+#oneclick-settings-modal .oneclick-equip-custom-btn:hover {
+    border-color: #888;
+}
+
+#oneclick-settings-modal .oneclick-equip-btn-content {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    color: #999;
+}
+
+#oneclick-settings-modal .oneclick-equip-btn-caret {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    border-top: 4px solid #333;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+}
+
+/* 已选厨具标签样式 */
+#oneclick-settings-modal .oneclick-selected-equip-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    background: #337ab7;
+    color: #fff;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+#oneclick-settings-modal .oneclick-selected-equip-tag .remove-equip-btn {
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    opacity: 0.8;
+    margin-left: 2px;
+}
+
+#oneclick-settings-modal .oneclick-selected-equip-tag .remove-equip-btn:hover {
+    opacity: 1;
+}
+
+/* 选择数量统计 */
+#oneclick-settings-modal .oneclick-equip-count {
+    margin-left: 10px;
+    color: #666;
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+/* 下拉菜单样式 */
+#oneclick-settings-modal .oneclick-equip-dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 1800;
+    min-width: 350px;
+    max-height: 500px;
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-shadow: 0 6px 12px rgba(0,0,0,0.175);
+    overflow: hidden;
+    margin-top: 2px;
+}
+
+/* 分类标签 */
+#oneclick-settings-modal .oneclick-equip-category-tabs {
+    display: flex;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border-bottom: 1px solid #ddd;
+}
+
+#oneclick-settings-modal .oneclick-equip-category-tabs li {
+    flex: 1;
+    text-align: center;
+}
+
+#oneclick-settings-modal .oneclick-equip-category-tabs li a {
+    display: block;
+    padding: 8px;
+    color: #666;
+    text-decoration: none;
+    border-bottom: 2px solid transparent;
+}
+
+#oneclick-settings-modal .oneclick-equip-category-tabs li a:hover {
+    color: #337ab7;
+}
+
+#oneclick-settings-modal .oneclick-equip-category-tabs li.active a {
+    color: #337ab7;
+    border-bottom-color: #337ab7;
+}
+
+/* 搜索框 */
+#oneclick-settings-modal .oneclick-equip-search {
+    padding: 8px;
+    border-bottom: 1px solid #eee;
+}
+
+#oneclick-settings-modal .oneclick-equip-search input {
+    width: 100%;
+}
+
+/* 清空按钮 */
+#oneclick-settings-modal .oneclick-equip-clear-btn {
+    padding: 4px 8px;
+    border-bottom: 1px solid #eee;
+}
+
+#oneclick-settings-modal .oneclick-equip-clear-btn .btn {
+    width: 100%;
+    font-size: 12px;
+}
+
+/* 厨具列表 */
+#oneclick-settings-modal .oneclick-equip-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 380px;
+    overflow-y: auto;
+}
+
+#oneclick-settings-modal .oneclick-equip-list li {
+    padding: 8px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #f5f5f5;
+}
+
+#oneclick-settings-modal .oneclick-equip-list li:hover {
+    background: #f5f5f5;
+}
+
+#oneclick-settings-modal .oneclick-equip-list li .name {
+    font-weight: 700;
+    color: #555;
+}
+
+#oneclick-settings-modal .oneclick-equip-list li .subtext {
+    font-size: 11px;
+    color: #777;
+    padding-left: 5px;
+}
+
+/* 厨具选择响应式调整 - 页面宽度小于700px */
+@media (max-width: 700px) {
+    #oneclick-settings-modal .oneclick-equip-custom-btn {
+        min-width: 150px;
+        max-width: 350px;
+    }
+    
+    #oneclick-settings-modal .oneclick-equip-dropdown {
+        min-width: 280px;
+    }
+}
+
+@media (max-width: 480px) {
+    #oneclick-settings-modal .oneclick-equip-custom-btn {
+        min-width: 120px;
+        max-width: 280px;
+    }
+    
+    #oneclick-settings-modal .oneclick-equip-dropdown {
+        min-width: 250px;
+    }
+}
+
+
+/* 一键查询提示消息样式 */
+.oneclick-toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 12px 20px;
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 10000;
+    font-size: 14px;
+    max-width: 300px;
+    animation: fadeIn 0.3s ease;
+}
+
+.oneclick-toast.toast-info {
+    background-color: #17a2b8;
+    color: #fff;
+}
+
+.oneclick-toast.toast-warning {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.oneclick-toast.toast-error {
+    background-color: #dc3545;
+    color: #fff;
+}
+
+.oneclick-toast.toast-success {
+    background-color: #28a745;
+    color: #fff;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* 一键查询自定义提示弹窗样式 */
+.common-alert-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: transparent;
+    display: flex;
+    justify-content: flex-end;
+    align-items: flex-start;
+    z-index: 10000;
+    padding: 20px;
+    pointer-events: none;
+}
+
+.common-alert-box {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    min-width: 280px;
+    max-width: 400px;
+    overflow: hidden;
+    animation: alertSlideIn 0.3s ease-out;
+    pointer-events: auto;
+}
+
+.common-alert-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px 12px;
+}
+
+.common-alert-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+}
+
+.common-alert-close {
+    font-size: 24px;
+    color: #999;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0 4px;
+}
+
+.common-alert-close:hover {
+    color: #666;
+}
+
+.common-alert-body {
+    padding: 0 20px 20px;
+    font-size: 15px;
+    color: #666;
+    line-height: 1.6;
+}
+
+@keyframes alertSlideIn {
+    from { 
+        opacity: 0; 
+        transform: translateX(20px);
+    }
+    to { 
+        opacity: 1; 
+        transform: translateX(0);
+    }
+}
+
+/* 公共Toast提示样式 */
+.common-toast {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 12px 24px;
+    border-radius: 4px;
+    font-size: 14px;
+    z-index: 10001;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.common-toast.toast-info {
+    background-color: #17a2b8;
+    color: #fff;
+}
+
+.common-toast.toast-warning {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.common-toast.toast-error {
+    background-color: #dc3545;
+    color: #fff;
+}
+
+.common-toast.toast-success {
+    background-color: #28a745;
+    color: #fff;
+}
+
+@keyframes alertFadeIn {
+    from { 
+        opacity: 0; 
+        transform: scale(0.95);
+    }
+    to { 
+        opacity: 1; 
+        transform: scale(1);
+    }
 }

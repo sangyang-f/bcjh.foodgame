@@ -2,7 +2,6 @@
  * 贵客率计算器模块
  * Guest Rate Calculator Module
  * 
- * @version 1.0.0
  * @description 独立的贵客率计算模块，负责处理所有与贵客率计算相关的逻辑
  * 
  * @dependencies
@@ -351,6 +350,242 @@ var GuestRateCalculator = (function($) {
         $("#guest-rate-input, #star-level-2, #quantity-value-2, #star-level-3, #quantity-value-3").on("change input", function() {
             calculateDualRecipe();
         });
+        
+        // 覆盖 getCalRecipeDisp 函数，在贵客率计算模式下显示符文信息
+        if (typeof window.getCalRecipeDisp === 'function') {
+            var originalGetCalRecipeDisp = window.getCalRecipeDisp;
+            window.getCalRecipeDisp = function(e) {
+                var a = e.data;
+                var recipeName = a.name;
+                
+                // 在贵客率计算模式下，尝试获取符文信息
+                if (isGuestRateMode() && typeof calCustomRule !== 'undefined' && calCustomRule.gameData && calCustomRule.gameData.guests) {
+                    var runeName = getRecipeRuneName(a, calCustomRule.gameData);
+                    if (runeName) {
+                        recipeName = a.name + '-' + runeName;
+                    }
+                }
+                
+                var rankClass = '';
+                if (e.rankDisp) {
+                    if (e.rankDisp === '可') rankClass = ' rank-ke';
+                    else if (e.rankDisp === '优') rankClass = ' rank-you';
+                    else if (e.rankDisp === '特') rankClass = ' rank-te';
+                    else if (e.rankDisp === '神') rankClass = ' rank-shen';
+                    else if (e.rankDisp === '传') rankClass = ' rank-chuan';
+                }
+                
+                return "<div class='name'>" + recipeName + "</div><div class='recipe-ric'><div class='rank" + rankClass + "'>" + (e.rankDisp ? e.rankDisp : "") + "</div><div class='icon-box'>" + a.icon + "</div><div class='condiment'>" + a.condimentDisp + "</div></div>";
+            };
+        }
+        
+        // 覆盖 getCustomAmbersOptions 函数，在贵客率计算模式和修炼查询模式下过滤心法盘
+        if (typeof window.getCustomAmbersOptions === 'function') {
+            var originalGetCustomAmbersOptions = window.getCustomAmbersOptions;
+            window.getCustomAmbersOptions = function(e, a, t, i, l) {
+                // 调用原始函数获取选项列表
+                var options = originalGetCustomAmbersOptions(e, a, t, i, l);
+                
+                // 检查是否为修炼查询模式
+                var isCultivateMode = calCustomRule && calCustomRule.isCultivate === true;
+                
+                // 如果不是贵客率计算模式也不是修炼查询模式，直接返回
+                if (!isGuestRateMode() && !isCultivateMode) {
+                    return options;
+                }
+                
+                // 过滤选项
+                var filteredOptions = [];
+                for (var idx = 0; idx < options.length; idx++) {
+                    var opt = options[idx];
+                    
+                    // 保留"无遗玉"选项
+                    if (!opt.value || opt.value === "") {
+                        filteredOptions.push(opt);
+                        continue;
+                    }
+                    
+                    // 查找对应的心法盘数据
+                    var amber = null;
+                    for (var m in i) {
+                        if (i[m].amberId == opt.value) {
+                            amber = i[m];
+                            break;
+                        }
+                    }
+                    
+                    // 根据模式选择不同的过滤函数
+                    if (isGuestRateMode()) {
+                        // 贵客率模式：包含贵客率加成
+                        if (amber && hasUsefulAmberSkill(amber)) {
+                            filteredOptions.push(opt);
+                        }
+                    } else if (isCultivateMode) {
+                        // 修炼查询模式：只保留技法加成类和份数加成类
+                        if (amber && hasCultivateUsefulAmberSkill(amber)) {
+                            filteredOptions.push(opt);
+                        }
+                    }
+                }
+                
+                // 按星级降序排序（跳过第一个"无遗玉"选项）
+                if (filteredOptions.length > 1) {
+                    var noAmberOpt = filteredOptions[0];
+                    var amberOpts = filteredOptions.slice(1);
+                    
+                    amberOpts.sort(function(a, b) {
+                        // 查找对应的心法盘数据获取星级
+                        var amberA = null, amberB = null;
+                        for (var m in i) {
+                            if (i[m].amberId == a.value) amberA = i[m];
+                            if (i[m].amberId == b.value) amberB = i[m];
+                        }
+                        var rarityA = amberA ? (amberA.rarity || 0) : 0;
+                        var rarityB = amberB ? (amberB.rarity || 0) : 0;
+                        return rarityB - rarityA;
+                    });
+                    
+                    filteredOptions = [noAmberOpt].concat(amberOpts);
+                }
+                
+                return filteredOptions;
+            };
+        }
+    }
+    
+    /**
+     * 检查心法盘是否有技法加成或份数上限加成（修炼查询模式专用）
+     * 只保留技法加成类和份数加成类，不包括贵客率
+     * @private
+     * @param {Object} amber - 心法盘数据
+     * @returns {boolean} 是否有有用的技能
+     */
+    function hasCultivateUsefulAmberSkill(amber) {
+        if (!amber) {
+            return false;
+        }
+        
+        // 修炼查询模式有用的技能类型：技法加成、份数上限加成
+        var usefulTypes = [
+            'Stirfry',   // 炒技法加成
+            'Boil',      // 煮技法加成
+            'Knife',     // 切技法加成
+            'Fry',       // 炸技法加成
+            'Bake',      // 烤技法加成
+            'Steam',     // 蒸技法加成
+            'MaxEquipLimit'    // 份数上限加成
+        ];
+        
+        // 优先检查 allEffect（包含所有等级的效果）
+        if (amber.allEffect && amber.allEffect.length > 0) {
+            for (var level = 0; level < amber.allEffect.length; level++) {
+                var effects = amber.allEffect[level];
+                if (effects) {
+                    for (var i = 0; i < effects.length; i++) {
+                        var effect = effects[i];
+                        if (effect && effect.type && usefulTypes.indexOf(effect.type) >= 0) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+        
+        // 如果没有 allEffect，检查 effect（基础效果）
+        if (amber.effect && amber.effect.length > 0) {
+            for (var i = 0; i < amber.effect.length; i++) {
+                var effect = amber.effect[i];
+                if (effect && effect.type && usefulTypes.indexOf(effect.type) >= 0) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        
+        return false;
+    }
+
+    /**
+     * 检查心法盘是否有技法加成、贵客率加成或份数上限加成
+     * 过滤掉售价类心法盘（Use*类型是售价加成，不是技法加成）
+     * @private
+     * @param {Object} amber - 心法盘数据
+     * @returns {boolean} 是否有有用的技能
+     */
+    function hasUsefulAmberSkill(amber) {
+        if (!amber) {
+            return false;
+        }
+        
+        // 有用的技能类型：技法加成、贵客率加成、份数上限加成
+        // 注意：Use* 类型（如 UseStirfry）是售价加成，不是技法加成，需要排除
+        var usefulTypes = [
+            'Stirfry',   // 炒技法加成
+            'Boil',      // 煮技法加成
+            'Knife',     // 切技法加成
+            'Fry',       // 炸技法加成
+            'Bake',      // 烤技法加成
+            'Steam',     // 蒸技法加成
+            'GuestApearRate',  // 贵客率加成
+            'MaxEquipLimit'    // 份数上限加成
+        ];
+        
+        // 优先检查 allEffect（包含所有等级的效果）
+        if (amber.allEffect && amber.allEffect.length > 0) {
+            for (var level = 0; level < amber.allEffect.length; level++) {
+                var effects = amber.allEffect[level];
+                if (effects) {
+                    for (var i = 0; i < effects.length; i++) {
+                        var effect = effects[i];
+                        if (effect && effect.type && usefulTypes.indexOf(effect.type) >= 0) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+        
+        // 如果没有 allEffect，检查 effect（基础效果）
+        if (amber.effect && amber.effect.length > 0) {
+            for (var i = 0; i < amber.effect.length; i++) {
+                var effect = amber.effect[i];
+                if (effect && effect.type && usefulTypes.indexOf(effect.type) >= 0) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        
+        return false;
+    }
+    
+    /**
+     * 获取菜谱对应的符文名称
+     * @private
+     * @param {Object} recipeData - 菜谱数据
+     * @param {Object} gameData - 游戏数据
+     * @returns {string|null} 符文名称，如果没有则返回null
+     */
+    function getRecipeRuneName(recipeData, gameData) {
+        if (!recipeData || !gameData || !gameData.guests) {
+            return null;
+        }
+        
+        for (var guestIdx = 0; guestIdx < gameData.guests.length; guestIdx++) {
+            var guest = gameData.guests[guestIdx];
+            if (guest.gifts) {
+                for (var giftIdx = 0; giftIdx < guest.gifts.length; giftIdx++) {
+                    var gift = guest.gifts[giftIdx];
+                    if (gift.recipe === recipeData.name && gift.antique) {
+                        return gift.antique;
+                    }
+                }
+            }
+        }
+        
+        return null;
     }
     
     /**
@@ -655,14 +890,20 @@ var GuestRateCalculator = (function($) {
                         var basePercent = percentMatch ? parseInt(percentMatch[1]) : 0;
                         
                         var qualifiedRecipeCount = 0;
-                        for (var r = 0; r < recipes.length; r++) {
-                            var recipe = recipes[r];
-                            if (recipe.data && recipe.rankVal >= conditionValue) {
-                                qualifiedRecipeCount++;
+                        
+                        // 如果没有菜谱信息（一键查询场景），默认使用最高暴击率（3个神级菜谱）
+                        if (recipes.length === 0) {
+                            qualifiedRecipeCount = 3;
+                        } else {
+                            for (var r = 0; r < recipes.length; r++) {
+                                var recipe = recipes[r];
+                                if (recipe.data && recipe.rankVal >= conditionValue) {
+                                    qualifiedRecipeCount++;
+                                }
                             }
+                            qualifiedRecipeCount = Math.min(qualifiedRecipeCount, 3);
                         }
                         
-                        qualifiedRecipeCount = Math.min(qualifiedRecipeCount, 3);
                         var critIncrease = basePercent * qualifiedRecipeCount;
                         result.critRate += critIncrease;
                     } else {
@@ -2180,9 +2421,25 @@ var GuestRateCalculator = (function($) {
                 
                 // 时间：升序；其它：降序
                 if (sortKey === 'time') {
+                    // 时间类：先按时间升序（负数越小越好，-10比1靠前），同时间按贵客率降序
                     if (as !== bs) return as - bs;
+                    // 同时间按贵客率降序
+                    var agr = Number(av.guestRate || 0);
+                    var bgr = Number(bv.guestRate || 0);
+                    return bgr - agr;
+                } else if (sortKey === 'crit') {
+                    // 暴击类：先按暴击率降序，同暴击率按贵客率降序
+                    var critDiff = bs - as;
+                    if (Math.abs(critDiff) > 0.001) return critDiff;
+                    // 暴击率相同时，按贵客率降序
+                    var agr = Number(av.guestRate || 0);
+                    var bgr = Number(bv.guestRate || 0);
+                    var grDiff = bgr - agr;
+                    if (Math.abs(grDiff) > 0.001) return grDiff;
                 } else {
-                    if (as !== bs) return bs - as;
+                    // 其他类型：降序
+                    var diff = bs - as;
+                    if (Math.abs(diff) > 0.001) return diff;
                 }
                 
                 // 次要排序：按稀有度降序
@@ -2284,6 +2541,123 @@ var GuestRateCalculator = (function($) {
         });
     }
     
+    /**
+     * 获取按分类筛选和排序后的厨师列表
+     * @public
+     * @param {Array} chefs - 厨师数组
+     * @param {string} categoryType - 分类类型：'guest'(贵客), 'crit'(暴击), 'time'(时间), 'rune'(符文)
+     * @param {boolean} onlyShowOwned - 是否只显示已拥有的厨师
+     * @param {Object} options - 可选配置 {qixiaData, useEquip, useAmber, localData, configUltimatedIds}
+     * @returns {Array} 筛选和排序后的厨师列表，每个元素包含 {chef, skillValues, categories}
+     */
+    function getFilteredAndSortedChefs(chefs, categoryType, onlyShowOwned, options) {
+        if (!chefs || !chefs.length) return [];
+        
+        options = options || {};
+        var qixiaData = options.qixiaData || null;
+        var useEquip = options.useEquip !== false;
+        var useAmber = options.useAmber !== false;
+        var localData = options.localData || null;
+        var configUltimatedIds = options.configUltimatedIds || null;
+        
+        // 分类名称映射
+        var categoryMap = {
+            'guest': 'guest-rate-category',
+            'crit': 'crit-category',
+            'time': 'time-category',
+            'rune': 'rune-category'
+        };
+        var targetCategory = categoryMap[categoryType] || 'guest-rate-category';
+        
+        // 排序键映射
+        var sortKeyMap = {
+            'guest': 'guestRate',
+            'crit': 'crit',
+            'time': 'time',
+            'rune': 'rune'
+        };
+        var sortKey = sortKeyMap[categoryType] || 'guestRate';
+        
+        var result = [];
+        
+        // 筛选和分析厨师
+        for (var i = 0; i < chefs.length; i++) {
+            var chef = chefs[i];
+            
+            // 是否只显示已拥有的厨师
+            if (onlyShowOwned && chef.got !== "是") continue;
+            
+            // 分析厨师技能
+            var analysis = analyzeChefGuestRateSkills(
+                chef, qixiaData, useEquip, useAmber, localData, configUltimatedIds, 'chef'
+            );
+            
+            // 检查是否属于目标分类
+            if (analysis.categories && analysis.categories.indexOf(targetCategory) >= 0) {
+                // 时间类厨师额外检查：必须有贵客率技能（GuestApearRate）
+                // 如果厨师技能、修炼技能、心法盘、厨具都没有贵客率技能，则排除
+                if (categoryType === 'time') {
+                    var hasGuestRateSkill = analysis.skillValues.guestRate > 0 || 
+                                            (analysis.categories.indexOf('guest-rate-category') >= 0);
+                    if (!hasGuestRateSkill) {
+                        continue; // 排除没有贵客率技能的时间类厨师
+                    }
+                }
+                
+                result.push({
+                    chef: chef,
+                    skillValues: analysis.skillValues,
+                    categories: analysis.categories
+                });
+            }
+        }
+        
+        // 排序
+        result.sort(function(a, b) {
+            var av = a.skillValues;
+            var bv = b.skillValues;
+            
+            var as = Number(av[sortKey] || 0);
+            var bs = Number(bv[sortKey] || 0);
+            
+            if (sortKey === 'time') {
+                // 时间类：先按星级降序，再按贵客率降序，最后按时间降序（负数越小越好）
+                var ar = a.chef.rarity || 0;
+                var br = b.chef.rarity || 0;
+                if (ar !== br) return br - ar;
+                // 贵客率降序
+                var agr = Number(av.guestRate || 0);
+                var bgr = Number(bv.guestRate || 0);
+                var grDiff = bgr - agr;
+                if (Math.abs(grDiff) > 0.001) return grDiff;
+                // 时间降序（负数越小越好，-30%比-20%好）
+                return as - bs;
+            } else if (sortKey === 'crit') {
+                // 暴击类：先按暴击率降序，同暴击率按贵客率降序
+                var critDiff = bs - as;
+                if (Math.abs(critDiff) > 0.001) return critDiff;
+                // 暴击率相同时，按贵客率降序
+                var agr = Number(av.guestRate || 0);
+                var bgr = Number(bv.guestRate || 0);
+                var grDiff = bgr - agr;
+                if (Math.abs(grDiff) > 0.001) return grDiff;
+            } else {
+                // 其他类型：降序
+                var diff = bs - as;
+                if (Math.abs(diff) > 0.001) return diff;
+            }
+            
+            // 次要排序：按稀有度降序
+            var ar = a.chef.rarity || 0;
+            var br = b.chef.rarity || 0;
+            if (ar !== br) return br - ar;
+            
+            return 0;
+        });
+        
+        return result;
+    }
+    
     // 更新暴露的公共接口
     return {
         init: init,
@@ -2299,7 +2673,8 @@ var GuestRateCalculator = (function($) {
         refreshConflictDetection: refreshConflictDetection,
         displayGuestConflictWarning: displayGuestConflictWarning,
         refreshAllRecipeConflictDetection: refreshAllRecipeConflictDetection,
-        addRuneAndGuestInfoToRecipeOption: addRuneAndGuestInfoToRecipeOption
+        addRuneAndGuestInfoToRecipeOption: addRuneAndGuestInfoToRecipeOption,
+        getFilteredAndSortedChefs: getFilteredAndSortedChefs
     };
     
 })(jQuery);
