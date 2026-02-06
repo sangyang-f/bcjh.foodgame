@@ -204,6 +204,10 @@ label.btn input[type=checkbox]:checked+.fa {
     display: none
 }
 
+.pane-cal .pengci-tabs {
+    display: block
+}
+
 .pane-cal #pane-cal-recipes .select-info {
     display: none
 }
@@ -356,6 +360,11 @@ table.dataTable tbody>tr.selected,table.dataTable tbody>tr>.selected {
     overflow: visible;
     position: relative;
     z-index: 100;
+}
+
+/* 当下拉框打开时，提升该行的z-index，避免被下面的行遮挡 */
+.selected-item-wrapper:has(.bootstrap-select.open) {
+    z-index: 200;
 }
 
 .selected-item {
@@ -962,7 +971,8 @@ table.history-table tr td.history-dt {
 
 .dropdown-header {
     color: #337ab7;
-    font-weight: 700
+    font-weight: 700;
+    font-size: 13px;
 }
 
 /* 规则选择框折叠功能样式 */
@@ -970,33 +980,44 @@ table.history-table tr td.history-dt {
     cursor: pointer;
     user-select: none;
     position: relative;
-    padding-right: 30px;
+    display: flex;
+    align-items: center;
+    padding: 10px 15px;
+    transition: background-color 0.15s;
+    border-bottom: 1px solid #eee;
+}
+
+.dropdown-header.collapsible:hover {
+    background-color: #f5f5f5;
 }
 
 .dropdown-header .collapse-icon {
     position: absolute;
-    right: 10px;
+    right: 15px;
     top: 50%;
-    transform: translateY(-50%) rotate(0deg);
-    transition: transform 0.2s;
-    border-top-width: 6px;
-    border-right-width: 6px;
-    border-left-width: 6px;
+    transform: translateY(-50%);
+    color: #999;
+    font-size: 10px;
+    margin-left: 10px;
+    margin-right: 5px;
 }
 
 /* 菜谱选择框符文分组标题样式 */
-.bootstrap-select .select-picker-recipe + .dropdown-menu .dropdown-header.collapsible,
+.recipe-box .bootstrap-select .dropdown-menu .dropdown-header.collapsible,
 .dropdown-menu .dropdown-header.collapsible.recipe-rune-header {
-    font-size: 15px !important;
-    font-weight: 600 !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
     color: #333 !important;
-    padding-top: 12px !important;
-    padding-bottom: 8px !important;
-    margin-top: 8px !important;
+    padding: 10px 15px !important;
+    margin-top: 0 !important;
+}
+
+/* 菜谱选择框符文项目样式 */
+.recipe-box .bootstrap-select .dropdown-menu li:not(.dropdown-header) {
 }
 
 /* 第一个符文分组不需要上边距 */
-.bootstrap-select .select-picker-recipe + .dropdown-menu .dropdown-header.collapsible:first-of-type,
+.recipe-box .bootstrap-select .dropdown-menu .dropdown-header.collapsible:first-of-type,
 .dropdown-menu .dropdown-header.collapsible.recipe-rune-header:first-of-type {
     margin-top: 0 !important;
 }
@@ -1263,6 +1284,14 @@ div.dataTables_wrapper .table-top div.dataTables_info {
     min-height: 30px
 }
 
+/* 自定义toggle开关颜色，和btn-primary一致 */
+#chk-cultivation-mode + .toggle-group .btn-primary,
+#chk-guest-query-mode + .toggle-group .btn-primary,
+.toggle.btn.btn-primary {
+    background-color: #337ab7 !important;
+    border-color: #2e6da4 !important;
+}
+
 .pane-footer {
     height: 40px
 }
@@ -1461,10 +1490,6 @@ table.dataTable tr.selected td.select-checkbox:after,table.dataTable tr.selected
     .recipe-box .recipe-quantity {
         width: auto;
         order: 2
-    }
-
-    .recipe-box .recipe-quantity .available {
-        display: none
     }
 
     .recipe-box .recipe-ex {
@@ -2028,17 +2053,24 @@ table.dataTable tr.selected td.select-checkbox:after,table.dataTable tr.selected
 
 /* 超小屏幕 */
 @media (max-width: 450px) {
-    /* 保持3列布局*/
+    /* 调整为2+1布局：前两项一行，按钮单独一行 */
     .calc-result-row.calc-data-row {
-        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: auto auto;
+        gap: 8px;
     }
     
+    /* 按钮项占满整行 */
+    .calc-result-row.calc-data-row .calc-result-item:last-child {
+        grid-column: 1 / -1;
+        justify-content: flex-start;
+    }
     
     #sync-guest-double {
         font-size: 13px;
         padding: 6px 12px;
         width: auto;
-        max-width: 90%;
     }
 }
 
@@ -2632,4 +2664,1364 @@ table.dataTable tr.selected td.select-checkbox:after,table.dataTable tr.selected
         opacity: 1; 
         transform: scale(1);
     }
+}
+
+/* 贵客必来对照表弹窗样式 */
+#guest-portion-table-modal .modal-dialog {
+    max-width: 500px;
+}
+
+#guest-portion-table-modal .modal-body {
+    padding: 15px;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.guest-portion-table-container {
+    overflow-x: auto;
+}
+
+.guest-portion-table {
+    width: 100%;
+    margin-bottom: 0;
+    font-size: 13px;
+}
+
+.guest-portion-table thead tr.table-header {
+    background: #d9edf7;
+}
+
+.guest-portion-table thead th {
+    text-align: center;
+    padding: 10px 5px;
+    font-weight: bold;
+    color: #31708f;
+    border-color: #bce8f1;
+}
+
+.guest-portion-table tbody tr.guaranteed-row {
+    background: #f5f5f5;
+}
+
+.guest-portion-table tbody tr.guaranteed-row td {
+    font-weight: bold;
+    color: #31708f;
+}
+
+.guest-portion-table td {
+    text-align: center;
+    padding: 6px 5px;
+    vertical-align: middle;
+}
+
+.guest-portion-table td.rate-cell {
+    font-weight: bold;
+    color: #333;
+    background: #f9f9f9;
+}
+
+.guest-portion-table td.portion-cell.highlight {
+    color: #d9534f;
+    font-weight: bold;
+}
+
+.guest-portion-table tbody tr:hover {
+    background: #f0f7ff;
+}
+
+/* 贵客必来对照表按钮卡片样式 */
+#oneclick-settings-modal .settings-modal-header {
+    display: flex;
+    align-items: center;
+}
+
+#oneclick-settings-modal .settings-modal-header .modal-title {
+    flex: 1;
+}
+
+#oneclick-settings-modal .settings-modal-header .close {
+    order: 3;
+    margin-left: 15px;
+}
+
+#oneclick-settings-modal .settings-modal-header #btn-guest-portion-table {
+    order: 2;
+    white-space: nowrap;
+}
+
+/* 响应式调整 */
+@media (max-width: 480px) {
+    #guest-portion-table-modal .modal-dialog {
+        margin: 10px;
+    }
+    
+    .guest-portion-table {
+        font-size: 11px;
+    }
+    
+    .guest-portion-table thead th,
+    .guest-portion-table td {
+        padding: 4px 3px;
+    }
+}
+
+/* 手机版顶部模式切换容器样式 */
+#mobile-mode-switch-container {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+#mobile-mode-switch-container .btn-group {
+    margin-left: 5px;
+}
+
+#mobile-mode-switch-container .btn-group .btn {
+    padding: 4px 8px;
+    font-size: 12px;
+}
+
+/* 碰瓷查询区域样式 - 与计算结果区域保持一致 */
+.pengci-query-area {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    max-width: 1190px;
+    margin-left: auto;
+    margin-right: auto;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    z-index: 50;
+}
+
+.pengci-query-header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0;
+    background: #f5f5f5;
+    border-bottom: 1px solid #ddd;
+}
+
+.pengci-query-header .pengci-tabs {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border: none;
+    border-bottom: none;
+}
+
+.pengci-query-header .pengci-tabs > li {
+    flex: 1;
+    text-align: center;
+}
+
+.pengci-query-header .pengci-tabs > li > a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 15px;
+    color: #666;
+    font-weight: 500;
+    text-decoration: none;
+    border-bottom: 3px solid transparent;
+}
+
+.pengci-query-header .pengci-tabs > li:last-child > a {
+    justify-content: space-between;
+    padding-right: 12px;
+}
+
+.pengci-query-header .pengci-tabs > li:last-child > a > span {
+    flex: 1;
+    text-align: center;
+}
+
+.pengci-query-header .pengci-tabs > li > a:hover {
+    color: #337ab7;
+    background: #eee;
+}
+
+.pengci-query-header .pengci-tabs > li.active > a {
+    color: #337ab7;
+    font-weight: bold;
+    border-bottom: 3px solid #337ab7;
+    background: transparent;
+}
+
+.pengci-query-header .btn-collapse {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    color: #666;
+    font-size: 12px;
+}
+
+.pengci-query-header .btn-collapse:hover {
+    color: #337ab7;
+}
+
+.pengci-query-header .btn-collapse {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    color: #666;
+    font-size: 14px;
+}
+
+.pengci-query-header .btn-collapse:hover {
+    color: #333;
+}
+
+.pengci-query-content {
+    display: block;
+    padding: 10px;
+    overflow: visible;
+    position: relative;
+    z-index: 10;
+}
+
+.pengci-query-area.collapsed .pengci-query-content {
+    display: none;
+}
+
+.pengci-query-area.collapsed .btn-collapse .glyphicon {
+    transform: rotate(180deg);
+}
+
+.pengci-tab-content > .tab-pane {
+    display: none;
+}
+
+.pengci-tab-content > .tab-pane.active {
+    display: block;
+}
+
+/* 移除tab-content的边框 */
+.pengci-tab-content {
+    border: none !important;
+}
+
+/* 移除nav-tabs的边框 */
+.pengci-query-header .nav-tabs,
+.pengci-query-header .pengci-tabs {
+    border: none !important;
+}
+
+.pengci-query-header .nav-tabs > li > a,
+.pengci-query-header .pengci-tabs > li > a {
+    border: none !important;
+    border-radius: 0 !important;
+}
+
+.pengci-query-header .nav-tabs > li.active > a,
+.pengci-query-header .pengci-tabs > li.active > a {
+    border: none !important;
+    border-bottom: 3px solid #337ab7 !important;
+}
+
+.pengci-search-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+}
+
+.pengci-control-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.pengci-control-group label {
+    margin: 0;
+    font-weight: normal;
+    color: #333;
+    white-space: nowrap;
+    font-size: 13px;
+}
+
+/* 主线任务输入框样式 */
+.pengci-mainline-group input {
+    width: 80px;
+    text-align: center;
+}
+
+/* 碰瓷查询贵客分类样式 */
+#pengci-guest-select + .dropdown-menu .dropdown-header,
+.pengci-guest-category {
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    color: #337ab7 !important;
+    padding-top: 10px !important;
+    padding-bottom: 6px !important;
+    margin-top: 5px !important;
+    border-bottom: 1px solid #eee;
+}
+
+#pengci-guest-select + .dropdown-menu .dropdown-header:first-of-type,
+.pengci-guest-category:first-of-type {
+    margin-top: 0 !important;
+}
+
+/* 碰瓷查询选择框下拉菜单z-index */
+#pengci-guest-select + .dropdown-menu,
+#pengci-rune-select + .dropdown-menu {
+    z-index: 2000 !important;
+}
+
+/* 碰瓷查询贵客分类标签样式 */
+.dropdown-menu .pengci-guest-category-tabs {
+    margin: 5px 10px 5px 10px !important;
+    border-bottom: 1px solid #ddd !important;
+    list-style: none !important;
+    padding: 0 !important;
+    display: flex !important;
+    width: calc(100% - 20px) !important;
+}
+
+.dropdown-menu .pengci-guest-category-tabs li {
+    flex: 1 !important;
+    text-align: center !important;
+    margin: 0 !important;
+}
+
+.dropdown-menu .pengci-guest-category-tabs li a {
+    padding: 5px 8px !important;
+    display: block !important;
+    text-decoration: none !important;
+    white-space: nowrap !important;
+    font-size: 13px !important;
+    color: #666 !important;
+    cursor: pointer !important;
+}
+
+.dropdown-menu .pengci-guest-category-tabs li a:hover {
+    color: #337ab7 !important;
+}
+
+.dropdown-menu .pengci-guest-category-tabs li.active a {
+    color: #337ab7 !important;
+    font-weight: bold !important;
+    border-bottom: 2px solid #337ab7 !important;
+}
+
+/* 响应式调整 */
+@media (max-width: 767px) {
+    .pengci-query-area {
+        margin: 10px 5px;
+    }
+    
+    .pengci-search-box {
+        flex-wrap: wrap;
+    }
+    
+    .pengci-tabs > li > a {
+        padding: 6px 10px;
+        font-size: 12px;
+    }
+}
+
+/* 碰瓷贵客下拉列表样式 - 参考符文分类折叠样式 */
+.pengci-guest-list {
+    overflow-y: auto;
+    overflow-x: hidden;
+    /* max-height 由 JavaScript 动态计算，参考 Bootstrap-select 的行为 */
+}
+
+/* 碰瓷贵客标题样式 */
+.pengci-guest-header {
+    display: flex;
+    align-items: center;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    color: #337ab7 !important;
+    padding: 8px 15px !important;
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    border-bottom: 1px solid #eee;
+    background-color: #fafafa;
+}
+
+.pengci-guest-header:hover {
+    background-color: #f0f0f0;
+}
+
+.pengci-guest-header .guest-name {
+    flex: 0 0 130px;
+    color: #333;
+    font-weight: 500;
+}
+
+.pengci-guest-header .pengci-count {
+    flex: 1;
+    color: #337ab7;
+    font-weight: normal;
+    font-size: 12px;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.pengci-guest-header .pengci-count.no-pengci {
+    color: #999;
+}
+
+.pengci-guest-header .expand-arrow {
+    flex: 0 0 auto;
+    color: #999;
+    font-size: 12px;
+    margin-left: 40px;
+}
+
+/* 碰瓷菜谱组样式 */
+.pengci-recipe-group {
+    padding: 5px 10px 10px 20px;
+    background-color: #fff;
+}
+
+.pengci-recipe-item {
+    display: flex;
+    align-items: center;
+    padding: 6px 10px;
+    margin: 3px 0;
+    background: #f8f9fa;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    border-left: 3px solid transparent;
+}
+
+.pengci-recipe-item:hover {
+    background-color: #e8f4fc;
+    border-left-color: #337ab7;
+}
+
+.pengci-recipe-item .recipe-name {
+    font-size: 13px;
+    color: #333;
+    margin-right: 8px;
+    font-weight: 500;
+}
+
+.pengci-recipe-item .recipe-stars {
+    font-size: 11px;
+    color: #f0ad4e;
+    margin-right: 10px;
+}
+
+.pengci-recipe-item .recipe-rank-guests {
+    font-size: 11px;
+    color: #666;
+    flex: 1;
+    text-align: right;
+}
+
+.pengci-recipe-item .rank-guest-tag {
+    display: inline-block;
+    margin-left: 5px;
+}
+
+.pengci-recipe-item .rank-guest-tag.current {
+    color: #337ab7;
+    font-weight: 500;
+}
+
+.pengci-no-recipe {
+    padding: 10px 15px;
+    color: #999;
+    font-size: 12px;
+}
+
+.pengci-empty {
+    padding: 20px;
+    text-align: center;
+    color: #999;
+    font-size: 13px;
+}
+
+/* 碰瓷选择框下拉菜单宽度自适应 */
+#pengci-guest-select + .dropdown-menu,
+#pengci-rune-select + .dropdown-menu {
+    min-width: 320px;
+}
+
+/* 碰瓷贵客选项样式 */
+.pengci-guest-option {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 2px 0;
+}
+
+.pengci-guest-option .guest-name {
+    color: #333;
+    font-weight: 500;
+    flex: 1;
+}
+
+.pengci-guest-option .pengci-count {
+    color: #999;
+    font-size: 12px;
+    margin-left: 8px;
+    margin-right: 10px;
+}
+
+.pengci-guest-option .expand-arrow {
+    color: #999;
+    font-size: 10px;
+    transition: transform 0.2s;
+}
+
+.pengci-guest-option:hover .expand-arrow {
+    color: #337ab7;
+}
+
+/* 碰瓷贵客下拉选项hover效果 */
+#pengci-guest-select + .dropdown-menu .dropdown-menu.inner li a:hover .pengci-guest-option .guest-name {
+    color: #000;
+}
+
+/* 碰瓷贵客选项 - 无碰瓷次数时的样式 */
+#pengci-guest-select + .dropdown-menu .dropdown-menu.inner li a .pengci-guest-option[data-count="0"] .guest-name {
+    color: #999;
+}
+
+#pengci-guest-select + .dropdown-menu .dropdown-menu.inner li a .pengci-guest-option[data-count="0"] .pengci-count {
+    color: #ccc;
+}
+
+/* 碰瓷菜谱列表样式 */
+.pengci-recipe-list {
+    margin-top: 15px;
+    background: #e8f4fc;
+    border-radius: 8px;
+    padding: 10px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.pengci-recipe-item {
+    display: flex;
+    align-items: flex-start;
+    padding: 12px;
+    background: #fff;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.pengci-recipe-item:last-child {
+    margin-bottom: 0;
+}
+
+.pengci-recipe-left {
+    flex: 1;
+    min-width: 0;
+}
+
+.pengci-recipe-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 4px;
+}
+
+.pengci-recipe-stars {
+    font-size: 12px;
+    color: #337ab7;
+}
+
+.pengci-recipe-right {
+    width: 110px;
+    flex-shrink: 0;
+    padding-left: 15px;
+}
+
+.pengci-rank-guest {
+    font-size: 12px;
+    line-height: 1.8;
+    white-space: nowrap;
+}
+
+.pengci-rank-guest.completed {
+    color: #999;
+}
+
+.pengci-rank-guest.current {
+    color: #337ab7;
+    font-weight: 500;
+}
+
+.pengci-rank-guest.normal {
+    color: #333;
+}
+
+/* 碰瓷菜谱列表为空时的提示 */
+.pengci-recipe-empty {
+    text-align: center;
+    padding: 30px 20px;
+    color: #999;
+    font-size: 14px;
+}
+
+/* 碰瓷贵客自定义下拉菜单样式 */
+.pengci-guest-dropdown {
+    background: #fff;
+    overflow: visible;
+}
+
+.pengci-guest-dropdown .pengci-search-wrapper {
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+    background: #fff;
+}
+
+.pengci-guest-dropdown .pengci-search-input {
+    width: 100%;
+    height: 32px;
+    font-size: 13px;
+}
+
+/* 已选菜谱展示区域 */
+.pengci-guest-dropdown .pengci-selected-recipes-display {
+    padding: 8px 10px;
+    background: #f9f9f9;
+    border-bottom: 1px solid #eee;
+    display: none;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.pengci-guest-dropdown .pengci-selected-recipes-display:not(:empty) {
+    display: flex;
+}
+
+.pengci-guest-dropdown .pengci-selected-tag {
+    display: inline-flex;
+    align-items: center;
+    background: #e8f4fc;
+    border: 1px solid #b8daef;
+    border-radius: 3px;
+    padding: 2px 6px;
+    font-size: 12px;
+    color: #337ab7;
+    max-width: 120px;
+}
+
+.pengci-guest-dropdown .pengci-selected-tag .tag-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.pengci-guest-dropdown .pengci-selected-tag .tag-remove {
+    margin-left: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    color: #999;
+    line-height: 1;
+    position: relative;
+    top: -2px;
+}
+
+.pengci-guest-dropdown .pengci-selected-tag .tag-remove:hover {
+    color: #d9534f;
+}
+
+.pengci-guest-dropdown .pengci-clear-wrapper {
+    padding: 8px 10px;
+    border-bottom: 1px solid #eee;
+    background: #fff;
+}
+
+.pengci-guest-dropdown .btn-pengci-clear {
+    width: 100%;
+    font-size: 12px;
+}
+
+.pengci-guest-dropdown .pengci-guest-category-tabs {
+    margin: 0 !important;
+    padding: 0 !important;
+    border-bottom: 1px solid #ddd !important;
+    background: #fff;
+    list-style: none !important;
+    display: flex !important;
+}
+
+.pengci-guest-dropdown .pengci-guest-category-tabs li {
+    flex: 1 !important;
+    text-align: center !important;
+    margin: 0 !important;
+}
+
+.pengci-guest-dropdown .pengci-guest-category-tabs li a {
+    padding: 10px 15px !important;
+    font-size: 14px !important;
+    display: block !important;
+    text-decoration: none !important;
+    color: #666 !important;
+    border-bottom: 2px solid transparent !important;
+    transition: all 0.2s !important;
+}
+
+.pengci-guest-dropdown .pengci-guest-category-tabs li a:hover {
+    color: #337ab7 !important;
+    background: #f5f5f5 !important;
+}
+
+.pengci-guest-dropdown .pengci-guest-category-tabs li.active a {
+    color: #337ab7 !important;
+    font-weight: 500 !important;
+    border-bottom-color: #337ab7 !important;
+}
+
+.pengci-guest-dropdown .pengci-guest-list {
+    padding: 5px 0;
+}
+
+/* 贵客区块样式 */
+.pengci-guest-section {
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.pengci-guest-section:last-child {
+    border-bottom: none;
+}
+
+.pengci-guest-section.expanded .pengci-guest-header {
+    background-color: #e8f4fc;
+}
+
+.pengci-guest-header .expand-arrow {
+    flex: 0 0 auto;
+    color: #999;
+    font-size: 10px;
+    transition: transform 0.2s;
+}
+
+.pengci-guest-section.expanded .pengci-guest-header .expand-arrow {
+    color: #337ab7;
+}
+
+/* 贵客下的菜谱列表样式 */
+.pengci-guest-recipes {
+    background: #f8fbfd;
+    padding: 0 10px;
+}
+
+.pengci-recipe-inline {
+    display: flex;
+    align-items: flex-start;
+    padding: 12px 15px;
+    border-bottom: 1px solid #e8e8e8;
+    background: #fff;
+    margin: 5px 0;
+    border-radius: 4px;
+    cursor: pointer;
+    position: relative;
+    transition: background-color 0.15s;
+}
+
+.pengci-recipe-inline:hover {
+    background-color: #f5f5f5;
+}
+
+.pengci-recipe-inline .recipe-name .check-mark {
+    display: none;
+    color: #333;
+    margin-left: 5px;
+}
+
+.pengci-recipe-inline.selected .recipe-name .check-mark {
+    display: inline;
+}
+
+.pengci-recipe-inline:last-child {
+    margin-bottom: 10px;
+}
+
+.pengci-recipe-inline .recipe-info {
+    flex: 0 0 auto;
+    min-width: 120px;
+}
+
+.pengci-recipe-inline .recipe-name {
+    font-size: 15px;
+    font-weight: 500;
+    color: #333;
+    display: block;
+    margin-bottom: 4px;
+}
+
+.pengci-recipe-inline .recipe-stars {
+    font-size: 13px;
+    color: #000;
+    display: block;
+}
+
+.pengci-recipe-inline .recipe-skills {
+    font-size: 12px;
+    color: #888;
+    display: block;
+    margin-top: 2px;
+}
+
+.pengci-recipe-inline .recipe-guests {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-left: auto;
+    min-width: 100px;
+    padding-left: 15px;
+    align-items: flex-start;
+}
+
+.pengci-inline-guest {
+    font-size: 14px;
+    color: #000;
+    line-height: 1.6;
+}
+
+.pengci-inline-guest.completed {
+    color: #999;
+}
+
+.pengci-inline-guest.current {
+    color: #337ab7;
+    font-weight: 500;
+}
+
+.pengci-recipe-empty-inline {
+    text-align: center;
+    padding: 15px;
+    color: #999;
+    font-size: 13px;
+}
+
+.pengci-dropdown-empty {
+    text-align: center;
+    padding: 30px 20px;
+    color: #999;
+    font-size: 14px;
+}
+
+/* 碰瓷查询结果样式 */
+.pengci-query-result {
+    padding: 10px;
+}
+
+.pengci-query-result h4 {
+    color: #337ab7;
+    margin-bottom: 15px;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.pengci-chef-assignment {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+    padding: 12px 15px;
+    margin-bottom: 12px;
+}
+
+.pengci-chef-assignment:last-child {
+    margin-bottom: 0;
+}
+
+.pengci-chef-assignment .chef-name {
+    font-size: 15px;
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.pengci-chef-assignment .chef-name .highlight {
+    color: #337ab7;
+    font-weight: bold;
+}
+
+.pengci-chef-assignment .chef-recipes {
+    padding-left: 10px;
+}
+
+.pengci-chef-assignment .recipe-item {
+    display: flex;
+    align-items: center;
+    padding: 6px 0;
+    font-size: 14px;
+}
+
+.pengci-chef-assignment .recipe-item .recipe-name {
+    font-weight: 500;
+    color: #333;
+    min-width: 100px;
+}
+
+.pengci-chef-assignment .recipe-item .recipe-target {
+    color: #28a745;
+    font-weight: 500;
+    margin-left: 10px;
+}
+
+.pengci-chef-assignment .recipe-item .recipe-guest {
+    color: #6c757d;
+    font-size: 12px;
+    margin-left: 10px;
+}
+
+/* 碰瓷贵客下拉菜单包装器样式 */
+.pengci-guest-dropdown-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.pengci-dropdown-toggle {
+    min-width: 150px;
+    width: 150px;
+    text-align: left;
+    padding-right: 25px;
+    position: relative;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    height: 34px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+}
+
+.pengci-dropdown-toggle:hover,
+.pengci-dropdown-toggle:focus {
+    background-color: #e6e6e6;
+    border-color: #adadad;
+}
+
+.pengci-guest-dropdown-wrapper.open .pengci-dropdown-toggle {
+    background-color: #e6e6e6;
+    border-color: #adadad;
+}
+
+.pengci-dropdown-toggle .pengci-dropdown-text {
+    display: inline-block;
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #999;
+}
+
+.pengci-dropdown-toggle .pengci-dropdown-text.has-selection {
+    color: #333;
+}
+
+.pengci-dropdown-toggle .caret {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    transition: transform 0.2s;
+}
+
+.pengci-guest-dropdown-wrapper.open .pengci-dropdown-toggle .caret {
+    transform: translateY(-50%) rotate(180deg);
+}
+
+.pengci-dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 2000;
+    min-width: 320px;
+    max-width: 400px;
+    margin-top: 2px;
+    padding: 0;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-shadow: 0 6px 12px rgba(0,0,0,0.175);
+}
+
+/* 碰瓷下拉菜单内部滚动区域 - 模拟 Bootstrap-select 的 .inner */
+.pengci-guest-dropdown .pengci-guest-list {
+    position: static;
+    float: none;
+    border: 0;
+    padding: 0;
+    margin: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* 移动端适配 */
+@media (max-width: 767px) {
+    .pengci-dropdown-menu {
+        min-width: 280px;
+        max-width: calc(100vw - 40px);
+        left: 50%;
+        transform: translateX(-50%);
+        /* max-height 由 JavaScript 动态计算 */
+    }
+    
+    .pengci-dropdown-toggle {
+        min-width: 150px;
+    }
+    
+    .pengci-dropdown-toggle .pengci-dropdown-text {
+        max-width: 120px;
+    }
+}
+
+/* 窄屏幕适配 - 与菜谱选择框保持一致 */
+@media (max-width: 1310px) {
+    .pengci-guest-dropdown-wrapper.open .pengci-dropdown-menu {
+        position: fixed;
+        left: 10px;
+        top: 35px;
+        transform: none;
+        z-index: 2000;
+    }
+}
+
+
+
+/* ========== 符文碰瓷下拉框样式 ========== */
+.pengci-rune-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+}
+
+.pengci-rune-dropdown-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.pengci-rune-dropdown-wrapper .pengci-dropdown-btn {
+    min-width: 150px;
+    width: 150px;
+    text-align: left;
+    padding-right: 25px;
+    position: relative;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    height: 34px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+}
+
+.pengci-rune-dropdown-wrapper .pengci-dropdown-text {
+    display: inline-block;
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #999;
+}
+
+.pengci-rune-dropdown-wrapper .pengci-dropdown-text.has-selection {
+    color: #333;
+}
+
+.pengci-rune-dropdown-wrapper .caret {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    transition: transform 0.2s;
+}
+
+.pengci-rune-dropdown-wrapper.open .caret {
+    transform: translateY(-50%) rotate(180deg);
+}
+
+.pengci-rune-dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 2000;
+    min-width: 320px;
+    max-width: 400px;
+    margin-top: 2px;
+    padding: 0;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-shadow: 0 6px 12px rgba(0,0,0,0.175);
+    overflow: visible;
+}
+
+.pengci-rune-dropdown-wrapper.open .pengci-rune-dropdown {
+    display: block;
+}
+
+/* 窄屏幕适配 - 与贵客碰瓷保持一致 */
+@media (max-width: 1310px) {
+    .pengci-rune-dropdown-wrapper.open .pengci-rune-dropdown {
+        position: fixed;
+        left: 10px;
+        top: 35px;
+        transform: none;
+        z-index: 2000;
+    }
+}
+
+/* 移动端适配 */
+@media (max-width: 767px) {
+    .pengci-rune-dropdown {
+        min-width: 280px;
+        max-width: calc(100vw - 40px);
+    }
+}
+
+.pengci-rune-dropdown .pengci-search-wrapper {
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+    background: #fff;
+}
+
+.pengci-rune-dropdown .pengci-search-input {
+    width: 100%;
+    height: 32px;
+    font-size: 13px;
+}
+
+.pengci-rune-dropdown .pengci-selected-recipes-display {
+    padding: 8px 10px;
+    background: #f9f9f9;
+    border-bottom: 1px solid #eee;
+    display: none;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.pengci-rune-dropdown .pengci-selected-recipes-display:not(:empty) {
+    display: flex;
+}
+
+.pengci-rune-dropdown .pengci-selected-tag {
+    display: inline-flex;
+    align-items: center;
+    background: #e8f4fc;
+    border: 1px solid #b8daef;
+    border-radius: 3px;
+    padding: 2px 6px;
+    font-size: 12px;
+    color: #337ab7;
+    max-width: 120px;
+}
+
+.pengci-rune-dropdown .pengci-selected-tag .tag-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.pengci-rune-dropdown .pengci-selected-tag .tag-remove {
+    margin-left: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    color: #999;
+    line-height: 1;
+    position: relative;
+    top: -2px;
+}
+
+.pengci-rune-dropdown .pengci-selected-tag .tag-remove:hover {
+    color: #d9534f;
+}
+
+.pengci-rune-dropdown .pengci-clear-wrapper {
+    padding: 8px 10px;
+    border-bottom: 1px solid #eee;
+    background: #fff;
+}
+
+.pengci-rune-dropdown .btn-pengci-clear {
+    width: 100%;
+    font-size: 12px;
+}
+
+.pengci-rune-dropdown .pengci-rune-category-tabs {
+    margin: 0 !important;
+    padding: 0 !important;
+    border-bottom: 1px solid #ddd !important;
+    background: #fff;
+    list-style: none !important;
+    display: flex !important;
+}
+
+.pengci-rune-dropdown .pengci-rune-category-tabs li {
+    flex: 1 !important;
+    text-align: center !important;
+    margin: 0 !important;
+}
+
+.pengci-rune-dropdown .pengci-rune-category-tabs li a {
+    padding: 10px 15px !important;
+    font-size: 14px !important;
+    display: block !important;
+    text-decoration: none !important;
+    color: #666 !important;
+    border-bottom: 2px solid transparent !important;
+    transition: all 0.2s !important;
+}
+
+.pengci-rune-dropdown .pengci-rune-category-tabs li a:hover {
+    color: #337ab7 !important;
+    background: #f5f5f5 !important;
+}
+
+.pengci-rune-dropdown .pengci-rune-category-tabs li.active a {
+    color: #337ab7 !important;
+    font-weight: 500 !important;
+    border-bottom-color: #337ab7 !important;
+}
+
+.pengci-rune-dropdown .pengci-rune-list {
+    max-height: 300px;
+    overflow-y: auto;
+    padding: 5px 0;
+}
+
+/* 符文贵客区块样式 */
+.pengci-rune-section {
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.pengci-rune-section:last-child {
+    border-bottom: none;
+}
+
+.pengci-rune-header {
+    padding: 10px 15px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    transition: background-color 0.2s;
+}
+
+.pengci-rune-header:hover {
+    background-color: #f5f5f5;
+}
+
+.pengci-rune-header .rune-name {
+    font-weight: 500;
+    color: #333;
+    flex: 0 0 130px;
+}
+
+/* 与贵客碰瓷一致的碰瓷次数样式 */
+.pengci-rune-header .pengci-count {
+    font-size: 12px;
+    color: #337ab7;
+    flex: 1;
+    text-align: left;
+}
+
+.pengci-rune-header .pengci-count.no-pengci {
+    color: #999;
+}
+
+.pengci-rune-header .expand-arrow {
+    font-size: 10px;
+    color: #999;
+    transition: transform 0.2s;
+    margin-left: 40px;
+}
+
+.pengci-rune-section.expanded .expand-arrow {
+    transform: rotate(180deg);
+    color: #337ab7;
+}
+
+.pengci-rune-recipes {
+    padding: 0 15px 10px 30px;
+    background: #fafafa;
+}
+
+/* 符文菜谱行内样式 */
+.pengci-rune-recipe-inline {
+    display: flex;
+    align-items: flex-start;
+    padding: 8px 10px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.pengci-rune-recipe-inline:hover {
+    background-color: #e8f4fc;
+}
+
+.pengci-rune-recipe-inline.selected {
+    background-color: #e8f4fc;
+}
+
+.pengci-rune-recipe-inline .recipe-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.pengci-rune-recipe-inline .recipe-name {
+    font-weight: 500;
+    color: #333;
+    display: inline;
+    margin-right: 8px;
+}
+
+.pengci-rune-recipe-inline .recipe-name .check-mark {
+    display: none;
+    color: #333;
+    margin-left: 5px;
+}
+
+.pengci-rune-recipe-inline.selected .recipe-name .check-mark {
+    display: inline;
+}
+
+.pengci-rune-recipe-inline .guest-name-tag {
+    font-size: 11px;
+    color: #666;
+    background: #eee;
+    padding: 1px 6px;
+    border-radius: 3px;
+    margin-right: 8px;
+}
+
+.pengci-rune-recipe-inline .recipe-stars {
+    font-size: 13px;
+    color: #000;
+    display: block;
+    margin-top: 4px;
+}
+
+.pengci-rune-recipe-inline .recipe-skills {
+    font-size: 12px;
+    color: #888;
+    display: block;
+    margin-top: 2px;
+}
+
+.pengci-rune-recipe-inline .recipe-guests {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding-left: 15px;
+    align-items: flex-start;
 }

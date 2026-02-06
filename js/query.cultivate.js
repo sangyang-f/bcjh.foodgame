@@ -140,11 +140,12 @@ function addAuraChefCollapseFeature($dropdown) {
                 'font-size': '15px',
                 'cursor': 'pointer',
                 'position': 'relative',
-                'padding-right': '25px'
+                'padding-right': '25px',
+                'color': '#333'
             });
             
-            // 使用 Bootstrap 的 caret 样式
-            var $icon = $("<span class='collapse-icon caret' style='position:absolute;right:10px;top:50%;transform:translateY(-50%) rotate(-90deg);transition:transform 0.2s;'></span>");
+            // 使用 glyphicon 箭头样式（和贵客下拉框一致）
+            var $icon = $("<span class='collapse-icon glyphicon glyphicon-chevron-right' style='position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:10px;color:#999;'></span>");
             $header.append($icon);
             
             // 获取分组名称
@@ -164,12 +165,12 @@ function addAuraChefCollapseFeature($dropdown) {
             $header.data("group-name", groupName);
             
             if (isCollapsed) {
-                // 收起状态
-                $icon.css("transform", "translateY(-50%) rotate(-90deg)");
+                // 收起状态 - 向右箭头
                 $header.nextUntil(".dropdown-header", "li").hide();
             } else {
-                // 展开状态
-                $icon.css("transform", "translateY(-50%) rotate(0deg)");
+                // 展开状态 - 向下箭头
+                $icon.removeClass("glyphicon-chevron-right").addClass("glyphicon-chevron-down");
+                $icon.css("color", "#337ab7");
                 $header.nextUntil(".dropdown-header", "li").show();
             }
         }
@@ -188,15 +189,17 @@ function addAuraChefCollapseFeature($dropdown) {
             var $options = $this.nextUntil(".dropdown-header", "li");
             
             if (isCollapsed) {
-                // 展开
+                // 展开 - 切换为向下箭头
                 $options.slideDown(200);
-                $icon.css("transform", "translateY(-50%) rotate(0deg)");
+                $icon.removeClass("glyphicon-chevron-right").addClass("glyphicon-chevron-down");
+                $icon.css("color", "#337ab7");
                 $this.data("collapsed", false);
                 auraChefGroupExpandState[groupName] = false;
             } else {
-                // 收起
+                // 收起 - 切换为向右箭头
                 $options.slideUp(200);
-                $icon.css("transform", "translateY(-50%) rotate(-90deg)");
+                $icon.removeClass("glyphicon-chevron-down").addClass("glyphicon-chevron-right");
+                $icon.css("color", "#999");
                 $this.data("collapsed", true);
                 auraChefGroupExpandState[groupName] = true;
             }
@@ -628,8 +631,14 @@ function filterCultivationEquips($select, selectId, categoryName) {
                 }
                 
                 if (infoHtml) {
-                    // 在星级后添加信息
-                    if (currentContent.indexOf('</span>') > 0) {
+                    // 在星级后添加信息（星级格式：<span class='subtext'>★★★</span>）
+                    var subtextMatch = currentContent.match(/<span class=['"]subtext['"]>[^<]*<\/span>/);
+                    if (subtextMatch) {
+                        // 找到星级span，在其后插入信息
+                        var subtextEndIndex = currentContent.indexOf(subtextMatch[0]) + subtextMatch[0].length;
+                        currentContent = currentContent.substring(0, subtextEndIndex) + infoHtml + currentContent.substring(subtextEndIndex);
+                    } else if (currentContent.indexOf('</span>') > 0) {
+                        // 没找到星级span，在厨具名后面插入
                         var firstSpanEnd = currentContent.indexOf('</span>') + 7;
                         currentContent = currentContent.substring(0, firstSpanEnd) + infoHtml + currentContent.substring(firstSpanEnd);
                     } else {
@@ -934,21 +943,31 @@ function calculateSkillDiffDetailForGodRecommend(chef, recipes, gradeMultiplier,
     
     // 如果有rule，使用setDataForChef计算包含厨具/遗玉/光环加成的技法值
     if (rule && typeof setDataForChef === 'function') {
-        // 神级方案模式：优先使用场上已有的厨具，不管是否勾选"已配厨具"
         var equipToUse = null;
         var isGodMode = $("#chk-cultivation-mode").prop("checked");
         
-        if (isGodMode && rule.custom && chefIndex !== undefined && chefIndex !== null) {
-            // 检查场上该位置是否已有厨具
-            var customData = rule.custom[chefIndex];
-            if (customData && customData.equip && customData.equip.equipId) {
-                equipToUse = customData.equip;
+        if (isGodMode) {
+            // 神级方案模式：如果勾选了"已配厨具"，使用厨师自己佩戴的厨具
+            if (useEquip) {
+                equipToUse = chefCopy.equip;
+            } else if (rule.custom && chefIndex !== undefined && chefIndex !== null) {
+                // 没勾选"已配厨具"时，使用场上该位置的厨具
+                var customData = rule.custom[chefIndex];
+                if (customData && customData.equip && customData.equip.equipId) {
+                    equipToUse = customData.equip;
+                }
             }
-        }
-        
-        // 如果场上没有厨具，且勾选了"已配厨具"，则使用厨师自带的厨具
-        if (!equipToUse && useEquip) {
-            equipToUse = chefCopy.equip;
+        } else {
+            // 非神级方案模式：保持原逻辑
+            if (rule.custom && chefIndex !== undefined && chefIndex !== null) {
+                var customData = rule.custom[chefIndex];
+                if (customData && customData.equip && customData.equip.equipId) {
+                    equipToUse = customData.equip;
+                }
+            }
+            if (!equipToUse && useEquip) {
+                equipToUse = chefCopy.equip;
+            }
         }
         
         // 如果不使用已配遗玉，清空遗玉数据
@@ -1036,13 +1055,31 @@ function getRecipeMaxSkillValue(recipe) {
 }
 
 /**
- * 按菜谱的最高单技法值降序排序（用于神级方案模式）
+ * 按品级降序，同品级按差值升序排序（用于神级方案模式）
+ * 没有厨师时按最高技法值降序
  */
 function sortRecipesByMaxSkill($select) {
     // 保存当前选中的值
     var currentValue = $select.val();
     
-    // 收集所有菜谱选项及其最高技法值
+    // 获取当前厨师 - 从rule.custom中获取已计算好技法值的厨师
+    var $recipeBox = $select.closest('.recipe-box');
+    var $selectedItem = $recipeBox.closest('.selected-item');
+    var selectedItemIndex = $selectedItem.index();
+    var chef = null;
+    
+    var rule = calCustomRule && calCustomRule.rules && calCustomRule.rules[0];
+    if (rule && rule.custom && rule.custom[selectedItemIndex]) {
+        var customChef = rule.custom[selectedItemIndex].chef;
+        if (customChef && customChef.chefId) {
+            chef = customChef;
+        }
+    }
+    
+    // 获取查询品级
+    var gradeMultiplier = parseInt($("#select-recipe-god-grade").val()) || 4;
+    
+    // 收集所有菜谱选项
     var recipeOptions = [];
     $select.find('option').each(function() {
         var $opt = $(this);
@@ -1050,35 +1087,59 @@ function sortRecipesByMaxSkill($select) {
         
         // 保留占位项
         if (recipeId === "" || recipeId === null || $opt.text().trim() === "") {
-            recipeOptions.push({ $opt: $opt, isPlaceholder: true, maxSkill: 0 });
+            recipeOptions.push({ $opt: $opt, isPlaceholder: true, rank: 0, diff: 0, maxSkill: 0 });
             return;
         }
         
-        // 从data-content或text中解析技法值
+        var rank = 0;
+        var diff = 0;
         var maxSkill = 0;
-        var dataContent = $opt.attr('data-content') || $opt.text();
         
-        // 尝试从rule.menus中获取菜谱数据
-        var rule = calCustomRule && calCustomRule.rules && calCustomRule.rules[0];
+        // 从rule.menus中获取菜谱数据
         if (rule && rule.menus) {
             for (var i = 0; i < rule.menus.length; i++) {
                 var menu = rule.menus[i];
                 if (menu.recipe && menu.recipe.data && String(menu.recipe.data.recipeId) === String(recipeId)) {
-                    maxSkill = getRecipeMaxSkillValue(menu.recipe.data);
+                    var recipe = menu.recipe.data;
+                    // 获取最高技法值（用于没有厨师时排序）
+                    if (typeof getRecipeMaxSkillValue === 'function') {
+                        maxSkill = getRecipeMaxSkillValue(recipe);
+                    }
+                    // 有厨师时计算品级和差值
+                    if (chef) {
+                        if (typeof calculateRecipeRank === 'function') {
+                            rank = calculateRecipeRank(chef, recipe);
+                        }
+                        if (typeof getSkillDiff === 'function') {
+                            var skillDiffObj = getSkillDiff(chef, recipe, gradeMultiplier);
+                            diff = skillDiffObj.value || 0;
+                        }
+                    }
                     break;
                 }
             }
         }
         
-        recipeOptions.push({ $opt: $opt, isPlaceholder: false, maxSkill: maxSkill, recipeId: recipeId });
+        recipeOptions.push({ $opt: $opt, isPlaceholder: false, rank: rank, diff: diff, maxSkill: maxSkill, recipeId: recipeId });
     });
     
-    // 按最高技法值降序排序
-    recipeOptions.sort(function(a, b) {
-        if (a.isPlaceholder) return -1;
-        if (b.isPlaceholder) return 1;
-        return b.maxSkill - a.maxSkill;
-    });
+    // 排序逻辑
+    if (chef) {
+        // 有厨师：按品级降序，同品级按差值升序
+        recipeOptions.sort(function(a, b) {
+            if (a.isPlaceholder) return -1;
+            if (b.isPlaceholder) return 1;
+            if (b.rank !== a.rank) return b.rank - a.rank;
+            return a.diff - b.diff;
+        });
+    } else {
+        // 没有厨师：按最高技法值降序
+        recipeOptions.sort(function(a, b) {
+            if (a.isPlaceholder) return -1;
+            if (b.isPlaceholder) return 1;
+            return b.maxSkill - a.maxSkill;
+        });
+    }
     
     // 重新构建option列表
     $select.empty();
@@ -1869,6 +1930,23 @@ function filterCultivationChefs($select, selectId, categoryName, isGodMode) {
     // 保存当前选中的值
     var currentValue = $select.val();
     
+    // 获取当前厨师位置信息，用于从 calCustomRule 获取真正选中的厨师ID
+    var $selectedItem = $select.closest('.selected-item');
+    var $calCustomItem = $select.closest('.cal-custom-item');
+    var ruleIndex = $(".cal-custom-item").index($calCustomItem);
+    var chefIndex = $calCustomItem.find(".selected-item").index($selectedItem);
+    
+    // 从 calCustomRule 获取真正选中的厨师ID（比 $select.val() 更可靠）
+    var realSelectedChefId = null;
+    if (calCustomRule && calCustomRule.rules && calCustomRule.rules[ruleIndex] && 
+        calCustomRule.rules[ruleIndex].custom && calCustomRule.rules[ruleIndex].custom[chefIndex] &&
+        calCustomRule.rules[ruleIndex].custom[chefIndex].chef) {
+        realSelectedChefId = calCustomRule.rules[ruleIndex].custom[chefIndex].chef.chefId;
+        if (realSelectedChefId) {
+            realSelectedChefId = String(realSelectedChefId);
+        }
+    }
+    
     // 保存当前的搜索关键词
     var $searchInput = sp.$menu.find('.bs-searchbox input');
     var searchKeyword = $searchInput.length ? $searchInput.val() : '';
@@ -1885,12 +1963,7 @@ function filterCultivationChefs($select, selectId, categoryName, isGodMode) {
     
     // 神级推荐分类特殊处理
     if (categoryName === 'god-recommend-chef-category' && isGodMode) {
-        // 获取当前厨师位置信息
-        var $selectedItem = $select.closest('.selected-item');
-        var $calCustomItem = $select.closest('.cal-custom-item');
-        var ruleIndex = $(".cal-custom-item").index($calCustomItem);
-        var chefIndex = $calCustomItem.find(".selected-item").index($selectedItem);
-        
+        // 获取当前厨师位置信息（已在函数开头获取）
         // 获取已选菜谱
         var rule = calCustomRule.rules[ruleIndex];
         var selectedRecipes = [];
@@ -1950,18 +2023,25 @@ function filterCultivationChefs($select, selectId, categoryName, isGodMode) {
         for (var i = 0; i < chefOptions.length; i++) {
             var opt = chefOptions[i];
             if (!opt.isPlaceholder && opt.skillDiff > 0 && opt.skillDiffDetail) {
-                // 添加差值信息到选项内容（插入到厨师名字后面）
+                // 添加差值信息到选项内容（插入到星级后面）
                 var currentContent = opt.$opt.attr('data-content') || opt.$opt.text();
                 var diffInfo = '<span style="color:#dc3545;font-size:11px;margin-left:5px;">' + gradeName + '差值:' + opt.skillDiffDetail.disp + '</span>';
                 
-                // 在 <span class='name'>厨师名</span> 后面插入差值信息
-                var nameEndIndex = currentContent.indexOf("</span>");
-                if (nameEndIndex > 0) {
-                    // 找到第一个</span>的位置，在其后插入差值信息
-                    currentContent = currentContent.substring(0, nameEndIndex + 7) + diffInfo + currentContent.substring(nameEndIndex + 7);
+                // 查找星级span（class='subtext'的第一个span），在其后插入差值信息
+                // 星级格式：<span class='subtext'>★★★★★</span>
+                var subtextMatch = currentContent.match(/<span class=['"]subtext['"]>[^<]*<\/span>/);
+                if (subtextMatch) {
+                    // 找到星级span，在其后插入差值信息
+                    var subtextEndIndex = currentContent.indexOf(subtextMatch[0]) + subtextMatch[0].length;
+                    currentContent = currentContent.substring(0, subtextEndIndex) + diffInfo + currentContent.substring(subtextEndIndex);
                 } else {
-                    // 如果没找到，直接追加到末尾
-                    currentContent += diffInfo;
+                    // 没找到星级span，在厨师名后面插入
+                    var nameEndIndex = currentContent.indexOf("</span>");
+                    if (nameEndIndex > 0) {
+                        currentContent = currentContent.substring(0, nameEndIndex + 7) + diffInfo + currentContent.substring(nameEndIndex + 7);
+                    } else {
+                        currentContent += diffInfo;
+                    }
                 }
                 opt.$opt.attr('data-content', currentContent);
             }
@@ -1973,7 +2053,9 @@ function filterCultivationChefs($select, selectId, categoryName, isGodMode) {
         // 2. 相同技法类型的厨师在一起
         // 3. 按加成值降序排序
         
-        var rule = calCustomRule.rules[0]; // 获取规则
+        // 位置信息和 realSelectedChefId 已在函数开头获取
+        
+        var rule = calCustomRule.rules[ruleIndex]; // 获取规则
         var auraChefsByGroup = {
             'Next': [],
             'Stirfry': [],
@@ -2106,13 +2188,129 @@ function filterCultivationChefs($select, selectId, categoryName, isGodMode) {
         // 刷新selectpicker后添加折叠功能
         sp.refresh();
         
+        // 修复 bootstrap-select 的 bug：使用 optgroup 时，最后一个分组的最后一个选项会被错误地标记为 selected/disabled
+        // 注意：不能清除所有 disabled 类，因为已选择的厨师需要保持 disabled 状态
+        
+        // 修复 DOM 中的样式
+        if (sp.$menu) {
+            var $innerMenu = sp.$menu.find('.dropdown-menu.inner');
+            if ($innerMenu.length) {
+                // 使用从 calCustomRule 获取的真正选中的厨师ID（比 currentValue 更可靠）
+                var realSelectedValue = realSelectedChefId;
+                
+                // 找到最后一个选项元素
+                var $lastItem = $innerMenu.find('li a.dropdown-item').last().parent();
+                
+                if ($lastItem.length) {
+                    // 获取最后一个选项的值
+                    var lastOptionValue = null;
+                    if (sp.selectpicker && sp.selectpicker.current && sp.selectpicker.current.data) {
+                        var dataArray = sp.selectpicker.current.data;
+                        for (var i = dataArray.length - 1; i >= 0; i--) {
+                            if (dataArray[i].type === 'option' && dataArray[i].option) {
+                                lastOptionValue = dataArray[i].option.value;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    // 第一步：清除所有选项的 selected/active 类（但不清除 disabled）
+                    $innerMenu.find('li').removeClass('selected active');
+                    $innerMenu.find('li a').removeClass('selected');
+                    
+                    // 第二步：修复 selectpicker.current.data 中所有选项的 selected 属性
+                    // 同时清除 <option> 元素的 selected 属性（这是关键！bootstrap-select 会检查这个属性）
+                    if (sp.selectpicker && sp.selectpicker.current && sp.selectpicker.current.data) {
+                        var dataArray = sp.selectpicker.current.data;
+                        for (var i = 0; i < dataArray.length; i++) {
+                            if (dataArray[i].type === 'option' && dataArray[i].option) {
+                                dataArray[i].selected = false;
+                                // 清除 <option> 元素的 selected 属性
+                                if (dataArray[i].option.selected) {
+                                    dataArray[i].option.selected = false;
+                                }
+                            }
+                        }
+                    }
+                    
+                    // 第三步：修复最后一个选项的 disabled 状态
+                    // bootstrap-select 的 bug 会错误地将最后一个选项标记为 selected，导致它被禁用
+                    if (lastOptionValue) {
+                        var $lastOption = $select.find('option[value="' + lastOptionValue + '"]');
+                        // 清除最后一个选项的 selected 属性
+                        if ($lastOption.length) {
+                            $lastOption.prop('selected', false);
+                        }
+                        // 如果最后一个选项的 <option> 元素没有 disabled 属性，则移除 li 的 disabled 类
+                        if ($lastOption.length && !$lastOption.prop('disabled')) {
+                            $lastItem.removeClass('disabled');
+                            $lastItem.find('a').removeClass('disabled');
+                            // 同时修复 selectpicker.current.data 中的 disabled 属性
+                            if (sp.selectpicker && sp.selectpicker.current && sp.selectpicker.current.data) {
+                                var dataArray = sp.selectpicker.current.data;
+                                for (var i = dataArray.length - 1; i >= 0; i--) {
+                                    if (dataArray[i].type === 'option' && dataArray[i].option && String(dataArray[i].option.value) === String(lastOptionValue)) {
+                                        dataArray[i].disabled = false;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    // 第四步：如果有真正选中的值，为其添加正确的标记
+                    if (realSelectedValue && realSelectedValue !== '') {
+                        // 在 selectpicker.current.data 中标记真正选中的选项，并找到对应的 li 元素
+                        if (sp.selectpicker && sp.selectpicker.current && sp.selectpicker.current.data) {
+                            var dataArray = sp.selectpicker.current.data;
+                            var $allLis = $innerMenu.find('li');
+                            for (var i = 0; i < dataArray.length; i++) {
+                                if (dataArray[i].type === 'option' && dataArray[i].option) {
+                                    if (dataArray[i].option.value === realSelectedValue || String(dataArray[i].option.value) === String(realSelectedValue)) {
+                                        dataArray[i].selected = true;
+                                        // 设置 <option> 元素的 selected 属性
+                                        dataArray[i].option.selected = true;
+                                        
+                                        // dataArray 的索引直接对应 li 元素的索引
+                                        var $targetLi = $allLis.eq(i);
+                                        if ($targetLi.length) {
+                                            // 添加 selected 和 active 类来显示已选中状态（背景置灰）
+                                            $targetLi.addClass('selected active');
+                                            $targetLi.find('a').addClass('selected');
+                                            // 当前选择框选中的厨师不应该是 disabled 状态，而是 selected 状态
+                                            // 移除 disabled 类，确保显示为"已选择"而不是"不可选"
+                                            $targetLi.removeClass('disabled');
+                                            $targetLi.find('a').removeClass('disabled');
+                                            
+                                            // 同时移除 <option> 元素的 disabled 属性（针对当前选择框选中的厨师）
+                                            var $selectedOption = $select.find('option[value="' + realSelectedValue + '"]');
+                                            if ($selectedOption.length) {
+                                                $selectedOption.prop('disabled', false);
+                                                $selectedOption.prop('selected', true);
+                                            }
+                                            
+                                            // 修复 selectpicker.current.data 中的 disabled 属性
+                                            dataArray[i].disabled = false;
+                                        }
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
         // 添加折叠功能
         setTimeout(function() {
             addAuraChefCollapseFeature(sp.$menu);
-        }, 0);
+        }, 10);
         
-        // 恢复选中的值
-        $select.val(currentValue);
+        // 恢复选中的值（使用 realSelectedChefId）
+        if (realSelectedChefId) {
+            $select.val(realSelectedChefId);
+        }
         
         // 重新应用搜索关键词（如果有）
         if (searchKeyword) {
@@ -2145,11 +2343,72 @@ function filterCultivationChefs($select, selectId, categoryName, isGodMode) {
         });
     }
     
-    // 恢复选中的值
-    $select.val(currentValue);
+    // 恢复选中的值（使用 realSelectedChefId）
+    if (realSelectedChefId) {
+        $select.val(realSelectedChefId);
+    } else {
+        $select.val(currentValue);
+    }
     
     // 刷新selectpicker
     sp.refresh();
+    
+    // 修复 bootstrap-select 的 bug：sp.refresh() 后可能错误地标记选项状态
+    // 为当前选择框选中的厨师添加正确的 selected 标记，移除 disabled 标记
+    if (sp.$menu && realSelectedChefId) {
+        var $innerMenu = sp.$menu.find('.dropdown-menu.inner');
+        if ($innerMenu.length) {
+            // 第一步：清除所有选项的 selected/active 类（但不清除 disabled）
+            $innerMenu.find('li').removeClass('selected active');
+            $innerMenu.find('li a').removeClass('selected');
+            
+            // 第二步：修复 selectpicker.current.data 中所有选项的 selected 属性
+            // 同时清除 <option> 元素的 selected 属性（这是关键！bootstrap-select 会检查这个属性）
+            if (sp.selectpicker && sp.selectpicker.current && sp.selectpicker.current.data) {
+                var dataArray = sp.selectpicker.current.data;
+                for (var i = 0; i < dataArray.length; i++) {
+                    if (dataArray[i].type === 'option' && dataArray[i].option) {
+                        dataArray[i].selected = false;
+                        // 清除 <option> 元素的 selected 属性
+                        if (dataArray[i].option.selected) {
+                            dataArray[i].option.selected = false;
+                        }
+                    }
+                }
+                
+                // 第三步：为真正选中的厨师添加正确的标记
+                var $allLis = $innerMenu.find('li');
+                for (var i = 0; i < dataArray.length; i++) {
+                    if (dataArray[i].type === 'option' && dataArray[i].option) {
+                        if (String(dataArray[i].option.value) === String(realSelectedChefId)) {
+                            dataArray[i].selected = true;
+                            
+                            // dataArray 的索引直接对应 li 元素的索引
+                            var $targetLi = $allLis.eq(i);
+                            if ($targetLi.length) {
+                                // 添加 selected 和 active 类来显示已选中状态（背景置灰）
+                                $targetLi.addClass('selected active');
+                                $targetLi.find('a').addClass('selected');
+                                // 当前选择框选中的厨师不应该是 disabled 状态，而是 selected 状态
+                                $targetLi.removeClass('disabled');
+                                $targetLi.find('a').removeClass('disabled');
+                                
+                                // 同时移除 <option> 元素的 disabled 属性
+                                var $selectedOption = $select.find('option[value="' + realSelectedChefId + '"]');
+                                if ($selectedOption.length) {
+                                    $selectedOption.prop('disabled', false);
+                                }
+                                
+                                // 修复 selectpicker.current.data 中的 disabled 属性
+                                dataArray[i].disabled = false;
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
     
     // 重新应用搜索关键词（如果有）
     if (searchKeyword) {

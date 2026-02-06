@@ -7,13 +7,13 @@
     <meta name="viewport" id="viewport" content="width=device-width">
     <link rel="shortcut icon" href="favicon.ico?v=1" type="image/x-icon" />
     <link rel="stylesheet" type="text/css" href="css/style.min.css?v=1" />
-    <script type="text/javascript" src="js/script.min.js?v=2"></script>
+    <script type="text/javascript" src="js/script.min.js?v=3"></script>
     <script type="text/javascript" src="js/common.min.js?v=8"></script>
-    <link rel="stylesheet" type="text/css" href="css/food.min.css?v=8" />
-    <script type="text/javascript" src="js/guest.calculator.js?v=3"></script>
-    <script type="text/javascript" src="js/query.guest.js?v=1"></script>
-    <script type="text/javascript" src="js/food.min.js?v=16"></script>
-    <script type="text/javascript" src="js/query.cultivate.js?v=2"></script>
+    <link rel="stylesheet" type="text/css" href="css/food.min.css?v=9" />
+    <script type="text/javascript" src="js/guest.calculator.js?v=4"></script>
+    <script type="text/javascript" src="js/query.guest.js?v=2"></script>
+    <script type="text/javascript" src="js/food.min.js?v=17"></script>
+    <script type="text/javascript" src="js/query.cultivate.js?v=3"></script>
     <link rel="stylesheet" type="text/css" href="css/image.css?v=8" />
     <script>
         $(function () {
@@ -69,6 +69,7 @@
             data-target="#menu-modal">
             <span class="glyphicon glyphicon-menu-hamburger" aria-hidden="true"></span>
         </button>
+        <div id="mobile-mode-switch-container" style="display: none; position: absolute; right: 45px; top: 5px;"></div>
         <button id="setting-btn" type="button" class="btn btn-default btn-sm" data-toggle="modal"
             data-target="#setting-modal">
             <span class="glyphicon glyphicon-cog" aria-hidden="true"></span>
@@ -1021,7 +1022,7 @@
                                     <optgroup label="正常营业">
                                         <option value='0'>正常营业</option>
                                         <option value='cultivate'>修炼/神级方案查询</option>
-                                        <option value='guest-rate'>贵客率计算</option>
+                                        <option value='guest-rate'>贵客率计算/碰瓷查询</option>
                                     </optgroup>
                                     <optgroup label="风云宴"></optgroup>
                                     <optgroup label="年兽"></optgroup>
@@ -1257,7 +1258,12 @@
 
                                     <div id="cultivation-mode-switch-wrapper" class="inline-wrapper hidden" style="margin-left: 10px;">
                                         <input type="checkbox" id="chk-cultivation-mode" data-toggle="toggle" 
-                                            data-on="神级方案" data-off="修炼查询" data-onstyle="info" data-offstyle="default" data-width="90px">
+                                            data-on="神级方案" data-off="修炼查询" data-onstyle="primary" data-offstyle="primary" data-width="90px">
+                                    </div>
+
+                                    <div id="guest-query-mode-switch-wrapper" class="inline-wrapper hidden" style="margin-left: 10px;">
+                                        <input type="checkbox" id="chk-guest-query-mode" data-toggle="toggle" 
+                                            data-on="碰瓷查询" data-off="贵客查询" data-onstyle="primary" data-offstyle="primary" data-width="90px">
                                     </div>
 
                                     <div id="unultimated-chef-wrapper" class="inline-wrapper select-wrapper hidden" data-toggle="tooltip" title="选择查询修炼厨师">
@@ -2082,9 +2088,7 @@
                                 <div class="calc-result-header">
                                     <h4>计算结果</h4>
                                     <div class="calc-header-buttons">
-                                        <button class="btn btn-primary btn-sm" id="btn-oneclick-query" type="button">
-                                            <span class="glyphicon glyphicon-flash"></span> 一键查询
-                                        </button>
+                                        <button class="btn btn-primary btn-sm" id="btn-oneclick-query" type="button">一键查询</button>
                                         <button class="btn btn-default btn-sm" id="btn-query-settings" type="button">
                                             <span class="glyphicon glyphicon-cog"></span> 查询设置
                                         </button>
@@ -2257,6 +2261,52 @@
                                             <div class="calc-summary-item">
                                                 <span>总实际贵客率:</span>
                                                 <span class="value highlight" id="total-guest-rate">20.1%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 碰瓷查询区域 -->
+                            <div class="pengci-query-area hidden" id="pengci-query-area">
+                                <div class="pengci-query-header">
+                                    <ul class="nav nav-tabs pengci-tabs">
+                                        <li class="active"><a href="#pengci-guest-tab" data-toggle="tab">贵客碰瓷</a></li>
+                                        <li><a href="#pengci-rune-tab" data-toggle="tab"><span>神级符文碰瓷</span><button class="btn-collapse" type="button"><span class="glyphicon glyphicon-chevron-up"></span></button></a></li>
+                                    </ul>
+                                </div>
+                                <div class="pengci-query-content">
+                                    <div class="tab-content pengci-tab-content">
+                                        <div class="tab-pane active" id="pengci-guest-tab">
+                                            <div class="pengci-search-box">
+                                                <div class="pengci-control-group">
+                                                    <div class="pengci-guest-dropdown-wrapper" id="pengci-guest-dropdown-wrapper">
+                                                        <button type="button" class="btn btn-default pengci-dropdown-toggle" id="pengci-guest-dropdown-btn">
+                                                            <span class="pengci-dropdown-text">选择碰瓷菜谱</span>
+                                                            <span class="caret"></span>
+                                                        </button>
+                                                        <div class="pengci-dropdown-menu" id="pengci-guest-dropdown-menu" style="display: none;">
+                                                            <div class="pengci-guest-dropdown" id="pengci-guest-select-container"></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <button class="btn btn-primary btn-sm" id="btn-pengci-guest-query">查询厨师配置</button>
+                                                <div class="pengci-control-group pengci-mainline-group">
+                                                    <input type="number" class="form-control input-sm" id="input-pengci-mainline" placeholder="绑定主线编号" min="1" max="999" style="width: 100px;">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="tab-pane" id="pengci-rune-tab">
+                                            <div class="pengci-rune-controls">
+                                                <div class="pengci-rune-dropdown-wrapper">
+                                                    <button type="button" class="btn btn-default pengci-dropdown-btn" id="pengci-rune-dropdown-btn">
+                                                        <span class="pengci-dropdown-text">选择符文菜谱</span>
+                                                        <span class="caret"></span>
+                                                    </button>
+                                                    <div class="pengci-rune-dropdown" id="pengci-rune-select-container">
+                                                    </div>
+                                                </div>
+                                                <button class="btn btn-primary btn-sm" id="btn-pengci-rune-query">查询厨师配置</button>
                                             </div>
                                         </div>
                                     </div>

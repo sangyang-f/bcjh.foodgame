@@ -2460,9 +2460,10 @@ var OneClickQuery = (function($) {
         html += '<div class="modal-content">';
         
         // 弹窗头部
-        html += '<div class="modal-header">';
+        html += '<div class="modal-header settings-modal-header">';
         html += '<button type="button" class="close" data-dismiss="modal">&times;</button>';
         html += '<h4 class="modal-title">查询设置</h4>';
+        html += '<button type="button" class="btn btn-primary btn-sm" id="btn-guest-portion-table">贵客必来对照表</button>';
         html += '</div>';
         
         // 弹窗内容
@@ -2474,7 +2475,7 @@ var OneClickQuery = (function($) {
         html += '<div class="setting-card">';
         html += '<label>开业时间</label>';
         html += '<div class="input-group input-group-sm">';
-        html += '<input type="number" class="form-control" id="setting-defaultTime" value="' + settings.defaultTime + '" min="0" max="24" step="0.5">';
+        html += '<input type="number" class="form-control" id="setting-defaultTime" value="' + settings.defaultTime + '" min="0" max="24" step="0.1">';
         html += '<span class="input-group-addon">小时</span>';
         html += '</div>';
         html += '</div>';
@@ -2584,7 +2585,13 @@ var OneClickQuery = (function($) {
         });
         
         // 制作时间输入事件
-        $modal.find('#setting-defaultTime').on('change', function() {
+        $modal.find('#setting-defaultTime').on('input', function() {
+            var val = $(this).val();
+            // 限制只能输入一位小数：如果小数点后超过1位，截断
+            if (val.indexOf('.') !== -1 && val.split('.')[1].length > 1) {
+                $(this).val(val.substring(0, val.indexOf('.') + 2));
+            }
+        }).on('change', function() {
             var value = parseFloat($(this).val()) || 7.0;
             if (value < 0) value = 0;
             if (value > 24) value = 24;
@@ -2634,6 +2641,144 @@ var OneClickQuery = (function($) {
                 setSetting(settingKey, false);
             }
         });
+        
+        // 贵客必来对照表按钮点击事件
+        $modal.find('#btn-guest-portion-table').on('click', function() {
+            showGuestPortionTableDialog();
+        });
+    }
+    
+    /**
+     * 显示贵客必来对照表弹窗
+     */
+    function showGuestPortionTableDialog() {
+        // 如果弹窗已存在，先移除
+        $('#guest-portion-table-modal').remove();
+        
+        // 贵客率-份数对照表数据（完整的1-5星菜谱数据）
+        var guestPortionTable = {
+            80: {1: 59, 2: 39, 3: 42, 4: 91, 5: 62},
+            90: {1: 57, 2: 38, 3: 40, 4: 86, 5: 59},
+            100: {1: 55, 2: 36, 3: 39, 4: 81, 5: 56},
+            110: {1: 53, 2: 35, 3: 37, 4: 77, 5: 53},
+            120: {1: 52, 2: 34, 3: 36, 4: 73, 5: 50},
+            130: {1: 50, 2: 33, 3: 34, 4: 69, 5: 48},
+            140: {1: 49, 2: 32, 3: 33, 4: 66, 5: 46},
+            150: {1: 47, 2: 31, 3: 32, 4: 63, 5: 44},
+            160: {1: 46, 2: 31, 3: 31, 4: 60, 5: 42},
+            170: {1: 45, 2: 30, 3: 30, 4: 57, 5: 40},
+            180: {1: 44, 2: 29, 3: 30, 4: 55, 5: 38},
+            190: {1: 43, 2: 29, 3: 29, 4: 52, 5: 37},
+            200: {1: 42, 2: 28, 3: 28, 4: 50, 5: 36},
+            210: {1: 41, 2: 28, 3: 27, 4: 48, 5: 34},
+            220: {1: 41, 2: 27, 3: 27, 4: 46, 5: 33},
+            230: {1: 40, 2: 27, 3: 26, 4: 45, 5: 32},
+            240: {1: 39, 2: 26, 3: 26, 4: 43, 5: 31},
+            250: {1: 39, 2: 26, 3: 25, 4: 41, 5: 30},
+            260: {1: 38, 2: 25, 3: 25, 4: 40, 5: 29},
+            270: {1: 37, 2: 25, 3: 24, 4: 39, 5: 28},
+            280: {1: 37, 2: 25, 3: 24, 4: 37, 5: 27},
+            290: {1: 36, 2: 24, 3: 23, 4: 36, 5: 26},
+            300: {1: 36, 2: 24, 3: 23, 4: 35, 5: 25},
+            310: {1: 35, 2: 24, 3: 23, 4: 34, 5: 25},
+            320: {1: 35, 2: 23, 3: 22, 4: 33, 5: 24},
+            330: {1: 35, 2: 23, 3: 22, 4: 32, 5: 23},
+            340: {1: 34, 2: 23, 3: 22, 4: 31, 5: 23},
+            350: {1: 34, 2: 23, 3: 21, 4: 30, 5: 22},
+            360: {1: 33, 2: 22, 3: 21, 4: 29, 5: 22},
+            370: {1: 33, 2: 22, 3: 21, 4: 28, 5: 21},
+            380: {1: 33, 2: 22, 3: 20, 4: 27, 5: 20},
+            390: {1: 32, 2: 22, 3: 20, 4: 26, 5: 20},
+            400: {1: 32, 2: 21, 3: 20, 4: 26, 5: 19},
+            410: {1: 32, 2: 21, 3: 20, 4: 25, 5: 19},
+            420: {1: 31, 2: 21, 3: 19, 4: 24, 5: 18},
+            430: {1: 31, 2: 21, 3: 19, 4: 23, 5: 18},
+            440: {1: 31, 2: 21, 3: 19, 4: 23, 5: 18},
+            450: {1: 31, 2: 21, 3: 19, 4: 22, 5: 17},
+            460: {1: 30, 2: 20, 3: 18, 4: 22, 5: 17},
+            470: {1: 30, 2: 20, 3: 18, 4: 21, 5: 16},
+            480: {1: 30, 2: 20, 3: 18, 4: 20, 5: 16},
+            490: {1: 30, 2: 20, 3: 18, 4: 20, 5: 16},
+            500: {1: 29, 2: 20, 3: 18, 4: 19, 5: 15},
+            510: {1: 29, 2: 20, 3: 18, 4: 19, 5: 15},
+            520: {1: 29, 2: 20, 3: 17, 4: 18, 5: 15},
+            530: {1: 29, 2: 19, 3: 17, 4: 18, 5: 14},
+            540: {1: 29, 2: 19, 3: 17, 4: 17, 5: 14}
+        };
+        
+        // 保底份数
+        var guaranteedPortions = {5: 7, 4: 10, 3: 12, 2: 15, 1: 20};
+        
+        // 创建弹窗HTML
+        var html = '<div class="modal fade" id="guest-portion-table-modal" tabindex="-1">';
+        html += '<div class="modal-dialog">';
+        html += '<div class="modal-content">';
+        
+        // 弹窗头部
+        html += '<div class="modal-header">';
+        html += '<button type="button" class="close" data-dismiss="modal">&times;</button>';
+        html += '<h4 class="modal-title">贵客必来份数对照表</h4>';
+        html += '</div>';
+        
+        // 弹窗内容
+        html += '<div class="modal-body">';
+        html += '<div class="guest-portion-table-container">';
+        html += '<table class="table table-bordered table-condensed guest-portion-table">';
+        
+        // 表头
+        html += '<thead>';
+        html += '<tr class="table-header">';
+        html += '<th>贵客率</th>';
+        html += '<th>5星</th>';
+        html += '<th>4星</th>';
+        html += '<th>3星</th>';
+        html += '<th>2星</th>';
+        html += '<th>1星</th>';
+        html += '</tr>';
+        html += '</thead>';
+        
+        html += '<tbody>';
+        
+        // 保底份数行
+        html += '<tr class="guaranteed-row">';
+        html += '<td class="rate-cell">保底份数</td>';
+        html += '<td class="portion-cell">' + guaranteedPortions[5] + '</td>';
+        html += '<td class="portion-cell">' + guaranteedPortions[4] + '</td>';
+        html += '<td class="portion-cell">' + guaranteedPortions[3] + '</td>';
+        html += '<td class="portion-cell">' + guaranteedPortions[2] + '</td>';
+        html += '<td class="portion-cell">' + guaranteedPortions[1] + '</td>';
+        html += '</tr>';
+        
+        // 数据行（按贵客率降序排列）
+        var rates = Object.keys(guestPortionTable).map(Number).sort(function(a, b) { return b - a; });
+        for (var i = 0; i < rates.length; i++) {
+            var rate = rates[i];
+            var data = guestPortionTable[rate];
+            html += '<tr>';
+            html += '<td class="rate-cell">' + rate + '%</td>';
+            html += '<td class="portion-cell highlight">' + data[5] + '</td>';
+            html += '<td class="portion-cell highlight">' + data[4] + '</td>';
+            html += '<td class="portion-cell highlight">' + data[3] + '</td>';
+            html += '<td class="portion-cell highlight">' + data[2] + '</td>';
+            html += '<td class="portion-cell highlight">' + data[1] + '</td>';
+            html += '</tr>';
+        }
+        
+        html += '</tbody>';
+        html += '</table>';
+        html += '</div>';
+        html += '</div>';
+        
+        // 弹窗底部
+        html += '<div class="modal-footer">';
+        html += '<button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>';
+        html += '</div>';
+        
+        html += '</div></div></div>';
+        
+        // 添加到页面并显示
+        $('body').append(html);
+        $('#guest-portion-table-modal').modal('show');
     }
 
     // ========================================

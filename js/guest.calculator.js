@@ -1444,7 +1444,9 @@ var GuestRateCalculator = (function($) {
         }
         
         $(selector).on("shown.bs.select", function() {
-            if (!isGuestRateMode()) {
+            // 碰瓷查询模式下不添加分类标签
+            var isPengciMode = $("#chk-guest-query-mode").prop("checked");
+            if (!isGuestRateMode() || isPengciMode) {
                 $(this).parent().find('.dropdown-menu .chef-category-tabs, .dropdown-menu .equip-category-tabs, .dropdown-menu .recipe-category-tabs').remove();
                 return;
             }
@@ -1744,20 +1746,144 @@ var GuestRateCalculator = (function($) {
             $select.empty().append(opts);
         }
         
-        // 4) 恢复选中的值
-        $select.val(currentValue);
+        // 4) 恢复选中的值（先检查值是否有效）
+        if (currentValue && currentValue !== "" && $select.find('option[value="' + currentValue + '"]').length > 0) {
+            $select.val(currentValue);
+        } else {
+            // 如果值无效，不设置值，让selectpicker自动处理
+            // 不调用 $select.val("") 避免触发错误
+        }
         
         // 5) 刷新 selectpicker
         sp.refresh();
+        
+        // 修复 bootstrap-select 的 bug：使用 optgroup 时，最后一个分组的最后一个选项会被错误地标记为 selected/disabled
+        if (sortKey === 'recipeTime') {
+            // 使用之前保存的 currentValue 作为真正选中的值
+            var realSelectedValue = currentValue;
+            
+            // 修复 DOM 中的样式
+            if (sp.$menu) {
+                var $innerMenu = sp.$menu.find('.dropdown-menu.inner');
+                if ($innerMenu.length) {
+                    // 找到最后一个真正的选项元素
+                    var $lastItem = $innerMenu.find('li a.dropdown-item').last().parent();
+                    
+                    if ($lastItem.length) {
+                        // 获取最后一个选项对应的 option 值
+                        var lastOptionValue = null;
+                        
+                        // 从 selectpicker.current.data 中获取最后一个选项的值
+                        if (sp.selectpicker && sp.selectpicker.current && sp.selectpicker.current.data) {
+                            var dataArray = sp.selectpicker.current.data;
+                            // 找到最后一个 type 为 'option' 的项
+                            for (var i = dataArray.length - 1; i >= 0; i--) {
+                                if (dataArray[i].type === 'option' && dataArray[i].option) {
+                                    lastOptionValue = dataArray[i].option.value;
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        // 第一步：清除所有选项的 selected/active 类（但不清除 disabled）
+                        $innerMenu.find('li').removeClass('selected active');
+                        $innerMenu.find('li a').removeClass('selected');
+                        
+                        // 第二步：修复 selectpicker.current.data 中所有选项的 selected 属性
+                        // 同时清除 <option> 元素的 selected 属性（这是关键！bootstrap-select 会检查这个属性）
+                        if (sp.selectpicker && sp.selectpicker.current && sp.selectpicker.current.data) {
+                            var dataArray = sp.selectpicker.current.data;
+                            for (var i = 0; i < dataArray.length; i++) {
+                                if (dataArray[i].type === 'option' && dataArray[i].option) {
+                                    dataArray[i].selected = false;
+                                    // 清除 <option> 元素的 selected 属性
+                                    if (dataArray[i].option.selected) {
+                                        dataArray[i].option.selected = false;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // 第三步：修复最后一个选项的 disabled 状态
+                        // bootstrap-select 的 bug 会错误地将最后一个选项标记为 selected，导致它被禁用
+                        // 需要检查最后一个选项是否真的应该被禁用（即它的 <option> 元素是否有 disabled 属性）
+                        if (lastOptionValue) {
+                            var $lastOption = $select.find('option[value="' + lastOptionValue + '"]');
+                            // 清除最后一个选项的 selected 属性
+                            if ($lastOption.length) {
+                                $lastOption.prop('selected', false);
+                            }
+                            // 如果最后一个选项的 <option> 元素没有 disabled 属性，则移除 li 的 disabled 类
+                            if ($lastOption.length && !$lastOption.prop('disabled')) {
+                                $lastItem.removeClass('disabled');
+                                $lastItem.find('a').removeClass('disabled');
+                                // 同时修复 selectpicker.current.data 中的 disabled 属性
+                                if (sp.selectpicker && sp.selectpicker.current && sp.selectpicker.current.data) {
+                                    var dataArray = sp.selectpicker.current.data;
+                                    for (var i = dataArray.length - 1; i >= 0; i--) {
+                                        if (dataArray[i].type === 'option' && dataArray[i].option && dataArray[i].option.value === lastOptionValue) {
+                                            dataArray[i].disabled = false;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // 第四步：如果有真正选中的值，为其添加正确的标记
+                        if (realSelectedValue && realSelectedValue !== '') {
+                            // 在 selectpicker.current.data 中标记真正选中的选项，并找到对应的 li 元素
+                            if (sp.selectpicker && sp.selectpicker.current && sp.selectpicker.current.data) {
+                                var dataArray = sp.selectpicker.current.data;
+                                var $allLis = $innerMenu.find('li');
+                                for (var i = 0; i < dataArray.length; i++) {
+                                    if (dataArray[i].type === 'option' && dataArray[i].option && dataArray[i].option.value === realSelectedValue) {
+                                        dataArray[i].selected = true;
+                                        // 设置 <option> 元素的 selected 属性
+                                        dataArray[i].option.selected = true;
+                                        
+                                        // dataArray 的索引直接对应 li 元素的索引
+                                        var $targetLi = $allLis.eq(i);
+                                        if ($targetLi.length) {
+                                            // 添加 selected 和 active 类来显示已选中状态（背景置灰）
+                                            $targetLi.addClass('selected active');
+                                            $targetLi.find('a').addClass('selected');
+                                            // 当前选择框选中的菜谱不应该是 disabled 状态，而是 selected 状态
+                                            // 移除 disabled 类，确保显示为"已选择"而不是"不可选"
+                                            $targetLi.removeClass('disabled');
+                                            $targetLi.find('a').removeClass('disabled');
+                                            
+                                            // 同时移除 <option> 元素的 disabled 属性（针对当前选择框选中的菜谱）
+                                            var $selectedOption = $select.find('option[value="' + realSelectedValue + '"]');
+                                            if ($selectedOption.length) {
+                                                $selectedOption.prop('disabled', false);
+                                                $selectedOption.prop('selected', true);
+                                            }
+                                            
+                                            // 修复 selectpicker.current.data 中的 disabled 属性
+                                            dataArray[i].disabled = false;
+                                        }
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
         
         // 6) 冲突检测和标红贵客（贵客率模式下）
         if (sortKey === 'recipeTime' && typeof GuestRateCalculator !== 'undefined' && GuestRateCalculator.isGuestRateMode()) {
             detectAndMarkConflicts($select, sp, runeList);
         }
         
-        // 7) 添加 optgroup 折叠功能
+        // 7) 添加 optgroup 折叠功能（延迟执行，确保修复代码先执行）
         if (sortKey === 'recipeTime') {
-            addOptgroupCollapseFeature(sp.$menu);
+            setTimeout(function() {
+                addOptgroupCollapseFeature(sp.$menu);
+                
+            }, 10);
             
             // 监听搜索框输入事件，自动展开包含搜索结果的符文分组
             var $searchInput = sp.$menu.find('.bs-searchbox input');
@@ -1834,8 +1960,8 @@ var GuestRateCalculator = (function($) {
                 // 直接设置字体大小为15px
                 $header.css('font-size', '15px');
                 
-                // 使用 Bootstrap 的 caret 样式
-                var $icon = $("<span class='collapse-icon caret'></span>");
+                // 使用 glyphicon 箭头样式（和贵客下拉框一致）
+                var $icon = $("<span class='collapse-icon glyphicon glyphicon-chevron-right'></span>");
                 $header.append($icon);
                 
                 // 获取符文名称（去掉数量部分）
@@ -1856,12 +1982,12 @@ var GuestRateCalculator = (function($) {
                 $header.data("rune-name", runeName);
                 
                 if (isCollapsed) {
-                    // 收起状态
-                    $icon.css("transform", "translateY(-50%) rotate(-90deg)");
+                    // 收起状态 - 向右箭头
                     $header.nextUntil(".dropdown-header", "li").hide();
                 } else {
-                    // 展开状态
-                    $icon.css("transform", "translateY(-50%) rotate(0deg)");
+                    // 展开状态 - 向下箭头
+                    $icon.removeClass("glyphicon-chevron-right").addClass("glyphicon-chevron-down");
+                    $icon.css("color", "#337ab7");
                     $header.nextUntil(".dropdown-header", "li").show();
                 }
             }
@@ -1880,22 +2006,36 @@ var GuestRateCalculator = (function($) {
                 var $options = $this.nextUntil(".dropdown-header", "li");
                 
                 if (isCollapsed) {
-                    // 展开
+                    // 展开 - 切换为向下箭头
                     $options.slideDown(200);
-                    $icon.css("transform", "translateY(-50%) rotate(0deg)");
+                    $icon.removeClass("glyphicon-chevron-right").addClass("glyphicon-chevron-down");
+                    $icon.css("color", "#337ab7");
                     $this.data("collapsed", false);
                     // 保存展开状态
                     runeGroupExpandState[runeName] = false;
                 } else {
-                    // 收起
+                    // 收起 - 切换为向右箭头
                     $options.slideUp(200);
-                    $icon.css("transform", "translateY(-50%) rotate(-90deg)");
+                    $icon.removeClass("glyphicon-chevron-down").addClass("glyphicon-chevron-right");
+                    $icon.css("color", "#999");
                     $this.data("collapsed", true);
                     // 保存收起状态
                     runeGroupExpandState[runeName] = true;
                 }
             });
         });
+        
+        // 修复 bootstrap-select 的 bug：最后一个分组的最后一个选项可能被错误标记
+        // 注意：只移除 disabled 类，不移除 selected 类（因为可能是真正选中的）
+        var $innerMenu = $dropdown.find('.dropdown-menu.inner');
+        if ($innerMenu.length) {
+            var $lastItem = $innerMenu.find('li a.dropdown-item').last().parent();
+            if ($lastItem.length) {
+                // 只移除 disabled 类
+                $lastItem.removeClass('disabled');
+                $lastItem.find('a').removeClass('disabled');
+            }
+        }
     }
     
     /**
@@ -2469,6 +2609,78 @@ var GuestRateCalculator = (function($) {
         // 5) 刷新 selectpicker
         sp.refresh();
         
+        // 5.1) 修复 bootstrap-select 的 bug：sp.refresh() 后可能错误地标记选项状态
+        // 获取当前选择框的位置信息，从 calCustomRule 获取真正选中的值
+        var $selectedItem = $select.closest('.selected-item');
+        var $calCustomItem = $select.closest('.cal-custom-item');
+        var ruleIndex = $(".cal-custom-item").index($calCustomItem);
+        var chefIndex = $calCustomItem.find(".selected-item").index($selectedItem);
+        
+        // 从 calCustomRule 获取真正选中的ID
+        var realSelectedId = null;
+        if (typeof calCustomRule !== 'undefined' && calCustomRule && calCustomRule.rules && calCustomRule.rules[ruleIndex] && 
+            calCustomRule.rules[ruleIndex].custom && calCustomRule.rules[ruleIndex].custom[chefIndex]) {
+            if (selectorType === 'chef' && calCustomRule.rules[ruleIndex].custom[chefIndex].chef) {
+                realSelectedId = calCustomRule.rules[ruleIndex].custom[chefIndex].chef.chefId;
+            } else if (selectorType === 'equip' && calCustomRule.rules[ruleIndex].custom[chefIndex].equip) {
+                realSelectedId = calCustomRule.rules[ruleIndex].custom[chefIndex].equip.equipId;
+            }
+            if (realSelectedId) {
+                realSelectedId = String(realSelectedId);
+            }
+        }
+        
+        // 为当前选择框选中的项添加正确的 selected 标记，移除 disabled 标记
+        if (sp.$menu && realSelectedId) {
+            var $innerMenu = sp.$menu.find('.dropdown-menu.inner');
+            if ($innerMenu.length) {
+                // 第一步：清除所有选项的 selected/active 类（但不清除 disabled）
+                $innerMenu.find('li').removeClass('selected active');
+                $innerMenu.find('li a').removeClass('selected');
+                
+                // 第二步：修复 selectpicker.current.data 中所有选项的 selected 属性
+                if (sp.selectpicker && sp.selectpicker.current && sp.selectpicker.current.data) {
+                    var dataArray = sp.selectpicker.current.data;
+                    for (var i = 0; i < dataArray.length; i++) {
+                        if (dataArray[i].type === 'option' && dataArray[i].option) {
+                            dataArray[i].selected = false;
+                        }
+                    }
+                    
+                    // 第三步：为真正选中的项添加正确的标记
+                    var $allLis = $innerMenu.find('li');
+                    for (var i = 0; i < dataArray.length; i++) {
+                        if (dataArray[i].type === 'option' && dataArray[i].option) {
+                            if (String(dataArray[i].option.value) === String(realSelectedId)) {
+                                dataArray[i].selected = true;
+                                
+                                // dataArray 的索引直接对应 li 元素的索引
+                                var $targetLi = $allLis.eq(i);
+                                if ($targetLi.length) {
+                                    // 添加 selected 和 active 类来显示已选中状态（背景置灰）
+                                    $targetLi.addClass('selected active');
+                                    $targetLi.find('a').addClass('selected');
+                                    // 当前选择框选中的项不应该是 disabled 状态，而是 selected 状态
+                                    $targetLi.removeClass('disabled');
+                                    $targetLi.find('a').removeClass('disabled');
+                                    
+                                    // 同时移除 <option> 元素的 disabled 属性
+                                    var $selectedOption = $select.find('option[value="' + realSelectedId + '"]');
+                                    if ($selectedOption.length) {
+                                        $selectedOption.prop('disabled', false);
+                                    }
+                                    
+                                    // 修复 selectpicker.current.data 中的 disabled 属性
+                                    dataArray[i].disabled = false;
+                                }
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
         // 6) 重新应用搜索关键词（如果有）
         if (searchKeyword) {
             // 延迟执行，确保 refresh 完成后再应用搜索
@@ -2658,6 +2870,2204 @@ var GuestRateCalculator = (function($) {
         return result;
     }
     
+    // ========================================
+    // 碰瓷查询模块
+    // ========================================
+    
+    // 碰瓷贵客选择框当前分类
+    var pengciGuestCategory = 'normal';
+    
+    // 选中的碰瓷菜谱列表（最多9个）
+    // 结构: [{guest: "贵客名", recipe: "菜谱名", rank: 2/3/4}]
+    // rank: 2=优, 3=特, 4=神
+    var selectedPengciRecipes = [];
+    var MAX_PENGCI_RECIPES = 9;
+    
+    /**
+     * 根据菜谱名查找已选中的记录
+     * @param {string} recipeName - 菜谱名
+     * @returns {Object|null} 选中记录或null
+     */
+    function findSelectedRecipe(recipeName) {
+        for (var i = 0; i < selectedPengciRecipes.length; i++) {
+            if (selectedPengciRecipes[i].recipe === recipeName) {
+                return selectedPengciRecipes[i];
+            }
+        }
+        return null;
+    }
+    
+    /**
+     * 获取菜谱在指定贵客下的最低可碰瓷品级
+     * @param {string} guestName - 贵客名
+     * @param {Object} recipe - 菜谱对象
+     * @returns {number|null} 品级(2=优,3=特,4=神)或null(无可碰瓷)
+     */
+    function getLowestPengciRank(guestName, recipe) {
+        if (!recipe.guests || recipe.guests.length === 0) return null;
+        
+        var currentRank = getPengciRankValue(recipe.rank);
+        
+        // 遍历优(index=0,rank=2)、特(index=1,rank=3)、神(index=2,rank=4)
+        for (var j = 0; j < Math.min(recipe.guests.length, 3); j++) {
+            if (recipe.guests[j].guest === guestName) {
+                var targetRank = j + 2; // 0->2(优), 1->3(特), 2->4(神)
+                // 如果当前品级低于目标品级，说明可以碰瓷
+                if (currentRank < targetRank) {
+                    return targetRank;
+                }
+            }
+        }
+        return null;
+    }
+    
+    // ========================================
+    // 碰瓷厨师查询相关函数
+    // ========================================
+    
+    var SKILL_TYPES = ['stirfry', 'boil', 'knife', 'fry', 'bake', 'steam'];
+    var SKILL_NAMES = {
+        stirfry: '炒',
+        boil: '煮',
+        knife: '切',
+        fry: '炸',
+        bake: '烤',
+        steam: '蒸'
+    };
+    
+    /**
+     * 计算厨师的技法值（考虑厨具、遗玉、修炼等加成）
+     * 参考 query.cultivate.js 中的 calculateSkillDiffDetailForGodRecommend 函数
+     * @param {Object} chef - 厨师原始数据
+     * @param {Object} rule - 规则对象
+     * @param {number} chefIndex - 厨师位置索引（0-2），可为null
+     * @returns {Object} 包含技法值的厨师副本
+     */
+    function calculateChefSkillValues(chef, rule, chefIndex) {
+        // 获取"已配厨具"和"已配遗玉"复选框状态
+        var useEquip = $("#chk-cal-use-equip").prop("checked");
+        var useAmber = $("#chk-cal-use-amber").prop("checked");
+        
+        // 深拷贝厨师数据
+        var chefCopy = JSON.parse(JSON.stringify(chef));
+        
+        if (rule && typeof setDataForChef === 'function') {
+            // 确定使用的厨具
+            var equipToUse = null;
+            if (useEquip && chefCopy.equip) {
+                equipToUse = chefCopy.equip;
+            }
+            
+            // 如果不使用已配遗玉，清空遗玉数据
+            if (!useAmber && chefCopy.disk && chefCopy.disk.ambers) {
+                for (var j = 0; j < chefCopy.disk.ambers.length; j++) {
+                    chefCopy.disk.ambers[j].data = null;
+                }
+            }
+            
+            // 获取光环加成（使用公共函数，与修炼查询保持一致）
+            var partialAdds = null;
+            if (typeof getPartialAddsForChef === 'function' && chefIndex !== null && chefIndex !== undefined) {
+                partialAdds = getPartialAddsForChef(rule, chefIndex);
+            }
+            // 如果没有获取到光环加成，使用空数组
+            if (!partialAdds) {
+                partialAdds = [];
+            }
+            
+            // 调用setDataForChef计算技法值（与calculateSkillDiffDetailForGodRecommend保持一致）
+            setDataForChef(
+                chefCopy,                           // 厨师
+                equipToUse,                         // 厨具（如果勾选了已配厨具）
+                true,                               // 是否计算
+                rule.calGlobalUltimateData || [],   // 全局修炼数据
+                partialAdds,                        // 光环加成
+                rule.calSelfUltimateData || [],     // 自身修炼数据
+                rule.calActivityUltimateData || [], // 活动修炼数据
+                true,                               // 是否使用修炼
+                rule,                               // 规则
+                useAmber,                           // 是否使用遗玉
+                rule.calQixiaData || null           // 奇侠数据
+            );
+        }
+        
+        return chefCopy;
+    }
+    
+    /**
+     * 检查厨师是否能精确做到菜谱的目标品级
+     * @param {Object} chef - 已计算技法值的厨师
+     * @param {Object} recipe - 菜谱对象
+     * @param {number} targetRank - 目标品级（2=优, 3=特, 4=神）
+     * @returns {boolean} 是否精确匹配
+     */
+    function canChefMakeExactRank(chef, recipe, targetRank) {
+        // 检查每种技法是否满足目标品级但不超过下一品级
+        for (var i = 0; i < SKILL_TYPES.length; i++) {
+            var skill = SKILL_TYPES[i];
+            var recipeNeed = recipe[skill] || 0;
+            if (recipeNeed > 0) {
+                var chefVal = chef[skill + 'Val'] || chef[skill] || 0;
+                var requiredForTarget = recipeNeed * targetRank;
+                var requiredForNext = recipeNeed * (targetRank + 1);
+                
+                // 厨师技法值必须 >= 目标品级要求 且 < 下一品级要求
+                if (chefVal < requiredForTarget) {
+                    return false; // 达不到目标品级
+                }
+                if (targetRank < 5 && chefVal >= requiredForNext) {
+                    return false; // 超过目标品级
+                }
+            }
+        }
+        return true;
+    }
+    
+    /**
+     * 计算厨师做菜谱能达到的品级
+     * @param {Object} chef - 已计算技法值的厨师
+     * @param {Object} recipe - 菜谱对象
+     * @returns {number} 品级（1=可, 2=优, 3=特, 4=神, 5=传）
+     */
+    function getChefRecipeRank(chef, recipe) {
+        var minRank = 5; // 从传级开始检查
+        
+        for (var i = 0; i < SKILL_TYPES.length; i++) {
+            var skill = SKILL_TYPES[i];
+            var recipeNeed = recipe[skill] || 0;
+            if (recipeNeed > 0) {
+                var chefVal = chef[skill + 'Val'] || chef[skill] || 0;
+                
+                // 计算该技法能达到的品级
+                var skillRank = 1;
+                if (chefVal >= recipeNeed * 5) skillRank = 5;
+                else if (chefVal >= recipeNeed * 4) skillRank = 4;
+                else if (chefVal >= recipeNeed * 3) skillRank = 3;
+                else if (chefVal >= recipeNeed * 2) skillRank = 2;
+                else skillRank = 1;
+                
+                if (skillRank < minRank) {
+                    minRank = skillRank;
+                }
+            }
+        }
+        
+        return minRank;
+    }
+    
+    /**
+     * 为选中的菜谱查询匹配的厨师组合
+     * @returns {Object} 查询结果
+     */
+    function queryPengciChefConfig() {
+        if (selectedPengciRecipes.length === 0) {
+            return { success: false, message: '请先选择要碰瓷的菜谱' };
+        }
+        
+        // 获取游戏数据
+        var gameData = (typeof calCustomRule !== 'undefined' && calCustomRule.gameData) 
+            ? calCustomRule.gameData 
+            : (typeof CalCustomRule !== 'undefined' && CalCustomRule.gameData ? CalCustomRule.gameData : null);
+        
+        if (!gameData || !gameData.chefs || !gameData.recipes) {
+            return { success: false, message: '游戏数据未加载' };
+        }
+        
+        // 获取规则数据 - 修炼数据在 rules[0] 中
+        var rule = null;
+        if (typeof calCustomRule !== 'undefined' && calCustomRule.rules && calCustomRule.rules[0]) {
+            rule = calCustomRule.rules[0];
+        }
+        
+        if (!rule) {
+            return { success: false, message: '规则数据未加载' };
+        }
+        
+        var allChefs = gameData.chefs;
+        var allRecipes = gameData.recipes;
+        
+        // 构建菜谱名到菜谱对象的映射
+        var recipeMap = {};
+        for (var i = 0; i < allRecipes.length; i++) {
+            recipeMap[allRecipes[i].name] = allRecipes[i];
+        }
+        
+        // 获取选中菜谱的详细信息
+        var selectedRecipeDetails = [];
+        for (var i = 0; i < selectedPengciRecipes.length; i++) {
+            var sel = selectedPengciRecipes[i];
+            var recipe = recipeMap[sel.recipe];
+            if (recipe) {
+                selectedRecipeDetails.push({
+                    guest: sel.guest,
+                    recipe: recipe,
+                    recipeName: sel.recipe,
+                    targetRank: sel.rank
+                });
+            }
+        }
+        
+        if (selectedRecipeDetails.length === 0) {
+            return { success: false, message: '未找到选中的菜谱数据' };
+        }
+        
+        // Step 1: 为每道菜找出所有能精确匹配的厨师
+        var recipeCandidates = []; // [{recipeDetail, candidates: [chefId, ...]}]
+        
+        // 获取复选框状态
+        var useEquip = $("#chk-cal-use-equip").prop("checked");
+        var useAmber = $("#chk-cal-use-amber").prop("checked");
+        
+        // 打印一个已修炼厨师的技法值对比（用于验证修炼加成是否生效）
+        for (var debugIdx = 0; debugIdx < allChefs.length; debugIdx++) {
+            var debugChef = allChefs[debugIdx];
+            if (debugChef.got === "是") {
+                if (debugChef.ultimateSkill && debugChef.ultimateSkill.length > 0) {
+                    var debugChefCalc = calculateChefSkillValues(debugChef, rule, null);
+                    break;
+                }
+            }
+        }
+        
+        for (var i = 0; i < selectedRecipeDetails.length; i++) {
+            var detail = selectedRecipeDetails[i];
+            var candidates = [];
+            
+            for (var j = 0; j < allChefs.length; j++) {
+                var chef = allChefs[j];
+                // 只考虑已拥有的厨师
+                if (chef.got !== "是") continue;
+                
+                // 计算厨师技法值
+                var chefWithSkills = calculateChefSkillValues(chef, rule, null);
+                
+                // 检查是否能做到目标品级
+                var actualRank = getChefRecipeRank(chefWithSkills, detail.recipe);
+                
+                // 神级(4)是碰瓷的最后一个品级，传级(5)的厨师也可以使用
+                var isMatch = false;
+                if (detail.targetRank === 4) {
+                    // 目标是神级，神级或传级都可以
+                    isMatch = (actualRank >= 4);
+                } else {
+                    // 其他品级必须精确匹配
+                    isMatch = (actualRank === detail.targetRank);
+                }
+                
+                if (isMatch) {
+                    candidates.push({
+                        chefId: chef.chefId,
+                        chef: chefWithSkills,
+                        chefName: chef.name,
+                        actualRank: actualRank,
+                        hasEquip: !!(chef.equip && chef.equip.equipId),
+                        hasAmber: !!(chef.disk && chef.disk.ambers && chef.disk.ambers.some(function(a) { return a.data; })),
+                        hasCultivation: !!(chef.ultimateSkill && chef.ultimateSkill.length > 0)
+                    });
+                }
+            }
+            
+            recipeCandidates.push({
+                detail: detail,
+                candidates: candidates
+            });
+        }
+        
+        // 检查是否有菜谱没有候选厨师，将其加入未分配列表
+        var noChefRecipes = [];
+        var validRecipeCandidates = [];
+        for (var i = 0; i < recipeCandidates.length; i++) {
+            if (recipeCandidates[i].candidates.length === 0) {
+                noChefRecipes.push(recipeCandidates[i].detail);
+            } else {
+                validRecipeCandidates.push(recipeCandidates[i]);
+            }
+        }
+        
+        // 如果所有菜谱都没有候选厨师，返回失败
+        if (validRecipeCandidates.length === 0) {
+            return { 
+                success: false, 
+                message: '所有菜谱都没有能精确做到目标品级的厨师'
+            };
+        }
+        
+        // 使用有候选厨师的菜谱继续处理
+        recipeCandidates = validRecipeCandidates;
+        
+        // Step 2: 优化分配 - 找到使用最少厨师的搭配
+        // 构建厨师到可做菜谱的映射
+        var chefToRecipes = {}; // chefId -> [recipeIndex, ...]
+        var allCandidateChefIds = [];
+        
+        for (var i = 0; i < recipeCandidates.length; i++) {
+            var rc = recipeCandidates[i];
+            for (var j = 0; j < rc.candidates.length; j++) {
+                var candidate = rc.candidates[j];
+                var chefId = candidate.chefId;
+                if (!chefToRecipes[chefId]) {
+                    chefToRecipes[chefId] = {
+                        chef: candidate.chef,
+                        chefName: candidate.chefName,
+                        chefId: chefId,
+                        recipeIndices: []
+                    };
+                    allCandidateChefIds.push(chefId);
+                }
+                if (chefToRecipes[chefId].recipeIndices.indexOf(i) < 0) {
+                    chefToRecipes[chefId].recipeIndices.push(i);
+                }
+            }
+        }
+        
+        // 尝试用1个厨师覆盖所有菜谱
+        var bestAssignment = null;
+        var recipeCount = recipeCandidates.length;
+        
+        // 尝试1个厨师
+        for (var i = 0; i < allCandidateChefIds.length; i++) {
+            var chefId = allCandidateChefIds[i];
+            var chefData = chefToRecipes[chefId];
+            if (chefData.recipeIndices.length >= recipeCount && chefData.recipeIndices.length <= 3) {
+                // 检查是否覆盖所有菜谱
+                var covered = true;
+                for (var r = 0; r < recipeCount; r++) {
+                    if (chefData.recipeIndices.indexOf(r) < 0) {
+                        covered = false;
+                        break;
+                    }
+                }
+                if (covered) {
+                    bestAssignment = [{
+                        chefId: chefData.chefId,
+                        chef: chefData.chef,
+                        chefName: chefData.chefName,
+                        recipes: recipeCandidates.map(function(rc) { return rc.detail; })
+                    }];
+                    break;
+                }
+            }
+        }
+        
+        // 尝试2个厨师
+        if (!bestAssignment && recipeCount <= 6) {
+            outerLoop2:
+            for (var i = 0; i < allCandidateChefIds.length; i++) {
+                for (var j = i + 1; j < allCandidateChefIds.length; j++) {
+                    var chef1 = chefToRecipes[allCandidateChefIds[i]];
+                    var chef2 = chefToRecipes[allCandidateChefIds[j]];
+                    
+                    // 合并两个厨师能做的菜谱
+                    var combined = chef1.recipeIndices.slice();
+                    for (var k = 0; k < chef2.recipeIndices.length; k++) {
+                        if (combined.indexOf(chef2.recipeIndices[k]) < 0) {
+                            combined.push(chef2.recipeIndices[k]);
+                        }
+                    }
+                    
+                    // 检查是否覆盖所有菜谱，且每个厨师不超过3道
+                    if (combined.length >= recipeCount) {
+                        var covered = true;
+                        for (var r = 0; r < recipeCount; r++) {
+                            if (combined.indexOf(r) < 0) {
+                                covered = false;
+                                break;
+                            }
+                        }
+                        if (covered) {
+                            // 分配菜谱给两个厨师（优先分配给能做更多菜的厨师）
+                            var assign1 = [], assign2 = [];
+                            for (var r = 0; r < recipeCount; r++) {
+                                var canChef1 = chef1.recipeIndices.indexOf(r) >= 0;
+                                var canChef2 = chef2.recipeIndices.indexOf(r) >= 0;
+                                if (canChef1 && !canChef2) {
+                                    assign1.push(r);
+                                } else if (!canChef1 && canChef2) {
+                                    assign2.push(r);
+                                } else {
+                                    // 两个都能做，分配给菜谱少的
+                                    if (assign1.length <= assign2.length && assign1.length < 3) {
+                                        assign1.push(r);
+                                    } else if (assign2.length < 3) {
+                                        assign2.push(r);
+                                    } else {
+                                        assign1.push(r);
+                                    }
+                                }
+                            }
+                            
+                            if (assign1.length <= 3 && assign2.length <= 3) {
+                                bestAssignment = [];
+                                if (assign1.length > 0) {
+                                    bestAssignment.push({
+                                        chefId: chef1.chefId,
+                                        chef: chef1.chef,
+                                        chefName: chef1.chefName,
+                                        recipes: assign1.map(function(idx) { return recipeCandidates[idx].detail; })
+                                    });
+                                }
+                                if (assign2.length > 0) {
+                                    bestAssignment.push({
+                                        chefId: chef2.chefId,
+                                        chef: chef2.chef,
+                                        chefName: chef2.chefName,
+                                        recipes: assign2.map(function(idx) { return recipeCandidates[idx].detail; })
+                                    });
+                                }
+                                break outerLoop2;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 如果没找到1-2个厨师的解，使用贪心算法
+        var assignment = [];
+        var unassignedRecipes = noChefRecipes.slice(); // 初始化为没有候选厨师的菜谱
+        
+        if (bestAssignment) {
+            assignment = bestAssignment;
+        } else {
+            // 贪心分配 - 按候选数量升序排序
+            recipeCandidates.sort(function(a, b) {
+                return a.candidates.length - b.candidates.length;
+            });
+            
+            for (var i = 0; i < recipeCandidates.length; i++) {
+                var rc = recipeCandidates[i];
+                var assigned = false;
+                
+                // 尝试分配给已有的厨师
+                for (var j = 0; j < assignment.length; j++) {
+                    var existingChef = assignment[j];
+                    if (existingChef.recipes.length >= 3) continue;
+                    
+                    // 检查该厨师是否在候选列表中
+                    for (var k = 0; k < rc.candidates.length; k++) {
+                        if (rc.candidates[k].chefId === existingChef.chefId) {
+                            existingChef.recipes.push(rc.detail);
+                            assigned = true;
+                            break;
+                        }
+                    }
+                    if (assigned) break;
+                }
+                
+                // 如果没有分配成功，尝试添加新厨师
+                if (!assigned) {
+                    if (assignment.length >= 3) {
+                        unassignedRecipes.push(rc.detail);
+                        continue;
+                    }
+                    
+                    // 选择能做最多剩余菜谱的厨师
+                    var bestCandidate = null;
+                    var maxCoverage = 0;
+                    
+                    for (var k = 0; k < rc.candidates.length; k++) {
+                        var candidate = rc.candidates[k];
+                        var coverage = 0;
+                        // 计算这个厨师能覆盖多少剩余菜谱
+                        for (var m = i; m < recipeCandidates.length; m++) {
+                            for (var n = 0; n < recipeCandidates[m].candidates.length; n++) {
+                                if (recipeCandidates[m].candidates[n].chefId === candidate.chefId) {
+                                    coverage++;
+                                    break;
+                                }
+                            }
+                        }
+                        if (coverage > maxCoverage) {
+                            maxCoverage = coverage;
+                            bestCandidate = candidate;
+                        }
+                    }
+                    
+                    if (!bestCandidate) {
+                        bestCandidate = rc.candidates[0];
+                    }
+                    
+                    assignment.push({
+                        chefId: bestCandidate.chefId,
+                        chef: bestCandidate.chef,
+                        chefName: bestCandidate.chefName,
+                        recipes: [rc.detail]
+                    });
+                }
+            }
+        }
+        
+        // 返回结果，包含是否完全覆盖的信息
+        return {
+            success: true,
+            assignment: assignment,
+            unassignedRecipes: unassignedRecipes,
+            isPartial: unassignedRecipes.length > 0
+        };
+    }
+    
+    /**
+     * 获取品级名称
+     */
+    function getRankName(rank) {
+        var names = { 1: '可', 2: '优', 3: '特', 4: '神', 5: '传' };
+        return names[rank] || '';
+    }
+    
+    /**
+     * 显示碰瓷查询结果 - 直接设置到厨师菜谱选择框
+     * @param {Object} result - 查询结果对象
+     */
+    function displayPengciQueryResult(result) {
+        var assignment = result.assignment;
+        var unassignedRecipes = result.unassignedRecipes || [];
+        var isPartial = result.isPartial || false;
+        
+        // 检查必要的函数是否存在
+        if (typeof setCustomChef !== 'function' || typeof setCustomRecipe !== 'function') {
+            console.error('setCustomChef 或 setCustomRecipe 函数不存在');
+            if (typeof showAlert === 'function') {
+                showAlert('设置失败：必要函数不存在');
+            }
+            return;
+        }
+        
+        // 获取游戏数据
+        var gameData = (typeof calCustomRule !== 'undefined' && calCustomRule.gameData) 
+            ? calCustomRule.gameData 
+            : (typeof CalCustomRule !== 'undefined' && CalCustomRule.gameData ? CalCustomRule.gameData : null);
+        
+        if (!gameData) {
+            if (typeof showAlert === 'function') {
+                showAlert('游戏数据未加载');
+            }
+            return;
+        }
+        
+        // 先清空所有位置
+        for (var i = 0; i < 3; i++) {
+            setCustomChef(0, i, null);
+            if (typeof setCustomEquip === 'function') {
+                setCustomEquip(0, i, null);
+            }
+            for (var j = 0; j < 3; j++) {
+                setCustomRecipe(0, i, j, null);
+            }
+        }
+        
+        // 设置查询结果
+        for (var i = 0; i < assignment.length && i < 3; i++) {
+            var item = assignment[i];
+            
+            // 设置厨师
+            setCustomChef(0, i, item.chefId);
+            
+            // 设置菜谱
+            for (var j = 0; j < item.recipes.length && j < 3; j++) {
+                var recipeDetail = item.recipes[j];
+                setCustomRecipe(0, i, j, recipeDetail.recipe.recipeId);
+            }
+        }
+        
+        // 刷新计算结果
+        if (typeof calCustomResults === 'function') {
+            calCustomResults(0);
+        }
+        
+        // 显示提示
+        var totalRecipes = 0;
+        for (var i = 0; i < assignment.length; i++) {
+            totalRecipes += assignment[i].recipes.length;
+        }
+        
+        if (typeof showAlert === 'function') {
+            if (isPartial) {
+                // 部分成功，显示未能覆盖的菜谱
+                var unassignedNames = [];
+                for (var i = 0; i < unassignedRecipes.length; i++) {
+                    unassignedNames.push('<span style="color:#337ab7">' + unassignedRecipes[i].recipeName + '</span>');
+                }
+                var totalQueryRecipes = totalRecipes + unassignedRecipes.length;
+                showAlert('共查询 ' + totalQueryRecipes + ' 道菜谱，' + totalRecipes + ' 道达标，以下 ' + unassignedRecipes.length + ' 道菜谱无法同时覆盖：' + unassignedNames.join('、'));
+            }
+        }
+    }
+    
+    /**
+     * 计算贵客剩余可碰瓷次数
+     * @param {string} guestName - 贵客名称
+     * @param {Array} recipes - 菜谱数组
+     * @returns {number} 剩余可碰瓷次数
+     */
+    function calculatePengciCount(guestName, recipes) {
+        var count = 0;
+        for (var i = 0; i < recipes.length; i++) {
+            var recipe = recipes[i];
+            // 只统计已拥有的菜谱（兼容布尔值和字符串"是"）
+            var isGot = recipe.got === "是";
+            if (!isGot) continue;
+            // 检查菜谱的升阶贵客（优、特、神三个位置）
+            if (recipe.guests && recipe.guests.length > 0) {
+                for (var j = 0; j < Math.min(recipe.guests.length, 3); j++) {
+                    if (recipe.guests[j].guest === guestName) {
+                        // j=0对应优级(targetRank=2), j=1对应特级(targetRank=3), j=2对应神级(targetRank=4)
+                        var targetRank = j + 2;
+                        var currentRank = getPengciRankValue(recipe.rank);
+                        // 如果当前等级小于目标等级，说明还可以碰瓷
+                        if (currentRank < targetRank) {
+                            count++;
+                        }
+                    }
+                }
+            }
+        }
+        return count;
+    }
+    
+    /**
+     * 获取等级数值（碰瓷查询专用）
+     * @param {string} rank - 等级字符串（可、优、特、神、传）
+     * @returns {number} 等级数值
+     */
+    function getPengciRankValue(rank) {
+        switch(rank) {
+            case '可': return 1;
+            case '优': return 2;
+            case '特': return 3;
+            case '神': return 4;
+            case '传': return 5;
+            default: return 0;
+        }
+    }
+    
+    /**
+     * 获取主线任务贵客集合
+     * @param {Array} quests - 任务数组
+     * @returns {Set} 主线任务贵客名称集合
+     */
+    function getMainlineGuests(quests) {
+        var mainlineGuests = new Set();
+        if (!quests) return mainlineGuests;
+        
+        for (var i = 0; i < quests.length; i++) {
+            var quest = quests[i];
+            if (quest.type === '主线任务' && quest.conditions) {
+                for (var j = 0; j < quest.conditions.length; j++) {
+                    var condition = quest.conditions[j];
+                    if (condition.guest && condition.guest.length > 0) {
+                        mainlineGuests.add(condition.guest);
+                    }
+                }
+            }
+        }
+        return mainlineGuests;
+    }
+    
+    /**
+     * 获取主线任务贵客映射（questId -> 贵客名称集合）
+     * @param {Array} quests - 任务数组
+     * @returns {Object} questId到贵客名称集合的映射
+     */
+    function getMainlineQuestGuestsMap(quests) {
+        var questGuestsMap = {};
+        if (!quests) return questGuestsMap;
+        
+        for (var i = 0; i < quests.length; i++) {
+            var quest = quests[i];
+            if (quest.type === '主线任务' && quest.conditions) {
+                var guestNames = [];
+                for (var j = 0; j < quest.conditions.length; j++) {
+                    var condition = quest.conditions[j];
+                    if (condition.guest && condition.guest.length > 0) {
+                        guestNames.push(condition.guest);
+                    }
+                }
+                if (guestNames.length > 0) {
+                    questGuestsMap[quest.questId] = guestNames;
+                }
+            }
+        }
+        return questGuestsMap;
+    }
+    
+    /**
+     * 根据任务进度获取未完成的主线任务贵客（>= 任务进度的贵客）
+     * @param {Object} questGuestsMap - questId到贵客名称的映射
+     * @param {number} progressId - 当前任务进度ID
+     * @returns {Set} 未完成的主线任务贵客名称集合
+     */
+    function getUncompletedMainlineGuests(questGuestsMap, progressId) {
+        var guestNames = new Set();
+        for (var questId in questGuestsMap) {
+            if (parseInt(questId) >= progressId) {
+                var guests = questGuestsMap[questId];
+                for (var i = 0; i < guests.length; i++) {
+                    guestNames.add(guests[i]);
+                }
+            }
+        }
+        return guestNames;
+    }
+    
+    /**
+     * 根据任务进度获取已完成的主线任务贵客（< 任务进度的贵客）
+     * @param {Object} questGuestsMap - questId到贵客名称的映射
+     * @param {number} progressId - 当前任务进度ID
+     * @returns {Set} 已完成的主线任务贵客名称集合
+     */
+    function getCompletedMainlineGuests(questGuestsMap, progressId) {
+        var guestNames = new Set();
+        if (progressId <= 0) return guestNames;
+        
+        for (var questId in questGuestsMap) {
+            if (parseInt(questId) < progressId) {
+                var guests = questGuestsMap[questId];
+                for (var i = 0; i < guests.length; i++) {
+                    guestNames.add(guests[i]);
+                }
+            }
+        }
+        return guestNames;
+    }
+    
+    /**
+     * 根据任务编号获取对应的贵客名称列表
+     * @param {Array} quests - 任务数组
+     * @param {number} questId - 任务编号
+     * @returns {Array} 贵客名称列表
+     */
+    function getGuestsByQuestId(quests, questId) {
+        var guestNames = [];
+        if (!quests || !questId) return guestNames;
+        
+        for (var i = 0; i < quests.length; i++) {
+            var quest = quests[i];
+            if (quest.questId === questId && quest.type === '主线任务' && quest.conditions) {
+                for (var j = 0; j < quest.conditions.length; j++) {
+                    var condition = quest.conditions[j];
+                    if (condition.guest && condition.guest.length > 0) {
+                        guestNames.push(condition.guest);
+                    }
+                }
+                break;
+            }
+        }
+        return guestNames;
+    }
+    
+    /**
+     * 获取贵客首次出现的任务ID
+     * @param {string} guestName - 贵客名称
+     * @param {Object} questGuestsMap - questId到贵客名称的映射
+     * @returns {number|null} 首次出现的任务ID
+     */
+    function getGuestFirstQuestId(guestName, questGuestsMap) {
+        var questIds = Object.keys(questGuestsMap).map(function(id) { return parseInt(id); }).sort(function(a, b) { return a - b; });
+        for (var i = 0; i < questIds.length; i++) {
+            var questId = questIds[i];
+            var guests = questGuestsMap[questId];
+            if (guests && guests.indexOf(guestName) >= 0) {
+                return questId;
+            }
+        }
+        return null;
+    }
+    
+    /**
+     * 初始化碰瓷贵客选择框（使用自定义下拉菜单实现展开式贵客列表）
+     */
+    function initPengciGuestSelect() {
+        var $wrapper = $("#pengci-guest-dropdown-wrapper");
+        var $btn = $("#pengci-guest-dropdown-btn");
+        var $menu = $("#pengci-guest-dropdown-menu");
+        var $container = $("#pengci-guest-select-container");
+        var $queryArea = $("#pengci-query-area");
+        
+        if (!$wrapper.length || !$btn.length || !$menu.length || !$container.length) {
+            return;
+        }
+        
+        // 构建下拉菜单内容
+        buildPengciGuestDropdown($container);
+        
+        // 计算下拉菜单最大高度的函数（参考 Bootstrap-select 的 setMenuSize 逻辑）
+        function calculateMenuHeight() {
+            var $list = $container.find('.pengci-guest-list');
+            var $searchWrapper = $container.find('.pengci-search-wrapper');
+            var $tabs = $container.find('.pengci-guest-category-tabs');
+            
+            // 获取按钮位置信息（参考 Bootstrap-select 的 getSelectPosition）
+            var btnOffset = $btn.offset();
+            var btnHeight = $btn.outerHeight();
+            var windowHeight = $(window).height();
+            var scrollTop = $(window).scrollTop();
+            
+            // 计算按钮底部到窗口底部的距离（参考 Bootstrap-select 的 selectOffsetBot）
+            // selectOffsetBot = windowHeight - (btnOffset.top - scrollTop) - btnHeight - padding
+            var selectOffsetTop = btnOffset.top - scrollTop;
+            var selectOffsetBot = windowHeight - selectOffsetTop - btnHeight;
+            
+            // 菜单的额外高度（边框、padding等）
+            var menuPaddingVert = 0;
+            var menuBorderVert = 2; // 上下边框各1px
+            
+            // 搜索框和标签的高度
+            var headerHeight = 0;
+            if ($searchWrapper.length && $searchWrapper.is(':visible')) {
+                headerHeight += $searchWrapper.outerHeight(true);
+            }
+            if ($tabs.length && $tabs.is(':visible')) {
+                headerHeight += $tabs.outerHeight(true);
+            }
+            
+            // 菜单额外高度 = padding + border + header
+            var menuExtrasVert = menuPaddingVert + menuBorderVert + headerHeight;
+            
+            // 可用高度 = 按钮下方空间 - 菜单额外高度 - 底部边距(10px)
+            var availableHeight = selectOffsetBot - menuExtrasVert - 10;
+            
+            // 最小高度保证至少能显示3个贵客项（每项约40px）
+            var minHeight = 120;
+            
+            // 列表可用高度
+            var listMaxHeight = Math.max(minHeight, availableHeight);
+            
+            // 设置列表最大高度
+            $list.css('max-height', listMaxHeight + 'px');
+            
+            // 同时设置菜单的最大高度（列表高度 + 头部高度 + 边框）
+            var menuMaxHeight = listMaxHeight + headerHeight + menuBorderVert;
+            $menu.css('max-height', menuMaxHeight + 'px');
+        }
+        
+        // 点击按钮切换下拉菜单
+        $btn.off("click").on("click", function(e) {
+            e.stopPropagation();
+            if ($menu.is(":visible")) {
+                // 收起
+                $menu.hide();
+                $wrapper.removeClass("open");
+                $queryArea.css("z-index", "");
+            } else {
+                // 关闭其他 Bootstrap-select 选择框
+                $('.bootstrap-select').removeClass('open');
+                $('.bootstrap-select .dropdown-menu').css('display', '');
+                $('.bootstrap-select .dropdown-toggle').blur();
+                // 移除编辑状态
+                $('.selected-box').removeClass('editing');
+                
+                // 关闭符文碰瓷选择框
+                $(".pengci-rune-dropdown-wrapper").removeClass("open");
+                $("#pengci-rune-select-container").css('display', '');
+                
+                // 展开时：先设置 z-index 和添加 open 类（确保窄屏幕下 position:fixed 生效）
+                $queryArea.css("z-index", "200");
+                $wrapper.addClass("open");
+                
+                // 使用 visibility:hidden 来计算高度，避免闪烁
+                $menu.css({
+                    'visibility': 'hidden',
+                    'display': 'block'
+                });
+                calculateMenuHeight();
+                $menu.css('visibility', '');
+            }
+        });
+        
+        // 窗口大小变化或滚动时重新计算高度（参考 Bootstrap-select）
+        $(window).off("resize.pengciDropdown scroll.pengciDropdown").on("resize.pengciDropdown scroll.pengciDropdown", function() {
+            if ($menu.is(":visible")) {
+                calculateMenuHeight();
+            }
+        });
+        
+        // 点击下拉菜单内部不关闭
+        $menu.off("click").on("click", function(e) {
+            e.stopPropagation();
+        });
+        
+        // 点击外部关闭下拉菜单
+        $(document).off("click.pengciDropdown").on("click.pengciDropdown", function(e) {
+            if (!$(e.target).closest("#pengci-guest-dropdown-wrapper").length) {
+                if ($menu.is(":visible")) {
+                    $menu.hide();
+                    $wrapper.removeClass("open");
+                    $queryArea.css("z-index", "");
+                }
+            }
+        });
+        
+        // 监听其他 Bootstrap-select 选择框打开时，关闭贵客下拉框
+        $(document).off("show.bs.select.pengciDropdown").on("show.bs.select.pengciDropdown", function(e) {
+            if ($menu.is(":visible")) {
+                $menu.hide();
+                $wrapper.removeClass("open");
+                $queryArea.css("z-index", "");
+            }
+        });
+        
+        // 从本地存储恢复主线任务进度
+        var savedMainlineProgress = localStorage.getItem('pengci_mainline_progress');
+        if (savedMainlineProgress) {
+            $("#input-pengci-mainline").val(savedMainlineProgress);
+        }
+        
+        // 监听主线任务输入框变化，保存到本地存储并重新构建下拉菜单
+        $("#input-pengci-mainline").off("input.pengciDropdown").on("input.pengciDropdown", function() {
+            var value = $(this).val();
+            if (value) {
+                localStorage.setItem('pengci_mainline_progress', value);
+            } else {
+                localStorage.removeItem('pengci_mainline_progress');
+            }
+            buildPengciGuestDropdown($container);
+        });
+        
+        // 查询厨师配置按钮点击事件
+        $("#btn-pengci-guest-query").off("click").on("click", function() {
+            if (selectedPengciRecipes.length === 0) {
+                if (typeof showAlert === 'function') {
+                    showAlert('请先选择要碰瓷的菜谱');
+                } else {
+                    alert('请先选择要碰瓷的菜谱');
+                }
+                return;
+            }
+            
+            // 执行查询
+            var result = queryPengciChefConfig();
+            
+            if (!result.success) {
+                if (typeof showAlert === 'function') {
+                    showAlert(result.message);
+                } else {
+                    alert(result.message);
+                }
+                return;
+            }
+            
+            // 显示查询结果
+            displayPengciQueryResult(result);
+        });
+    }
+    
+    /**
+     * 构建碰瓷贵客自定义下拉菜单
+     * @param {jQuery} $container - 容器元素
+     */
+    function buildPengciGuestDropdown($container) {
+        // 获取游戏数据
+        var gameData = (typeof calCustomRule !== 'undefined' && calCustomRule.gameData) 
+                       ? calCustomRule.gameData : null;
+        
+        if (!gameData || !gameData.guests) {
+            $container.html('<div class="pengci-dropdown-empty">游戏数据未加载</div>');
+            return;
+        }
+        
+        var guests = gameData.guests;
+        var recipes = gameData.recipes || [];
+        var quests = gameData.quests || [];
+        
+        // 获取主线任务进度
+        var mainlineProgressId = parseInt($("#input-pengci-mainline").val()) || 0;
+        
+        // 获取主线任务贵客映射
+        var questGuestsMap = getMainlineQuestGuestsMap(quests);
+        
+        // 获取未完成的主线任务贵客（>= 任务进度）
+        var uncompletedMainlineGuests = getUncompletedMainlineGuests(questGuestsMap, mainlineProgressId);
+        
+        // 获取已完成的主线任务贵客（< 任务进度）
+        var completedMainlineGuests = getCompletedMainlineGuests(questGuestsMap, mainlineProgressId);
+        
+        // 获取所有主线任务贵客
+        var allMainlineGuests = getMainlineGuests(quests);
+        
+        // 计算每个贵客的碰瓷次数并分类
+        var guestList = [];
+        for (var i = 0; i < guests.length; i++) {
+            var guest = guests[i];
+            var pengciCount = calculatePengciCount(guest.name, recipes);
+            
+            // 判断是否为主线贵客（未完成的主线任务贵客）
+            var isMainline = uncompletedMainlineGuests.has(guest.name);
+            
+            // 判断是否为普通贵客（不在未完成主线任务中 或 已完成的主线任务贵客）
+            var isNormal = !uncompletedMainlineGuests.has(guest.name) || completedMainlineGuests.has(guest.name);
+            
+            // 添加所有贵客（包括无法碰瓷的）
+            guestList.push({
+                name: guest.name,
+                pengciCount: pengciCount,
+                isMainline: isMainline,
+                isNormal: isNormal,
+                // 记录贵客首次出现的任务ID（用于主线贵客排序）
+                firstQuestId: getGuestFirstQuestId(guest.name, questGuestsMap)
+            });
+        }
+        
+        // 按碰瓷次数降序排序，有碰瓷次数的在前，无碰瓷次数的在后
+        guestList.sort(function(a, b) {
+            // 有碰瓷次数的优先
+            if (a.pengciCount > 0 && b.pengciCount === 0) return -1;
+            if (a.pengciCount === 0 && b.pengciCount > 0) return 1;
+            // 都有碰瓷次数，按次数降序
+            if (a.pengciCount !== b.pengciCount) return b.pengciCount - a.pengciCount;
+            // 次数相同，按名称排序
+            return a.name.localeCompare(b.name);
+        });
+        
+        // 构建HTML
+        var html = '';
+        
+        // 搜索框
+        html += '<div class="pengci-search-wrapper">';
+        html += '<input type="text" class="form-control pengci-search-input" placeholder="贵客名称或任务编号">';
+        html += '</div>';
+        
+        // 已选菜谱展示区域
+        html += '<div class="pengci-selected-recipes-display"></div>';
+        
+        // 清空选择按钮
+        html += '<div class="pengci-clear-wrapper">';
+        html += '<button type="button" class="btn btn-default btn-sm btn-pengci-clear">清空选择</button>';
+        html += '</div>';
+        
+        // 分类标签
+        html += '<ul class="nav nav-tabs pengci-guest-category-tabs">';
+        html += '<li class="' + (pengciGuestCategory === 'normal' ? 'active' : '') + '"><a href="#" data-category="normal">普通碰瓷</a></li>';
+        html += '<li class="' + (pengciGuestCategory === 'mainline' ? 'active' : '') + '"><a href="#" data-category="mainline">主线碰瓷</a></li>';
+        html += '</ul>';
+        
+        // 贵客列表
+        html += '<div class="pengci-guest-list">';
+        for (var i = 0; i < guestList.length; i++) {
+            var guest = guestList[i];
+            var countText = guest.pengciCount > 0 ? '还可碰瓷 ' + guest.pengciCount + ' 次' : '无可碰瓷菜谱';
+            var countClass = guest.pengciCount > 0 ? 'pengci-count' : 'pengci-count no-pengci';
+            
+            html += '<div class="pengci-guest-section" data-guest="' + guest.name + '" data-is-mainline="' + (guest.isMainline ? '1' : '0') + '" data-is-normal="' + (guest.isNormal ? '1' : '0') + '" data-first-quest-id="' + (guest.firstQuestId || 9999) + '" data-pengci-count="' + guest.pengciCount + '">';
+            html += '<div class="pengci-guest-header">';
+            html += '<span class="guest-name">' + guest.name + '</span>';
+            html += '<span class="' + countClass + '">' + countText + '</span>';
+            html += '<span class="expand-arrow glyphicon glyphicon-chevron-right"></span>';
+            html += '</div>';
+            html += '<div class="pengci-guest-recipes" style="display: none;"></div>';
+            html += '</div>';
+        }
+        html += '</div>';
+        
+        $container.html(html);
+        
+        // 绑定事件
+        bindPengciDropdownEvents($container, recipes);
+    }
+    
+    /**
+     * 绑定碰瓷下拉菜单事件
+     * @param {jQuery} $container - 容器元素
+     * @param {Array} recipes - 菜谱数组
+     */
+    function bindPengciDropdownEvents($container, recipes) {
+        // 分类标签点击事件
+        $container.find('.pengci-guest-category-tabs a').off('click').on('click', function(e) {
+            e.preventDefault();
+            var $tab = $(this);
+            var category = $tab.attr('data-category');
+            
+            // 更新标签状态
+            $tab.parent().addClass('active').siblings().removeClass('active');
+            pengciGuestCategory = category;
+            
+            // 过滤贵客列表
+            filterPengciGuestSections($container, category);
+        });
+        
+        // 搜索框输入事件
+        $container.find('.pengci-search-input').off('input').on('input', function() {
+            var keyword = $(this).val().toLowerCase();
+            filterPengciGuestByKeyword($container, keyword);
+        });
+        
+        // 贵客标题点击事件（展开/收起菜谱列表）
+        $container.find('.pengci-guest-header').off('click').on('click', function() {
+            var $header = $(this);
+            var $section = $header.closest('.pengci-guest-section');
+            var $recipesContainer = $section.find('.pengci-guest-recipes');
+            var $arrow = $header.find('.expand-arrow');
+            var guestName = $section.attr('data-guest');
+            
+            // 切换展开状态
+            if ($recipesContainer.is(':visible')) {
+                // 收起
+                $recipesContainer.slideUp(200);
+                $arrow.removeClass('glyphicon-chevron-down').addClass('glyphicon-chevron-right');
+                $section.removeClass('expanded');
+            } else {
+                // 展开 - 先加载菜谱内容
+                var recipesHtml = generatePengciRecipesHtml(guestName, recipes);
+                $recipesContainer.html(recipesHtml);
+                
+                // 绑定菜谱点击事件
+                $recipesContainer.find('.pengci-recipe-inline').off('click').on('click', function(e) {
+                    e.stopPropagation();
+                    var $recipe = $(this);
+                    var recipeName = $recipe.attr('data-recipe-name');
+                    
+                    // 从recipes数组中查找菜谱对象
+                    var recipeObj = null;
+                    for (var i = 0; i < recipes.length; i++) {
+                        if (recipes[i].name === recipeName) {
+                            recipeObj = recipes[i];
+                            break;
+                        }
+                    }
+                    
+                    if (recipeObj && togglePengciRecipeSelection(recipeName, guestName, recipeObj)) {
+                        // 更新UI - 切换选中状态
+                        var isSelected = findSelectedRecipe(recipeName) !== null && findSelectedRecipe(recipeName).guest === guestName;
+                        $recipe.toggleClass('selected', isSelected);
+                    }
+                });
+                
+                $recipesContainer.slideDown(200);
+                $arrow.removeClass('glyphicon-chevron-right').addClass('glyphicon-chevron-down');
+                $section.addClass('expanded');
+            }
+        });
+        
+        // 清空选择按钮点击事件
+        $container.find('.btn-pengci-clear').off('click').on('click', function(e) {
+            e.stopPropagation();
+            selectedPengciRecipes = [];
+            updatePengciDropdownText();
+            // 清除所有菜谱的选中状态
+            $container.find('.pengci-recipe-inline.selected').removeClass('selected');
+        });
+        
+        // 应用当前分类过滤
+        filterPengciGuestSections($container, pengciGuestCategory);
+        
+        // 初始化已选菜谱展示区域
+        updateSelectedRecipesDisplay();
+    }
+    
+    /**
+     * 生成贵客碰瓷菜谱HTML（用于下拉菜单内展开）
+     * @param {string} guestName - 贵客名称
+     * @param {Array} recipes - 菜谱数组
+     * @returns {string} HTML字符串
+     */
+    function generatePengciRecipesHtml(guestName, recipes) {
+        var rankLabels = ['优', '特', '神'];
+        var matchedRecipes = [];
+        
+        // 筛选包含该贵客的已拥有菜谱，且有未完成的碰瓷
+        for (var i = 0; i < recipes.length; i++) {
+            var recipe = recipes[i];
+            var isGot = recipe.got === "是";
+            if (!isGot) continue;
+            
+            if (recipe.guests && recipe.guests.length > 0) {
+                var hasGuest = false;
+                var hasUnfinished = false;
+                for (var j = 0; j < Math.min(recipe.guests.length, 3); j++) {
+                    if (recipe.guests[j].guest === guestName) {
+                        hasGuest = true;
+                        var targetRank = j + 2;
+                        var currentRank = getPengciRankValue(recipe.rank);
+                        if (currentRank < targetRank) {
+                            hasUnfinished = true;
+                        }
+                    }
+                }
+                if (hasGuest && hasUnfinished) {
+                    matchedRecipes.push(recipe);
+                }
+            }
+        }
+        
+        if (matchedRecipes.length === 0) {
+            return '<div class="pengci-recipe-empty-inline">没有可碰瓷的菜谱</div>';
+        }
+        
+        var html = '';
+        for (var i = 0; i < matchedRecipes.length; i++) {
+            var recipe = matchedRecipes[i];
+            var currentRank = getPengciRankValue(recipe.rank);
+            
+            // 生成星级显示
+            var stars = '';
+            for (var s = 0; s < recipe.rarity; s++) {
+                stars += '★';
+            }
+            
+            // 生成技法值显示
+            var skillsHtml = '';
+            var skillNames = { stirfry: '炒', boil: '煮', knife: '切', fry: '炸', bake: '烤', steam: '蒸' };
+            var skillTypes = ['stirfry', 'boil', 'knife', 'fry', 'bake', 'steam'];
+            var skillParts = [];
+            for (var sk = 0; sk < skillTypes.length; sk++) {
+                var skillType = skillTypes[sk];
+                var skillVal = recipe[skillType] || 0;
+                if (skillVal > 0) {
+                    skillParts.push(skillNames[skillType] + skillVal);
+                }
+            }
+            if (skillParts.length > 0) {
+                skillsHtml = '<span class="recipe-skills">' + skillParts.join(' ') + '</span>';
+            }
+            
+            // 生成升阶贵客列表
+            var guestsHtml = '';
+            for (var j = 0; j < Math.min(recipe.guests.length, 3); j++) {
+                var recipeGuest = recipe.guests[j];
+                var rankLabel = rankLabels[j];
+                var targetRank = j + 2;
+                var isCompleted = currentRank >= targetRank;
+                var isCurrentGuest = recipeGuest.guest === guestName;
+                
+                var guestClass = 'pengci-inline-guest';
+                if (isCompleted) {
+                    guestClass += ' completed';
+                } else if (isCurrentGuest) {
+                    guestClass += ' current';
+                }
+                
+                guestsHtml += '<span class="' + guestClass + '">' + rankLabel + '-' + recipeGuest.guest + '</span>';
+            }
+            
+            // 检查是否已选中（需要检查菜谱名和贵客名）
+            var existingRecord = findSelectedRecipe(recipe.name);
+            var isSelected = existingRecord !== null && existingRecord.guest === guestName;
+            var selectedClass = isSelected ? ' selected' : '';
+            
+            html += '<div class="pengci-recipe-inline' + selectedClass + '" data-recipe-name="' + recipe.name + '">';
+            html += '<div class="recipe-info">';
+            html += '<span class="recipe-name">' + recipe.name + '<span class="check-mark">✓</span></span>';
+            html += '<span class="recipe-stars">' + stars + '</span>';
+            html += skillsHtml;
+            html += '</div>';
+            html += '<div class="recipe-guests">' + guestsHtml + '</div>';
+            html += '</div>';
+        }
+        
+        return html;
+    }
+    
+    /**
+     * 更新选择框显示文字
+     */
+    function updatePengciDropdownText() {
+        var $text = $('#pengci-guest-dropdown-btn .pengci-dropdown-text');
+        if (selectedPengciRecipes.length === 0) {
+            $text.text('选择碰瓷菜谱').removeClass('has-selection');
+        } else if (selectedPengciRecipes.length === 1) {
+            $text.text(selectedPengciRecipes[0].recipe).addClass('has-selection');
+        } else {
+            $text.text('已选择' + selectedPengciRecipes.length + '道菜').addClass('has-selection');
+        }
+        
+        // 更新已选菜谱展示区域
+        updateSelectedRecipesDisplay();
+    }
+    
+    /**
+     * 更新已选菜谱展示区域
+     */
+    function updateSelectedRecipesDisplay() {
+        var $display = $('.pengci-selected-recipes-display');
+        if (!$display.length) return;
+        
+        if (selectedPengciRecipes.length === 0) {
+            $display.empty().hide();
+            return;
+        }
+        
+        var html = '';
+        for (var i = 0; i < selectedPengciRecipes.length; i++) {
+            var item = selectedPengciRecipes[i];
+            html += '<span class="pengci-selected-tag" data-recipe="' + item.recipe + '">';
+            html += '<span class="tag-name">' + item.recipe + '</span>';
+            html += '<span class="tag-remove">×</span>';
+            html += '</span>';
+        }
+        
+        $display.html(html).show();
+        
+        // 绑定移除按钮点击事件
+        $display.find('.tag-remove').off('click').on('click', function(e) {
+            e.stopPropagation();
+            var $tag = $(this).closest('.pengci-selected-tag');
+            var recipeName = $tag.attr('data-recipe');
+            
+            // 从选中列表中移除
+            for (var i = 0; i < selectedPengciRecipes.length; i++) {
+                if (selectedPengciRecipes[i].recipe === recipeName) {
+                    selectedPengciRecipes.splice(i, 1);
+                    break;
+                }
+            }
+            
+            // 更新显示
+            updatePengciDropdownText();
+            
+            // 更新菜谱列表中的勾选状态
+            $('.pengci-recipe-inline[data-recipe-name="' + recipeName + '"]').removeClass('selected');
+        });
+    }
+    
+    /**
+     * 切换菜谱选中状态
+     * @param {string} recipeName - 菜谱名称
+     * @param {string} guestName - 贵客名称
+     * @param {Object} recipe - 菜谱对象
+     * @returns {boolean} 是否成功切换
+     */
+    function togglePengciRecipeSelection(recipeName, guestName, recipe) {
+        // 查找是否已选中该菜谱
+        var existingRecord = findSelectedRecipe(recipeName);
+        
+        if (existingRecord) {
+            // 已选中
+            if (existingRecord.guest === guestName) {
+                // 同一贵客下，取消选择
+                var index = selectedPengciRecipes.indexOf(existingRecord);
+                selectedPengciRecipes.splice(index, 1);
+                updatePengciDropdownText();
+                return true;
+            } else {
+                // 不同贵客下，提示无法选择
+                var msg = '该菜谱已在<span style="color:#337ab7;font-weight:bold;">' + existingRecord.guest + '</span>贵客中勾选，无法同时碰瓷';
+                if (typeof showAlert === 'function') {
+                    showAlert(msg);
+                } else {
+                    alert('该菜谱已在' + existingRecord.guest + '贵客中勾选，无法同时碰瓷');
+                }
+                return false;
+            }
+        } else {
+            // 未选中，添加选择
+            if (selectedPengciRecipes.length >= MAX_PENGCI_RECIPES) {
+                if (typeof showAlert === 'function') {
+                    showAlert('最多只能选择' + MAX_PENGCI_RECIPES + '道菜谱');
+                } else {
+                    alert('最多只能选择' + MAX_PENGCI_RECIPES + '道菜谱');
+                }
+                return false;
+            }
+            
+            // 获取最低可碰瓷品级
+            var lowestRank = getLowestPengciRank(guestName, recipe);
+            if (lowestRank === null) {
+                if (typeof showAlert === 'function') {
+                    showAlert('该菜谱在' + guestName + '贵客下没有可碰瓷的品级');
+                } else {
+                    alert('该菜谱在' + guestName + '贵客下没有可碰瓷的品级');
+                }
+                return false;
+            }
+            
+            // 添加到选中列表
+            selectedPengciRecipes.push({
+                guest: guestName,
+                recipe: recipeName,
+                rank: lowestRank
+            });
+            updatePengciDropdownText();
+            return true;
+        }
+    }
+    
+    /**
+     * 按分类过滤贵客区块
+     * @param {jQuery} $container - 容器元素
+     * @param {string} category - 分类（normal/mainline）
+     */
+    function filterPengciGuestSections($container, category) {
+        var $sections = $container.find('.pengci-guest-section');
+        
+        // 先过滤显示
+        $sections.each(function() {
+            var $section = $(this);
+            var isMainline = $section.attr('data-is-mainline') === '1';
+            var isNormal = $section.attr('data-is-normal') === '1';
+            
+            if (category === 'normal') {
+                // 普通碰瓷：显示普通贵客
+                $section.toggle(isNormal);
+            } else if (category === 'mainline') {
+                // 主线碰瓷：显示主线贵客
+                $section.toggle(isMainline);
+            } else {
+                $section.show();
+            }
+        });
+        
+        // 主线碰瓷模式下，按任务ID排序
+        if (category === 'mainline') {
+            var $list = $container.find('.pengci-guest-list');
+            var $visibleSections = $list.find('.pengci-guest-section:visible').detach();
+            
+            // 按 firstQuestId 排序
+            $visibleSections.sort(function(a, b) {
+                var questIdA = parseInt($(a).attr('data-first-quest-id')) || 9999;
+                var questIdB = parseInt($(b).attr('data-first-quest-id')) || 9999;
+                return questIdA - questIdB;
+            });
+            
+            // 重新添加到列表
+            $list.append($visibleSections);
+            // 同时把隐藏的也加回去
+            $list.append($container.find('.pengci-guest-section:hidden'));
+        }
+    }
+    
+    /**
+     * 按关键词过滤贵客
+     * @param {jQuery} $container - 容器元素
+     * @param {string} keyword - 搜索关键词
+     */
+    function filterPengciGuestByKeyword($container, keyword) {
+        // 获取游戏数据用于任务编号搜索
+        var gameData = (typeof calCustomRule !== 'undefined' && calCustomRule.gameData) 
+                       ? calCustomRule.gameData : null;
+        var quests = gameData ? gameData.quests : [];
+        
+        // 检查是否输入的是任务编号
+        var questId = parseInt(keyword);
+        var questGuestNames = [];
+        if (!isNaN(questId) && questId > 0) {
+            questGuestNames = getGuestsByQuestId(quests, questId);
+        }
+        
+        $container.find('.pengci-guest-section').each(function() {
+            var $section = $(this);
+            var guestName = $section.attr('data-guest');
+            var guestNameLower = guestName.toLowerCase();
+            var isMainline = $section.attr('data-is-mainline') === '1';
+            var isNormal = $section.attr('data-is-normal') === '1';
+            
+            // 分类过滤
+            var matchCategory = (pengciGuestCategory === 'normal' && isNormal) ||
+                               (pengciGuestCategory === 'mainline' && isMainline) ||
+                               (pengciGuestCategory === 'all');
+            
+            // 关键词过滤：支持贵客名称或任务编号
+            var matchKeyword = true;
+            if (keyword) {
+                if (questGuestNames.length > 0) {
+                    // 如果是任务编号，按任务中的贵客过滤
+                    matchKeyword = questGuestNames.indexOf(guestName) >= 0;
+                } else {
+                    // 否则按贵客名称搜索
+                    matchKeyword = guestNameLower.indexOf(keyword.toLowerCase()) >= 0;
+                }
+            }
+            
+            $section.toggle(matchCategory && matchKeyword);
+        });
+    }
+    
+    /**
+     * 显示选中贵客的碰瓷菜谱列表（外部容器版本，保留兼容）
+     * @param {string} guestName - 贵客名称
+     */
+    function showPengciGuestRecipes(guestName) {
+        var $container = $("#pengci-guest-recipe-list");
+        if (!$container.length) {
+            return;
+        }
+        
+        // 获取游戏数据
+        var gameData = (typeof calCustomRule !== 'undefined' && calCustomRule.gameData) 
+                       ? calCustomRule.gameData : null;
+        
+        if (!gameData || !gameData.recipes) {
+            $container.html('<div class="pengci-recipe-empty">游戏数据未加载</div>');
+            return;
+        }
+        
+        var recipes = gameData.recipes;
+        var html = generatePengciRecipesHtml(guestName, recipes);
+        
+        if (html.indexOf('pengci-recipe-empty-inline') >= 0) {
+            $container.html('<div class="pengci-recipe-empty">该贵客没有可碰瓷的菜谱</div>');
+        } else {
+            // 转换为外部容器样式
+            $container.html('<div class="pengci-recipe-list-content">' + html + '</div>');
+        }
+    }
+    
+    /**
+     * 填充碰瓷贵客选项（重新构建下拉菜单）
+     */
+    function populatePengciGuestOptions() {
+        var $container = $("#pengci-guest-select-container");
+        if ($container.length) {
+            buildPengciGuestDropdown($container);
+        } else {
+            // 如果容器不存在，调用初始化函数
+            initPengciGuestSelect();
+        }
+    }
+    
+    /**
+     * 过滤碰瓷贵客选项（兼容旧接口）
+     * @param {string} category - 分类（normal/mainline）
+     */
+    function filterPengciGuestOptions(category) {
+        var $container = $("#pengci-guest-select-container");
+        if ($container.length) {
+            filterPengciGuestSections($container, category);
+        }
+    }
+    
+    // ========================================
+    // 符文碰瓷下拉框相关函数
+    // ========================================
+    
+    // 符文碰瓷选中的菜谱缓存
+    var selectedRuneRecipes = [];
+    var MAX_RUNE_RECIPES = 9;
+    var runeCategory = 'gold'; // 默认金符文
+    
+    // 符文分类
+    var GOLD_RUNES = ['恐怖利刃', '鼓风机', '蒸馏杯', '千年煮鳖', '香烤鱼排', '五星炒果'];
+    var SILVER_RUNES = ['刀嘴鹦鹉', '一昧真火', '蒸汽宝石', '耐煮的水草', '焦虫', '暖石'];
+    var BRONZE_RUNES = ['剪刀蟹', '油火虫', '蒸汽耳环', '防水的柠檬', '烤焦的菊花', '五香果'];
+    
+    /**
+     * 初始化符文碰瓷选择框
+     */
+    function initPengciRuneSelect() {
+        var $wrapper = $(".pengci-rune-dropdown-wrapper");
+        var $btn = $("#pengci-rune-dropdown-btn");
+        var $container = $("#pengci-rune-select-container");
+        var $queryArea = $wrapper.closest(".pengci-query-area");
+        
+        if (!$wrapper.length || !$btn.length || !$container.length) {
+            return;
+        }
+        
+        // 构建下拉菜单内容
+        buildPengciRuneDropdown($container);
+        
+        // 计算下拉菜单最大高度的函数（参考贵客碰瓷的实现）
+        function calculateMenuHeight() {
+            var $list = $container.find('.pengci-rune-list');
+            var $searchWrapper = $container.find('.pengci-search-wrapper');
+            var $tabs = $container.find('.pengci-rune-category-tabs');
+            var $selectedDisplay = $container.find('.pengci-rune-selected-display');
+            var $clearWrapper = $container.find('.pengci-clear-wrapper');
+            
+            // 获取按钮位置信息
+            var btnOffset = $btn.offset();
+            var btnHeight = $btn.outerHeight();
+            var windowHeight = $(window).height();
+            var scrollTop = $(window).scrollTop();
+            
+            // 计算按钮底部到窗口底部的距离
+            var selectOffsetTop = btnOffset.top - scrollTop;
+            var selectOffsetBot = windowHeight - selectOffsetTop - btnHeight;
+            
+            // 菜单的额外高度（边框、padding等）
+            var menuPaddingVert = 0;
+            var menuBorderVert = 2;
+            
+            // 头部元素的高度
+            var headerHeight = 0;
+            if ($searchWrapper.length && $searchWrapper.is(':visible')) {
+                headerHeight += $searchWrapper.outerHeight(true);
+            }
+            if ($selectedDisplay.length && $selectedDisplay.is(':visible')) {
+                headerHeight += $selectedDisplay.outerHeight(true);
+            }
+            if ($clearWrapper.length && $clearWrapper.is(':visible')) {
+                headerHeight += $clearWrapper.outerHeight(true);
+            }
+            if ($tabs.length && $tabs.is(':visible')) {
+                headerHeight += $tabs.outerHeight(true);
+            }
+            
+            // 菜单额外高度
+            var menuExtrasVert = menuPaddingVert + menuBorderVert + headerHeight;
+            
+            // 可用高度
+            var availableHeight = selectOffsetBot - menuExtrasVert - 10;
+            
+            // 最小高度
+            var minHeight = 120;
+            
+            // 列表可用高度
+            var listMaxHeight = Math.max(minHeight, availableHeight);
+            
+            // 设置列表最大高度
+            $list.css('max-height', listMaxHeight + 'px');
+            
+            // 设置菜单的最大高度
+            var menuMaxHeight = listMaxHeight + headerHeight + menuBorderVert;
+            $container.css('max-height', menuMaxHeight + 'px');
+        }
+        
+        // 点击按钮切换下拉菜单
+        $btn.off("click").on("click", function(e) {
+            e.stopPropagation();
+            if ($wrapper.hasClass("open")) {
+                // 收起
+                $wrapper.removeClass("open");
+                $container.css('display', ''); // 清除手动设置的display，让CSS控制
+                $queryArea.css("z-index", "");
+            } else {
+                // 关闭其他 Bootstrap-select 选择框
+                $('.bootstrap-select').removeClass('open');
+                $('.bootstrap-select .dropdown-menu').css('display', '');
+                $('.bootstrap-select .dropdown-toggle').blur();
+                // 移除编辑状态
+                $('.selected-box').removeClass('editing');
+                
+                // 关闭贵客碰瓷选择框
+                $("#pengci-guest-dropdown-wrapper").removeClass("open");
+                $("#pengci-guest-dropdown-menu").hide();
+                
+                // 展开时：先设置 z-index 和添加 open 类
+                $queryArea.css("z-index", "200");
+                $wrapper.addClass("open");
+                
+                // 使用 visibility:hidden 来计算高度，避免闪烁
+                $container.css({
+                    'visibility': 'hidden',
+                    'display': 'block'
+                });
+                calculateMenuHeight();
+                $container.css('visibility', '');
+            }
+        });
+        
+        // 窗口大小变化或滚动时重新计算高度
+        $(window).off("resize.pengciRuneDropdown scroll.pengciRuneDropdown").on("resize.pengciRuneDropdown scroll.pengciRuneDropdown", function() {
+            if ($wrapper.hasClass("open")) {
+                calculateMenuHeight();
+            }
+        });
+        
+        // 点击下拉菜单内部不关闭
+        $container.off("click").on("click", function(e) {
+            e.stopPropagation();
+        });
+        
+        // 点击外部关闭下拉菜单
+        $(document).off("click.pengciRuneDropdown").on("click.pengciRuneDropdown", function(e) {
+            if (!$(e.target).closest(".pengci-rune-dropdown-wrapper").length) {
+                if ($wrapper.hasClass("open")) {
+                    $wrapper.removeClass("open");
+                    $container.css('display', '');
+                    $queryArea.css("z-index", "");
+                }
+            }
+        });
+        
+        // 监听其他 Bootstrap-select 选择框打开时，关闭符文下拉框
+        $(document).off("show.bs.select.pengciRuneDropdown").on("show.bs.select.pengciRuneDropdown", function(e) {
+            if ($wrapper.hasClass("open")) {
+                $wrapper.removeClass("open");
+                $container.css('display', '');
+                $queryArea.css("z-index", "");
+            }
+        });
+        
+        // 查询厨师配置按钮点击事件 - 复用贵客碰瓷的查询逻辑
+        $("#btn-pengci-rune-query").off("click").on("click", function() {
+            if (selectedRuneRecipes.length === 0) {
+                if (typeof showAlert === 'function') {
+                    showAlert('请先选择要碰瓷的菜谱');
+                } else {
+                    alert('请先选择要碰瓷的菜谱');
+                }
+                return;
+            }
+            
+            // 临时保存贵客碰瓷的选中菜谱
+            var tempPengciRecipes = selectedPengciRecipes.slice();
+            
+            // 将符文碰瓷的选中菜谱复制到贵客碰瓷的缓存中（rank默认为4-神级）
+            selectedPengciRecipes = [];
+            for (var i = 0; i < selectedRuneRecipes.length; i++) {
+                selectedPengciRecipes.push({
+                    guest: selectedRuneRecipes[i].guest,
+                    recipe: selectedRuneRecipes[i].recipe,
+                    rank: 4  // 神级
+                });
+            }
+            
+            // 执行查询
+            var result = queryPengciChefConfig();
+            
+            // 恢复贵客碰瓷的选中菜谱
+            selectedPengciRecipes = tempPengciRecipes;
+            
+            if (!result.success) {
+                if (typeof showAlert === 'function') {
+                    showAlert(result.message);
+                } else {
+                    alert(result.message);
+                }
+                return;
+            }
+            
+            // 显示查询结果
+            displayPengciQueryResult(result);
+        });
+    }
+    
+    /**
+     * 构建符文碰瓷下拉菜单
+     */
+    function buildPengciRuneDropdown($container) {
+        var gameData = (typeof calCustomRule !== 'undefined' && calCustomRule.gameData) 
+                       ? calCustomRule.gameData : null;
+        
+        if (!gameData || !gameData.recipes) {
+            $container.html('<div class="pengci-dropdown-empty">游戏数据未加载</div>');
+            return;
+        }
+        
+        var recipes = gameData.recipes || [];
+        
+        // 构建符文 -> 菜谱列表的映射
+        // 使用菜谱的gift字段来匹配符文（参考show项目逻辑）
+        // 结构: { runeName: [{ recipe }] }
+        var runeRecipesMap = {};
+        
+        for (var i = 0; i < recipes.length; i++) {
+            var recipe = recipes[i];
+            
+            // 检查菜谱的gift字段是否匹配符文
+            if (!recipe.gift || recipe.gift === '-' || recipe.gift === '') {
+                continue;
+            }
+            
+            var runeName = recipe.gift;
+            
+            // 只添加已拥有的菜谱（兼容字符串"是"和布尔值true）
+            if (recipe.got !== "是") {
+                continue;
+            }
+            
+            // 只添加未达到神级的菜谱（rank < 4）
+            // rank: 可=1, 优=2, 特=3, 神=4, 传=5
+            var rank = getPengciRankValue(recipe.rank);
+            if (rank >= 4) {
+                continue;
+            }
+            
+            if (!runeRecipesMap[runeName]) {
+                runeRecipesMap[runeName] = [];
+            }
+            
+            runeRecipesMap[runeName].push({
+                recipe: recipe
+            });
+        }
+        
+        // 对每个符文下的菜谱排序（参考show项目：按品级从高到低，然后按星级从低到高）
+        for (var runeName in runeRecipesMap) {
+            runeRecipesMap[runeName].sort(function(a, b) {
+                var rankA = getPengciRankValue(a.recipe.rank);
+                var rankB = getPengciRankValue(b.recipe.rank);
+                if (rankB !== rankA) {
+                    return rankB - rankA; // 品级从高到低
+                }
+                var rarityA = a.recipe.rarity || 0;
+                var rarityB = b.recipe.rarity || 0;
+                if (rarityA !== rarityB) {
+                    return rarityA - rarityB; // 星级从低到高
+                }
+                return a.recipe.name.localeCompare(b.recipe.name);
+            });
+        }
+        
+        // 构建HTML
+        var html = '';
+        
+        // 搜索框
+        html += '<div class="pengci-search-wrapper">';
+        html += '<input type="text" class="form-control pengci-search-input" placeholder="菜谱名称">';
+        html += '</div>';
+        
+        // 已选菜谱展示区域
+        html += '<div class="pengci-rune-selected-display"></div>';
+        
+        // 清空选择按钮
+        html += '<div class="pengci-clear-wrapper">';
+        html += '<button type="button" class="btn btn-default btn-sm btn-pengci-clear">清空选择</button>';
+        html += '</div>';
+        
+        // 分类标签
+        html += '<ul class="nav nav-tabs pengci-rune-category-tabs">';
+        html += '<li class="' + (runeCategory === 'gold' ? 'active' : '') + '"><a href="#" data-category="gold">金符文</a></li>';
+        html += '<li class="' + (runeCategory === 'silver' ? 'active' : '') + '"><a href="#" data-category="silver">银符文</a></li>';
+        html += '<li class="' + (runeCategory === 'bronze' ? 'active' : '') + '"><a href="#" data-category="bronze">铜符文</a></li>';
+        html += '</ul>';
+        
+        // 符文列表（按符文名称分组）
+        html += '<div class="pengci-rune-list">';
+        
+        // 根据当前分类获取符文列表
+        var allRunesList = [].concat(GOLD_RUNES, SILVER_RUNES, BRONZE_RUNES);
+        
+        for (var r = 0; r < allRunesList.length; r++) {
+            var runeName = allRunesList[r];
+            var runeType = 'bronze';
+            if (GOLD_RUNES.indexOf(runeName) >= 0) runeType = 'gold';
+            else if (SILVER_RUNES.indexOf(runeName) >= 0) runeType = 'silver';
+            
+            var runeRecipes = runeRecipesMap[runeName] || [];
+            var recipeCount = runeRecipes.length;
+            
+            // 与贵客碰瓷格式一致：符文名 还可碰瓷 X 次
+            var countText = recipeCount > 0 ? '还可碰瓷 ' + recipeCount + ' 次' : '无可碰瓷菜谱';
+            var countClass = recipeCount > 0 ? 'pengci-count' : 'pengci-count no-pengci';
+            
+            html += '<div class="pengci-rune-section" data-rune="' + runeName + '" data-rune-type="' + runeType + '" data-pengci-count="' + recipeCount + '">';
+            html += '<div class="pengci-rune-header">';
+            html += '<span class="rune-name">' + runeName + '</span>';
+            html += '<span class="' + countClass + '">' + countText + '</span>';
+            html += '<span class="expand-arrow glyphicon glyphicon-chevron-down"></span>';
+            html += '</div>';
+            html += '<div class="pengci-rune-recipes" style="display: none;"></div>';
+            html += '</div>';
+        }
+        html += '</div>';
+        
+        $container.html(html);
+        
+        // 绑定事件
+        
+        // 搜索框输入事件
+        $container.find('.pengci-search-input').off('input').on('input', function() {
+            var keyword = $(this).val().trim().toLowerCase();
+            filterRuneSectionsByKeyword($container, keyword, runeRecipesMap);
+        });
+        
+        // 分类标签点击事件
+        $container.find('.pengci-rune-category-tabs a').off('click').on('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            var $tab = $(this);
+            var category = $tab.attr('data-category');
+            
+            $tab.parent().addClass('active').siblings().removeClass('active');
+            runeCategory = category;
+            
+            filterRuneSectionsByCategory($container, category);
+            
+            // 清空搜索框
+            $container.find('.pengci-search-input').val('');
+        });
+        
+        // 符文区块点击展开/收起（与贵客碰瓷逻辑一致）
+        $container.find('.pengci-rune-header').off('click').on('click', function(e) {
+            e.stopPropagation();
+            
+            var $header = $(this);
+            var $section = $header.closest('.pengci-rune-section');
+            var $recipesContainer = $section.find('.pengci-rune-recipes');
+            var $arrow = $header.find('.expand-arrow');
+            var runeName = $section.attr('data-rune');
+            
+            // 切换展开状态（与贵客碰瓷一致）
+            if ($recipesContainer.is(':visible')) {
+                // 收起
+                $recipesContainer.slideUp(200);
+                $arrow.removeClass('glyphicon-chevron-down').addClass('glyphicon-chevron-right');
+                $section.removeClass('expanded');
+            } else {
+                // 展开 - 先加载菜谱内容
+                var runeRecipes = runeRecipesMap[runeName] || [];
+                var recipesHtml = generateRuneRecipesHtmlByRune(runeRecipes);
+                $recipesContainer.html(recipesHtml);
+                
+                // 绑定菜谱点击事件
+                $recipesContainer.find('.pengci-rune-recipe-inline').off('click').on('click', function(e) {
+                    e.stopPropagation();
+                    var $recipe = $(this);
+                    var recipeName = $recipe.attr('data-recipe-name');
+                    var guestName = $recipe.attr('data-guest-name');
+                    
+                    // 切换选中状态
+                    var success = toggleRuneRecipeSelection(recipeName, guestName);
+                    if (success) {
+                        $recipe.toggleClass('selected');
+                    }
+                });
+                
+                // 更新已选中状态
+                $recipesContainer.find('.pengci-rune-recipe-inline').each(function() {
+                    var $recipe = $(this);
+                    var recipeName = $recipe.attr('data-recipe-name');
+                    var isSelected = findSelectedRuneRecipe(recipeName) !== null;
+                    $recipe.toggleClass('selected', isSelected);
+                });
+                
+                $recipesContainer.slideDown(200);
+                $arrow.removeClass('glyphicon-chevron-right').addClass('glyphicon-chevron-down');
+                $section.addClass('expanded');
+            }
+        });
+        
+        // 清空选择按钮点击事件
+        $container.find('.btn-pengci-clear').off('click').on('click', function(e) {
+            e.stopPropagation();
+            selectedRuneRecipes = [];
+            updateRuneDropdownText();
+            updateRuneSelectedDisplay();
+            $container.find('.pengci-rune-recipe-inline.selected').removeClass('selected');
+        });
+        
+        // 应用当前分类过滤
+        filterRuneSectionsByCategory($container, runeCategory);
+        
+        // 初始化已选菜谱展示区域
+        updateRuneSelectedDisplay();
+    }
+    
+    /**
+     * 按符文分类过滤区块
+     */
+    function filterRuneSectionsByCategory($container, category) {
+        $container.find('.pengci-rune-section').each(function() {
+            var $section = $(this);
+            var runeType = $section.attr('data-rune-type');
+            $section.toggle(runeType === category);
+        });
+    }
+    
+    /**
+     * 按关键词过滤符文区块（搜索菜谱名称）
+     */
+    function filterRuneSectionsByKeyword($container, keyword, runeRecipesMap) {
+        if (!keyword) {
+            // 无关键词时，按当前分类显示
+            filterRuneSectionsByCategory($container, runeCategory);
+            return;
+        }
+        
+        $container.find('.pengci-rune-section').each(function() {
+            var $section = $(this);
+            var runeName = $section.attr('data-rune');
+            var runeType = $section.attr('data-rune-type');
+            
+            // 检查当前分类
+            if (runeType !== runeCategory) {
+                $section.hide();
+                return;
+            }
+            
+            // 检查该符文下是否有匹配的菜谱名称
+            var runeRecipes = runeRecipesMap[runeName] || [];
+            var hasMatch = false;
+            for (var i = 0; i < runeRecipes.length; i++) {
+                var recipeName = runeRecipes[i].recipe.name || '';
+                if (recipeName.toLowerCase().indexOf(keyword) >= 0) {
+                    hasMatch = true;
+                    break;
+                }
+            }
+            
+            $section.toggle(hasMatch);
+        });
+    }
+    
+    /**
+     * 生成符文菜谱HTML（按符文分组）
+     * 与贵客碰瓷格式一致：菜谱名、星级、技法值、升阶贵客
+     */
+    function generateRuneRecipesHtmlByRune(runeRecipes) {
+        if (runeRecipes.length === 0) {
+            return '<div class="pengci-recipe-empty-inline">没有可碰瓷的菜谱</div>';
+        }
+        
+        var html = '';
+        var rankLabels = ['优', '特', '神'];
+        
+        for (var i = 0; i < runeRecipes.length; i++) {
+            var item = runeRecipes[i];
+            var recipe = item.recipe;
+            var currentRank = getPengciRankValue(recipe.rank);
+            
+            // 生成星级显示
+            var stars = '';
+            for (var s = 0; s < recipe.rarity; s++) {
+                stars += '★';
+            }
+            
+            // 生成技法值显示（与贵客碰瓷一致）
+            var skillsHtml = '';
+            var skillNames = { stirfry: '炒', boil: '煮', knife: '切', fry: '炸', bake: '烤', steam: '蒸' };
+            var skillTypes = ['stirfry', 'boil', 'knife', 'fry', 'bake', 'steam'];
+            var skillParts = [];
+            for (var sk = 0; sk < skillTypes.length; sk++) {
+                var skillType = skillTypes[sk];
+                var skillVal = recipe[skillType] || 0;
+                if (skillVal > 0) {
+                    skillParts.push(skillNames[skillType] + skillVal);
+                }
+            }
+            if (skillParts.length > 0) {
+                skillsHtml = '<span class="recipe-skills">' + skillParts.join(' ') + '</span>';
+            }
+            
+            // 生成升阶贵客列表（与贵客碰瓷格式一致）
+            var guestsHtml = '';
+            var recipeGuests = recipe.guests || [];
+            for (var j = 0; j < Math.min(recipeGuests.length, 3); j++) {
+                var recipeGuest = recipeGuests[j];
+                var guestName = recipeGuest.guest || '';
+                var rankLabel = rankLabels[j];
+                var targetRank = j + 2; // 优=2, 特=3, 神=4
+                var isCompleted = currentRank >= targetRank;
+                
+                var guestClass = 'pengci-inline-guest';
+                if (isCompleted) {
+                    guestClass += ' completed';
+                }
+                
+                guestsHtml += '<span class="' + guestClass + '">' + rankLabel + '-' + guestName + '</span>';
+            }
+            
+            // 获取第一个未完成的升阶贵客名称（用于选中时记录）
+            var firstUncompletedGuest = '';
+            for (var j = 0; j < Math.min(recipeGuests.length, 3); j++) {
+                var targetRank = j + 2;
+                if (currentRank < targetRank && recipeGuests[j].guest) {
+                    firstUncompletedGuest = recipeGuests[j].guest;
+                    break;
+                }
+            }
+            
+            var isSelected = findSelectedRuneRecipe(recipe.name) !== null;
+            var selectedClass = isSelected ? ' selected' : '';
+            
+            // 使用与贵客碰瓷相同的class名：pengci-recipe-inline
+            html += '<div class="pengci-recipe-inline pengci-rune-recipe-inline' + selectedClass + '" data-recipe-name="' + recipe.name + '" data-guest-name="' + firstUncompletedGuest + '">';
+            html += '<div class="recipe-info">';
+            html += '<span class="recipe-name">' + recipe.name + '<span class="check-mark">✓</span></span>';
+            html += '<span class="recipe-stars">' + stars + '</span>';
+            html += skillsHtml;
+            html += '</div>';
+            html += '<div class="recipe-guests">' + guestsHtml + '</div>';
+            html += '</div>';
+        }
+        
+        return html;
+    }
+    
+    /**
+     * 查找已选中的符文菜谱
+     */
+    function findSelectedRuneRecipe(recipeName) {
+        for (var i = 0; i < selectedRuneRecipes.length; i++) {
+            if (selectedRuneRecipes[i].recipe === recipeName) {
+                return selectedRuneRecipes[i];
+            }
+        }
+        return null;
+    }
+    
+    /**
+     * 切换符文菜谱选中状态
+     */
+    function toggleRuneRecipeSelection(recipeName, guestName) {
+        var existingRecord = findSelectedRuneRecipe(recipeName);
+        
+        if (existingRecord) {
+            // 已选中，取消选择
+            var index = selectedRuneRecipes.indexOf(existingRecord);
+            selectedRuneRecipes.splice(index, 1);
+            updateRuneDropdownText();
+            return true;
+        } else {
+            // 未选中，添加选择
+            if (selectedRuneRecipes.length >= MAX_RUNE_RECIPES) {
+                if (typeof showAlert === 'function') {
+                    showAlert('最多只能选择' + MAX_RUNE_RECIPES + '道菜谱');
+                }
+                return false;
+            }
+            
+            selectedRuneRecipes.push({
+                guest: guestName,
+                recipe: recipeName
+            });
+            updateRuneDropdownText();
+            return true;
+        }
+    }
+    
+    /**
+     * 更新符文下拉框显示文字
+     */
+    function updateRuneDropdownText() {
+        var $text = $('#pengci-rune-dropdown-btn .pengci-dropdown-text');
+        if (selectedRuneRecipes.length === 0) {
+            $text.text('选择符文菜谱').removeClass('has-selection');
+        } else if (selectedRuneRecipes.length === 1) {
+            $text.text(selectedRuneRecipes[0].recipe).addClass('has-selection');
+        } else {
+            $text.text('已选择' + selectedRuneRecipes.length + '道菜').addClass('has-selection');
+        }
+        
+        updateRuneSelectedDisplay();
+    }
+    
+    /**
+     * 更新符文已选菜谱展示区域
+     */
+    function updateRuneSelectedDisplay() {
+        var $display = $('.pengci-rune-selected-display');
+        if (!$display.length) return;
+        
+        if (selectedRuneRecipes.length === 0) {
+            $display.empty().hide();
+            return;
+        }
+        
+        var html = '';
+        for (var i = 0; i < selectedRuneRecipes.length; i++) {
+            var item = selectedRuneRecipes[i];
+            html += '<span class="pengci-selected-tag" data-recipe="' + item.recipe + '">';
+            html += '<span class="tag-name">' + item.recipe + '</span>';
+            html += '<span class="tag-remove">×</span>';
+            html += '</span>';
+        }
+        
+        $display.html(html).show();
+        
+        // 绑定移除按钮点击事件
+        $display.find('.tag-remove').off('click').on('click', function(e) {
+            e.stopPropagation();
+            var $tag = $(this).closest('.pengci-selected-tag');
+            var recipeName = $tag.attr('data-recipe');
+            
+            // 从选中列表中移除
+            for (var i = 0; i < selectedRuneRecipes.length; i++) {
+                if (selectedRuneRecipes[i].recipe === recipeName) {
+                    selectedRuneRecipes.splice(i, 1);
+                    break;
+                }
+            }
+            
+            // 更新显示
+            updateRuneDropdownText();
+            
+            // 更新菜谱列表中的勾选状态
+            $('.pengci-rune-recipe-inline[data-recipe-name="' + recipeName + '"]').removeClass('selected');
+        });
+    }
+
     // 更新暴露的公共接口
     return {
         init: init,
@@ -2674,7 +5084,16 @@ var GuestRateCalculator = (function($) {
         displayGuestConflictWarning: displayGuestConflictWarning,
         refreshAllRecipeConflictDetection: refreshAllRecipeConflictDetection,
         addRuneAndGuestInfoToRecipeOption: addRuneAndGuestInfoToRecipeOption,
-        getFilteredAndSortedChefs: getFilteredAndSortedChefs
+        getFilteredAndSortedChefs: getFilteredAndSortedChefs,
+        // 碰瓷查询模块
+        initPengciGuestSelect: initPengciGuestSelect,
+        populatePengciGuestOptions: populatePengciGuestOptions,
+        filterPengciGuestOptions: filterPengciGuestOptions,
+        calculatePengciCount: calculatePengciCount,
+        getMainlineGuests: getMainlineGuests,
+        showPengciGuestRecipes: showPengciGuestRecipes,
+        // 符文碰瓷模块
+        initPengciRuneSelect: initPengciRuneSelect
     };
     
 })(jQuery);
