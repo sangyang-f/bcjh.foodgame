@@ -9,12 +9,12 @@
     <link rel="stylesheet" type="text/css" href="css/style.min.css?v=1" />
     <script type="text/javascript" src="js/script.min.js?v=3"></script>
     <script type="text/javascript" src="js/common.min.js?v=8"></script>
-    <link rel="stylesheet" type="text/css" href="css/food.min.css?v=9" />
-    <script type="text/javascript" src="js/guest.calculator.js?v=4"></script>
+    <link rel="stylesheet" type="text/css" href="css/food.min.css?v=10" />
+    <script type="text/javascript" src="js/guest.calculator.js?v=5"></script>
     <script type="text/javascript" src="js/query.guest.js?v=2"></script>
-    <script type="text/javascript" src="js/food.min.js?v=17"></script>
+    <script type="text/javascript" src="js/food.min.js?v=18"></script>
     <script type="text/javascript" src="js/query.cultivate.js?v=3"></script>
-    <link rel="stylesheet" type="text/css" href="css/image.css?v=8" />
+    <link rel="stylesheet" type="text/css" href="css/image.css?v=9" />
     <script>
         $(function () {
             $.ajax({
@@ -22,7 +22,7 @@
                 xhr: function () {
                     var xhr = $.ajaxSettings.xhr();
                     xhr.addEventListener("progress", function (e) {
-                        var total = 1897484;
+                        var total = 1915426;
                         if (e.lengthComputable) {
                             total = e.total;
                         }
@@ -40,7 +40,7 @@
                 complete: function () {
                     $("#loading-progress").remove();
                 },
-                url: 'data/data.min.json?v=7'
+                url: 'data/data.min.json?v=8'
             });
         });
     </script>
@@ -2291,7 +2291,7 @@
                                                     </div>
                                                 </div>
                                                 <button class="btn btn-primary btn-sm" id="btn-pengci-guest-query">查询厨师配置</button>
-                                                <div class="pengci-control-group pengci-mainline-group">
+                                                <div class="pengci-control-group pengci-mainline-group" id="pengci-mainline-wrapper">
                                                     <input type="number" class="form-control input-sm" id="input-pengci-mainline" placeholder="绑定主线编号" min="1" max="999" style="width: 100px;">
                                                 </div>
                                             </div>

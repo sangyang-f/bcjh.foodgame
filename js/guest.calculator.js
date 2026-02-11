@@ -351,15 +351,40 @@ var GuestRateCalculator = (function($) {
             calculateDualRecipe();
         });
         
-        // 覆盖 getCalRecipeDisp 函数，在贵客率计算模式下显示符文信息
+        // 覆盖 getCalRecipeDisp 函数，在贵客率计算模式下显示符文信息，在碰瓷查询模式下显示碰瓷贵客
         if (typeof window.getCalRecipeDisp === 'function') {
             var originalGetCalRecipeDisp = window.getCalRecipeDisp;
             window.getCalRecipeDisp = function(e) {
                 var a = e.data;
                 var recipeName = a.name;
                 
-                // 在贵客率计算模式下，尝试获取符文信息
-                if (isGuestRateMode() && typeof calCustomRule !== 'undefined' && calCustomRule.gameData && calCustomRule.gameData.guests) {
+                // 检查是否为碰瓷查询模式
+                var isPengciMode = $("#chk-guest-query-mode").prop("checked");
+                
+                // 在碰瓷查询模式下，显示当前品级对应的碰瓷贵客
+                if (isGuestRateMode() && isPengciMode && a.guests && a.guests.length > 0) {
+                    // 获取当前品级对应的碰瓷贵客
+                    // rankDisp: 可=1, 优=2, 特=3, 神=4, 传=5
+                    // guests[0]=优级贵客, guests[1]=特级贵客, guests[2]=神级贵客
+                    var currentRank = 0;
+                    if (e.rankDisp === '可') currentRank = 1;
+                    else if (e.rankDisp === '优') currentRank = 2;
+                    else if (e.rankDisp === '特') currentRank = 3;
+                    else if (e.rankDisp === '神') currentRank = 4;
+                    else if (e.rankDisp === '传') currentRank = 5;
+                    
+                    // 找到下一个可碰瓷的贵客（当前品级+1对应的贵客）
+                    // 优级(2)对应guests[0], 特级(3)对应guests[1], 神级(4)对应guests[2]
+                    var nextGuestIndex = currentRank - 1; // 当前品级对应的下一个碰瓷目标索引
+                    if (nextGuestIndex >= 0 && nextGuestIndex < Math.min(a.guests.length, 3)) {
+                        var pengciGuest = a.guests[nextGuestIndex];
+                        if (pengciGuest && pengciGuest.guest) {
+                            recipeName = a.name + '-' + pengciGuest.guest;
+                        }
+                    }
+                }
+                // 在贵客率计算模式（非碰瓷模式）下，尝试获取符文信息
+                else if (isGuestRateMode() && typeof calCustomRule !== 'undefined' && calCustomRule.gameData && calCustomRule.gameData.guests) {
                     var runeName = getRecipeRuneName(a, calCustomRule.gameData);
                     if (runeName) {
                         recipeName = a.name + '-' + runeName;

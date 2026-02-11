@@ -2781,6 +2781,18 @@ table.dataTable tr.selected td.select-checkbox:after,table.dataTable tr.selected
     font-size: 12px;
 }
 
+/* 手机版顶部绑定主线输入框样式 */
+#mobile-mode-switch-container #pengci-mainline-wrapper {
+    margin: 0;
+}
+
+#mobile-mode-switch-container #pengci-mainline-wrapper #input-pengci-mainline {
+    width: 90px !important;
+    height: 30px;
+    padding: 2px 6px;
+    font-size: 12px;
+}
+
 /* 碰瓷查询区域样式 - 与计算结果区域保持一致 */
 .pengci-query-area {
     background: #fff;
