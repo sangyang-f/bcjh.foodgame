@@ -9,11 +9,12 @@
     <link rel="stylesheet" type="text/css" href="css/style.min.css?v=1" />
     <script type="text/javascript" src="js/script.min.js?v=3"></script>
     <script type="text/javascript" src="js/common.min.js?v=8"></script>
-    <link rel="stylesheet" type="text/css" href="css/food.min.css?v=10" />
-    <script type="text/javascript" src="js/guest.calculator.js?v=5"></script>
+    <link rel="stylesheet" type="text/css" href="css/food.min.css?v=11" />
+    <script type="text/javascript" src="js/guest.calculator.js?v=6"></script>
     <script type="text/javascript" src="js/query.guest.js?v=2"></script>
-    <script type="text/javascript" src="js/food.min.js?v=18"></script>
-    <script type="text/javascript" src="js/query.cultivate.js?v=3"></script>
+    <script type="text/javascript" src="js/food.min.js?v=19"></script>
+    <script type="text/javascript" src="js/query.cultivate.js?v=4"></script>
+    <script type="text/javascript" src="js/banquet.optimizer.js?v=1"></script>
     <link rel="stylesheet" type="text/css" href="css/image.css?v=9" />
     <script>
         $(function () {
@@ -1266,26 +1267,32 @@
                                             data-on="碰瓷查询" data-off="贵客查询" data-onstyle="primary" data-offstyle="primary" data-width="90px">
                                     </div>
 
-                                    <div id="unultimated-chef-wrapper" class="inline-wrapper select-wrapper hidden" data-toggle="tooltip" title="选择查询修炼厨师">
-                                        <select id="select-cal-unultimated-chef" class="selectpicker monitor-none" multiple
-                                            data-width="120px" data-dropdown-align-right='auto'
-                                            data-none-selected-text="未修炼厨师" data-live-search="true"
-                                            data-live-search-placeholder="查找" data-none-results-text="没有找到"
-                                            data-max-options="3" data-max-options-text="最多选择3个"
-                                            data-selected-text-format="count" data-count-selected-text="{0}个厨师">
-                                        </select>
+                                    <div id="unultimated-chef-wrapper" class="inline-wrapper hidden">
+                                        <div class="unultimated-dropdown-wrapper" id="unultimated-dropdown-wrapper">
+                                            <button type="button" class="btn btn-default pengci-dropdown-toggle" id="unultimated-dropdown-btn">
+                                                <span class="pengci-dropdown-text">修炼厨师</span>
+                                                <span class="caret"></span>
+                                            </button>
+                                            <div class="pengci-dropdown-menu" id="unultimated-dropdown-menu" style="display: none;">
+                                                <div id="unultimated-select-container"></div>
+                                            </div>
+                                        </div>
                                     </div>
                                     <div id="unultimated-chef-action-wrapper" class="btn-group hidden">
                                         <button id="btn-unultimated-query" class="btn btn-default" type="button" onmouseup="this.blur()">查询</button>
                                         <button id="btn-unultimated-config" class="btn btn-default" type="button" data-toggle="modal" data-target="#unultimated-config-modal">配置</button>
                                     </div>
 
-                                    <div id="recipe-god-query-wrapper" class="inline-wrapper select-wrapper hidden" data-toggle="tooltip" title="选择查询菜谱神级方案">
-                                        <select id="select-cal-recipe-god-query" class="selectpicker monitor-none"
-                                            data-width="fit" data-dropdown-align-right='auto'
-                                            data-none-selected-text="请选择菜谱" data-live-search="true"
-                                            data-live-search-placeholder="查找" data-none-results-text="没有找到">
-                                        </select>
+                                    <div id="recipe-god-query-wrapper" class="inline-wrapper hidden" data-toggle="tooltip" title="选择查询菜谱神级方案">
+                                        <div class="recipe-god-dropdown-wrapper" id="recipe-god-dropdown-wrapper">
+                                            <button type="button" class="btn btn-default pengci-dropdown-toggle" id="recipe-god-dropdown-btn">
+                                                <span class="pengci-dropdown-text">选择菜谱</span>
+                                                <span class="caret"></span>
+                                            </button>
+                                            <div class="pengci-dropdown-menu" id="recipe-god-dropdown-menu" style="display: none;">
+                                                <div id="recipe-god-select-container"></div>
+                                            </div>
+                                        </div>
                                     </div>
                                     <div id="recipe-god-query-action-wrapper" class="btn-group hidden">
                                         <button id="btn-recipe-god-query" class="btn btn-default" type="button" onmouseup="this.blur()">查询</button>
@@ -2070,7 +2077,7 @@
                             <h5 class="text-primary">文件版 (有的浏览器不支持)</h5>
                             <div class="select-file inline-div" data-toggle="tooltip" title="选择本地的白菜菊花数据文件并导入">
                                 <input id="file-import-bcjh" type="file">
-                                <button id="btn-import-upload" class="btn btn-default" type="button">
+                                <button id="btn-import-upload-bcjh" class="btn btn-default" type="button">
                                     导入白菜菊花数据文件
                                 </button>
                             </div>
@@ -2080,7 +2087,38 @@
                 </div>
                 <div id="pane-cal-rules" class='pane-cal-rules pane-cal-sub hidden'>
                     <div id="pane-cal-custom">
+                        <div class="banquet-auto-calc hidden" id="banquet-auto-calc" style="max-width: 1130px; margin: 0 auto 8px;">
+                            <div class="select-wrapper" style="display: inline-block; margin-right: 5px;">
+                                <select id="select-banquet-level" class="selectpicker" data-width="auto" data-style="btn-default">
+                                    <option value="0">省</option>
+                                    <option value="1">州</option>
+                                    <option value="2">郡</option>
+                                    <option value="3">县</option>
+                                    <option value="4">村</option>
+                                </select>
+                            </div>
+                            <div class="select-wrapper" style="display: inline-block; margin-right: 5px;">
+                                <select id="select-banquet-guest" class="selectpicker" data-width="auto" data-style="btn-default">
+                                    <option value="all">双贵客</option>
+                                </select>
+                            </div>
+                            <div class="select-wrapper" style="display: inline-block; margin-right: 5px;">
+                                <select id="select-banquet-tier" class="selectpicker" data-width="auto" data-style="btn-default">
+                                    <option value="-1">不限分数</option>
+                                </select>
+                            </div>
+                            <button id="btn-banquet-auto" class="btn btn-primary" type="button">
+                                自动计算
+                            </button>
+                        </div>
+                        <div id="banquet-progress-wrapper" class="hidden" style="max-width: 1130px; margin: 0 auto 6px; display: flex; align-items: center; gap: 8px;">
+                            <div style="flex: 1; height: 8px; background: #e8e8e8; border-radius: 4px; overflow: hidden;">
+                                <div id="banquet-progress-bar" style="width: 0%; height: 100%; background: #4a90d9; border-radius: 4px; transition: width 0.3s;"></div>
+                            </div>
+                            <span id="banquet-progress-text" style="white-space: nowrap; font-size: 13px; color: #666;">0%</span>
+                        </div>
                         <div class="cal-custom-item">
+                            <div id="mobile-cultivate-container" class="hidden" style="padding: 4px 8px;"></div>
                             <div class="rule-desc"></div>
                             
                             <!-- 贵客率计算结果区域 -->
@@ -2817,7 +2855,7 @@
                         <input type="checkbox" id="chk-unultimated-use-strong-equip" data-toggle="toggle" 
                             data-on="开" data-off="关" data-onstyle="default" data-size="small" data-width="50px">
                         <span class="setting-tip">
-                            使用强力厨具（加成100以上厨具）
+                                 使用强力厨具（勾选已配厨具时会强行使用已配厨具）
                         </span>
                     </p>
                     <p>
@@ -2857,7 +2895,7 @@
                             <input type="checkbox" id="chk-recipe-god-use-strong-equip" data-toggle="toggle" 
                                 data-on="开" data-off="关" data-onstyle="default" data-size="small" data-width="50px">
                             <span class="setting-tip" style="margin-left: 5px;">
-                                使用强力厨具
+                                 使用强力厨具（勾选已配厨具时会强行使用已配厨具）
                             </span>
                         </span>
                     </p>
