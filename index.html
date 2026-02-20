@@ -8,13 +8,13 @@
     <link rel="shortcut icon" href="favicon.ico?v=1" type="image/x-icon" />
     <link rel="stylesheet" type="text/css" href="css/style.min.css?v=1" />
     <script type="text/javascript" src="js/script.min.js?v=3"></script>
-    <script type="text/javascript" src="js/common.min.js?v=8"></script>
-    <link rel="stylesheet" type="text/css" href="css/food.min.css?v=11" />
+    <script type="text/javascript" src="js/common.min.js?v=9"></script>
+    <link rel="stylesheet" type="text/css" href="css/food.min.css?v=12" />
     <script type="text/javascript" src="js/guest.calculator.js?v=6"></script>
     <script type="text/javascript" src="js/query.guest.js?v=2"></script>
-    <script type="text/javascript" src="js/food.min.js?v=19"></script>
-    <script type="text/javascript" src="js/query.cultivate.js?v=4"></script>
-    <script type="text/javascript" src="js/banquet.optimizer.js?v=1"></script>
+    <script type="text/javascript" src="js/food.min.js?v=20"></script>
+    <script type="text/javascript" src="js/query.cultivate.js?v=5"></script>
+    <script type="text/javascript" src="js/banquet.optimizer.js?v=2"></script>
     <link rel="stylesheet" type="text/css" href="css/image.css?v=9" />
     <script>
         $(function () {
@@ -1236,6 +1236,16 @@
                                             </label>
                                         </span>
                                     </div>
+                                    <div class="inline-wrapper select-wrapper" data-toggle="tooltip" title="选择食材,排除含该食材的菜谱">
+                                        <select id="chk-cal-recipe-material-exclude" multiple class="monitor-none"
+                                            data-live-search="true" data-live-search-placeholder="查找"
+                                            data-width="120px" data-dropdown-align-right='auto'
+                                            data-none-selected-text="排除食材" data-selected-text-format="count>2"
+                                            data-count-selected-text="{0} 食材" data-none-results-text="没有找到"
+                                            data-actions-box="true" data-actions-box-only-clear="true"
+                                            data-deselect-all-text="清空">
+                                        </select>
+                                    </div>
                                     <div class="inline-wrapper select-wrapper" data-toggle="tooltip" title="选择调料,过滤菜谱">
                                         <select id="chk-cal-recipe-condiment" multiple class="selectpicker monitor-none"
                                             data-width="100px" data-dropdown-align-right='auto'
@@ -1726,12 +1736,33 @@
             <div class="tab-pane pane-export-import">
                 <h5 class="text-primary">官方数据导入</h5>
                 <div class="form-group">
-                    <input class="form-control" id="input-import-data" placeholder="校验码">
+                    <input class="form-control" id="input-import-data" placeholder="校验码" style="width:220px;">
                 </div>
-                <button id="btn-import-data" class="btn btn-default" type="button"
-                    data-toggle="tooltip" title="输入官方校验码, 然后点击该按钮导入数据">
-                    导入数据
-                </button>
+                <div class="form-group" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                    <button id="btn-import-data" class="btn btn-default" type="button"
+                        data-toggle="tooltip" title="输入官方校验码, 弹窗填写用户名称后新增用户数据">
+                        新增用户
+                    </button>
+                    <button id="btn-update-user-data" class="btn btn-default" type="button"
+                        data-toggle="tooltip" title="使用校验码更新当前用户的数据">
+                        更新用户
+                    </button>
+                    <button id="btn-remove-user" class="btn btn-danger" type="button"
+                        data-toggle="tooltip" title="删除当前选中的用户及其所有数据">
+                        删除用户
+                    </button>
+                </div>
+                <div class="form-group" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                    <div class="inline-wrapper select-wrapper">
+                        <select id="select-user-profile" class="selectpicker" data-width="160px"
+                            data-none-selected-text="切换用户" data-style="btn-default">
+                        </select>
+                    </div>
+                    <button id="btn-rename-user" class="btn btn-default" type="button"
+                        data-toggle="tooltip" title="修改当前用户的名称">
+                        修改用户名
+                    </button>
+                </div>
                 <hr>
                 <h5 class="text-primary">个人数据备份 - 手动复制版</h5>
                 <div class="form-group">
@@ -2681,7 +2712,7 @@
                     <span class="label label-primary">联系</span>
                 </h4>
                 <p>原作者：贴吧1群 名字 L(图鉴网)</p>
-                <p>现任：官方16群 - 南风未起</p>
+                <p>现任：群号874357971 - 南风未起</p>
                 <hr>
                 <h4>
                     <span class="label label-primary">更新</span>

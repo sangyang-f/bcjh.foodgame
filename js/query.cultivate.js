@@ -4096,12 +4096,18 @@ function queryRecipesForQuestCondition(rule, quest, chef, usedRecipeIds) {
     var menus = rule.menus || [];
     
     var needGodRank = false;
+    var questRequiredNum = 0; // 任务要求的份数
     for (var c in quest.conditions) {
         if (quest.conditions[c].rank === 4) {
             needGodRank = true;
-            break;
+        }
+        if (quest.conditions[c].num) {
+            questRequiredNum = quest.conditions[c].num;
         }
     }
+    
+    // 计算每份菜谱至少需要的份数（3个菜谱位）
+    var minLimitPerRecipe = questRequiredNum > 0 ? Math.ceil(questRequiredNum / 3) : 0;
     
     for (var i = 0; i < menus.length; i++) {
         var recipe = menus[i].recipe.data;
@@ -4113,27 +4119,47 @@ function queryRecipesForQuestCondition(rule, quest, chef, usedRecipeIds) {
         
         var skillDiffResult = calculateSkillDiffForQuery(chef, recipe, 4);
         
+        // 获取菜谱的份数上限（limitVal优先，否则用limit）
+        var recipeLimit = recipe.limitVal || recipe.limit || 0;
+        // 判断该菜谱的份数是否满足要求（每个菜谱位至少需要 ceil(num/3) 份）
+        var meetsQuantity = questRequiredNum <= 0 || recipeLimit >= minLimitPerRecipe;
+        
         filteredRecipes.push({
             recipe: recipe,
             recipeId: recipe.recipeId,
             canReachGod: skillDiffResult.value === 0,
             skillDiff: skillDiffResult.value,
-            time: recipe.time
+            time: recipe.time,
+            recipeLimit: recipeLimit,
+            meetsQuantity: meetsQuantity
         });
     }
     
     if (needGodRank) {
         filteredRecipes.sort(function(a, b) {
+            // 1. 优先能达到神级的
             if (a.canReachGod !== b.canReachGod) {
                 return a.canReachGod ? -1 : 1;
             }
+            // 2. 在都能达到神级的情况下，优先满足份数要求的
+            if (a.canReachGod && b.canReachGod && questRequiredNum > 0) {
+                if (a.meetsQuantity !== b.meetsQuantity) {
+                    return a.meetsQuantity ? -1 : 1;
+                }
+            }
+            // 3. 技法差值
             if (a.skillDiff !== b.skillDiff) {
                 return a.skillDiff - b.skillDiff;
             }
+            // 4. 时间
             return a.time - b.time;
         });
     } else {
         filteredRecipes.sort(function(a, b) {
+            // 有份数要求时，优先满足份数的
+            if (questRequiredNum > 0 && a.meetsQuantity !== b.meetsQuantity) {
+                return a.meetsQuantity ? -1 : 1;
+            }
             return a.time - b.time;
         });
     }
