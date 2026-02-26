@@ -2683,12 +2683,13 @@ function refreshUnultimatedChefList(gameData) {
             }
         }
         
-        // 勾选已有，只显示已有且未修炼的厨师
+        // 判断是否被"已有"过滤（仅影响"未修炼"分类，"全部"分类始终显示）
+        var isGotFiltered = false;
         if (gotChecked) {
             var isOwned = chef.got || (configIds.allSet && configIds.allSet[String(chef.chefId)]);
-            if (!isOwned) continue;
-            // 跳过已修炼的（除非是光环厨师）
-            if (!isUnultimated && !isAura) continue;
+            if (!isOwned || (!isUnultimated && !isAura)) {
+                isGotFiltered = true;
+            }
         }
         
         // 标记是否已选中
@@ -2725,7 +2726,8 @@ function refreshUnultimatedChefList(gameData) {
             skillDesc: skillDesc,
             isSelected: isSelected,
             isUnultimated: isUnultimated,
-            isAura: isAura
+            isAura: isAura,
+            isGotFiltered: isGotFiltered
         });
     }
     
@@ -2769,7 +2771,7 @@ function refreshUnultimatedChefList(gameData) {
         var item = list[j];
         var selectedClass = item.isSelected ? ' selected' : '';
         
-        html += '<div class="unultimated-chef-item' + selectedClass + '" data-chef-id="' + item.chefId + '" data-name="' + item.name + '" data-is-unultimated="' + (item.isUnultimated ? '1' : '0') + '" data-is-aura="' + (item.isAura ? '1' : '0') + '">';
+        html += '<div class="unultimated-chef-item' + selectedClass + '" data-chef-id="' + item.chefId + '" data-name="' + item.name + '" data-is-unultimated="' + (item.isUnultimated ? '1' : '0') + '" data-is-aura="' + (item.isAura ? '1' : '0') + '" data-is-got-filtered="' + (item.isGotFiltered ? '1' : '0') + '">';
         html += '<div class="chef-check">' + (item.isSelected ? '✓' : '') + '</div>';
         html += '<div class="chef-info">';
         html += '<span class="chef-name">' + item.name + '</span>';
@@ -2869,9 +2871,13 @@ function filterUnultimatedChefItems($container, category) {
     $container.find('.unultimated-chef-item').each(function() {
         var $item = $(this);
         if (category === 'all') {
+            // 全部分类：显示所有厨师，不受"已有"勾选框限制
             $item.show();
         } else if (category === 'unultimated') {
-            $item.toggle($item.attr('data-is-unultimated') === '1');
+            // 未修炼分类：只显示未修炼的，且受"已有"勾选框过滤
+            var isUnultimated = $item.attr('data-is-unultimated') === '1';
+            var isGotFiltered = $item.attr('data-is-got-filtered') === '1';
+            $item.toggle(isUnultimated && !isGotFiltered);
         }
     });
 }
@@ -4092,11 +4098,11 @@ function queryRecipesForQuestCondition(rule, quest, chef, usedRecipeIds) {
         return [];
     }
     
-    var filteredRecipes = [];
     var menus = rule.menus || [];
     
     var needGodRank = false;
     var questRequiredNum = 0; // 任务要求的份数
+    var questRarity = 0;      // 任务要求的菜谱星级
     for (var c in quest.conditions) {
         if (quest.conditions[c].rank === 4) {
             needGodRank = true;
@@ -4104,11 +4110,17 @@ function queryRecipesForQuestCondition(rule, quest, chef, usedRecipeIds) {
         if (quest.conditions[c].num) {
             questRequiredNum = quest.conditions[c].num;
         }
+        if (quest.conditions[c].rarity) {
+            questRarity = quest.conditions[c].rarity;
+        }
     }
     
     // 计算每份菜谱至少需要的份数（3个菜谱位）
     var minLimitPerRecipe = questRequiredNum > 0 ? Math.ceil(questRequiredNum / 3) : 0;
+    var maxSlots = 3;
     
+    // 收集所有满足条件的菜谱
+    var allRecipes = [];
     for (var i = 0; i < menus.length; i++) {
         var recipe = menus[i].recipe.data;
         if (!recipe) continue;
@@ -4118,53 +4130,152 @@ function queryRecipesForQuestCondition(rule, quest, chef, usedRecipeIds) {
         if (!checkRecipeMatchQuestConditions(recipe, quest)) continue;
         
         var skillDiffResult = calculateSkillDiffForQuery(chef, recipe, 4);
-        
-        // 获取菜谱的份数上限（limitVal优先，否则用limit）
         var recipeLimit = recipe.limitVal || recipe.limit || 0;
-        // 判断该菜谱的份数是否满足要求（每个菜谱位至少需要 ceil(num/3) 份）
         var meetsQuantity = questRequiredNum <= 0 || recipeLimit >= minLimitPerRecipe;
         
-        filteredRecipes.push({
+        allRecipes.push({
             recipe: recipe,
             recipeId: recipe.recipeId,
             canReachGod: skillDiffResult.value === 0,
             skillDiff: skillDiffResult.value,
             time: recipe.time,
             recipeLimit: recipeLimit,
-            meetsQuantity: meetsQuantity
+            meetsQuantity: meetsQuantity,
+            rarity: recipe.rarity || 0,
+            isQuestRarity: questRarity > 0 && recipe.rarity === questRarity,
+            isHigherRarity: questRarity > 0 && recipe.rarity > questRarity
         });
     }
     
-    if (needGodRank) {
-        filteredRecipes.sort(function(a, b) {
-            // 1. 优先能达到神级的
-            if (a.canReachGod !== b.canReachGod) {
-                return a.canReachGod ? -1 : 1;
-            }
-            // 2. 在都能达到神级的情况下，优先满足份数要求的
-            if (a.canReachGod && b.canReachGod && questRequiredNum > 0) {
-                if (a.meetsQuantity !== b.meetsQuantity) {
-                    return a.meetsQuantity ? -1 : 1;
-                }
-            }
-            // 3. 技法差值
-            if (a.skillDiff !== b.skillDiff) {
-                return a.skillDiff - b.skillDiff;
-            }
-            // 4. 时间
-            return a.time - b.time;
-        });
-    } else {
-        filteredRecipes.sort(function(a, b) {
-            // 有份数要求时，优先满足份数的
+    // 非神级任务：按原有逻辑排序
+    if (!needGodRank) {
+        allRecipes.sort(function(a, b) {
             if (questRequiredNum > 0 && a.meetsQuantity !== b.meetsQuantity) {
                 return a.meetsQuantity ? -1 : 1;
             }
             return a.time - b.time;
         });
+        return allRecipes.map(function(r) { return r.recipe; });
     }
     
-    return filteredRecipes.map(function(r) { return r.recipe; });
+    // 神级任务：分层选菜逻辑
+    // 按技法差值升序排序的辅助函数
+    function sortByDiffThenTime(a, b) {
+        if (a.skillDiff !== b.skillDiff) return a.skillDiff - b.skillDiff;
+        return a.time - b.time;
+    }
+    
+    // 第1层：任务要求星级 + 能达神 + 份数够
+    var questRarityGod = [];
+    // 第2层：高星 + 能达神 + 份数够
+    var higherRarityGod = [];
+    // 第3层：任务要求星级 + 不能达神（按神差值升序，用于补充）
+    var questRarityNotGod = [];
+    // 第4层：其余菜谱
+    var others = [];
+    
+    for (var j = 0; j < allRecipes.length; j++) {
+        var r = allRecipes[j];
+        if (r.isQuestRarity && r.canReachGod && r.meetsQuantity) {
+            questRarityGod.push(r);
+        } else if (r.isHigherRarity && r.canReachGod && r.meetsQuantity) {
+            higherRarityGod.push(r);
+        } else if (r.isQuestRarity) {
+            questRarityNotGod.push(r);
+        } else {
+            others.push(r);
+        }
+    }
+    
+    // 各层内部排序
+    questRarityGod.sort(sortByDiffThenTime);
+    higherRarityGod.sort(sortByDiffThenTime);
+    questRarityNotGod.sort(sortByDiffThenTime);
+    others.sort(sortByDiffThenTime);
+    
+    // 分层填充：先用第1层，不够用第2层补，再不够用第3层补，最后用第4层
+    var selected = [];
+    
+    // 第1层：任务要求星级能达神的
+    for (var k = 0; k < questRarityGod.length && selected.length < maxSlots; k++) {
+        selected.push(questRarityGod[k]);
+    }
+    
+    // 第2层：高星能达神的（仅当第1层不够时补充）
+    if (selected.length < maxSlots) {
+        for (var k = 0; k < higherRarityGod.length && selected.length < maxSlots; k++) {
+            selected.push(higherRarityGod[k]);
+        }
+    }
+    
+    // 第3层：任务要求星级不能达神的（按神差值最小补充）
+    if (selected.length < maxSlots) {
+        for (var k = 0; k < questRarityNotGod.length && selected.length < maxSlots; k++) {
+            selected.push(questRarityNotGod[k]);
+        }
+    }
+    
+    // 第4层：其余菜谱
+    if (selected.length < maxSlots) {
+        for (var k = 0; k < others.length && selected.length < maxSlots; k++) {
+            selected.push(others[k]);
+        }
+    }
+    
+    // 将已选的放前面，剩余的按原有排序追加（供后续可能的使用）
+    var selectedIds = {};
+    for (var k = 0; k < selected.length; k++) {
+        selectedIds[selected[k].recipeId] = true;
+    }
+    
+    var remaining = [];
+    var allSorted = questRarityGod.concat(higherRarityGod, questRarityNotGod, others);
+    for (var k = 0; k < allSorted.length; k++) {
+        if (!selectedIds[allSorted[k].recipeId]) {
+            remaining.push(allSorted[k]);
+        }
+    }
+    
+    var finalList = selected.concat(remaining);
+    return finalList.map(function(r) { return r.recipe; });
+}
+
+/**
+ * 查询满足修炼任务条件的菜谱（不过滤已有，用于未拥有菜谱替换）
+ */
+function queryRecipesForQuestConditionNoGotFilter(rule, quest, chef, usedRecipeIds) {
+    if (!quest || !quest.conditions || quest.conditions.length === 0) {
+        return [];
+    }
+    
+    var menus = rule.menus || [];
+    var candidates = [];
+    
+    for (var i = 0; i < menus.length; i++) {
+        var recipe = menus[i].recipe.data;
+        if (!recipe) continue;
+        if (usedRecipeIds.indexOf(recipe.recipeId) >= 0) continue;
+        // 不过滤got，允许未拥有菜谱
+        if (!checkRecipeMatchQuestConditions(recipe, quest)) continue;
+        
+        var skillDiffResult = calculateSkillDiffForQuery(chef, recipe, 4);
+        candidates.push({
+            recipe: recipe,
+            recipeId: recipe.recipeId,
+            canReachGod: skillDiffResult.value === 0,
+            skillDiff: skillDiffResult.value,
+            time: recipe.time
+        });
+    }
+    
+    // 能达神的优先，然后按技法差值升序
+    candidates.sort(function(a, b) {
+        if (a.canReachGod !== b.canReachGod) return a.canReachGod ? -1 : 1;
+        if (a.skillDiff !== b.skillDiff) return a.skillDiff - b.skillDiff;
+        return a.time - b.time;
+    });
+    
+    return candidates.map(function(r) { return r.recipe; });
 }
 
 /**
@@ -4346,10 +4457,109 @@ function fillQueryResultToCalUI(result, gameData) {
     }
     
     calCustomResults(gameData);
+    
+    // ========== 未拥有菜谱替换逻辑 ==========
+    // 开启"使用未拥有菜谱"时，检查最终结果中未达神级的菜谱，用全部菜谱（含未拥有）替换
+    var useNoRecipe = $("#chk-unultimated-use-no-recipe").prop("checked");
+    if (useNoRecipe) {
+        var needReplace = false;
+        
+        // 检查每个位置的每道菜是否达到神级
+        for (var i = 0; i < result.positions.length; i++) {
+            var pos = result.positions[i];
+            if (pos.type === "empty" || !pos.recipes) continue;
+            
+            for (var j = 0; j < custom[i].recipes.length; j++) {
+                var recipeData = custom[i].recipes[j];
+                if (recipeData && recipeData.data && recipeData.rankVal < 4) {
+                    needReplace = true;
+                    break;
+                }
+            }
+            if (needReplace) break;
+        }
+        
+        if (needReplace) {
+            for (var i = 0; i < result.positions.length; i++) {
+                var pos = result.positions[i];
+                if (pos.type === "empty" || !pos.recipes) continue;
+                
+                // 收集该位置未达神级的菜谱索引和已达神级的菜谱ID
+                var notGodIndices = [];
+                var keepRecipeIds = [];
+                for (var j = 0; j < custom[i].recipes.length; j++) {
+                    var recipeData = custom[i].recipes[j];
+                    if (recipeData && recipeData.data) {
+                        if (recipeData.rankVal >= 4) {
+                            keepRecipeIds.push(recipeData.data.recipeId);
+                        } else {
+                            notGodIndices.push(j);
+                        }
+                    }
+                }
+                
+                if (notGodIndices.length === 0) continue;
+                
+                // 获取当前厨师（已含光环、厨具加成）的技法值
+                var currentChef = null;
+                if (rule.custom[i] && rule.custom[i].chef) {
+                    currentChef = rule.custom[i].chef;
+                }
+                if (!currentChef) continue;
+                
+                var quest = null;
+                if (pos.chef) {
+                    quest = getChefFirstUltimateQuestForQuery(pos.chef, gameData);
+                }
+                if (!quest) continue;
+                
+                // 收集其他位置已使用的菜谱ID + 本位置保留的菜谱ID
+                var usedIds = [];
+                for (var ci = 0; ci < 3; ci++) {
+                    if (ci === i) {
+                        // 本位置只加保留的
+                        for (var ki = 0; ki < keepRecipeIds.length; ki++) {
+                            usedIds.push(keepRecipeIds[ki]);
+                        }
+                    } else if (custom[ci] && custom[ci].recipes) {
+                        for (var ri = 0; ri < custom[ci].recipes.length; ri++) {
+                            if (custom[ci].recipes[ri] && custom[ci].recipes[ri].data) {
+                                usedIds.push(custom[ci].recipes[ri].data.recipeId);
+                            }
+                        }
+                    }
+                }
+                
+                // 用全部菜谱（不过滤got）查询替换候选
+                var allCandidates = queryRecipesForQuestConditionNoGotFilter(rule, quest, currentChef, usedIds);
+                
+                // 从候选中选取能达神的菜谱替换
+                var replacementIdx = 0;
+                for (var ni = 0; ni < notGodIndices.length; ni++) {
+                    var slotIdx = notGodIndices[ni];
+                    var replaced = false;
+                    while (replacementIdx < allCandidates.length) {
+                        var candidate = allCandidates[replacementIdx];
+                        replacementIdx++;
+                        // 跳过已使用的
+                        if (usedIds.indexOf(candidate.recipeId) >= 0) continue;
+                        // 检查能否达神
+                        var diff = calculateSkillDiffForQuery(currentChef, candidate, 4);
+                        if (diff.value === 0) {
+                            setCustomRecipe(0, i, slotIdx, candidate.recipeId);
+                            usedIds.push(candidate.recipeId);
+                            replaced = true;
+                            break;
+                        }
+                    }
+                    // 如果没找到能达神的未拥有菜谱，保持原菜谱不变
+                }
+            }
+            
+            calCustomResults(gameData);
+        }
+    }
 }
-
-
-// ==================== 厨具相关 ====================
 
 /**
  * 获取厨具的技法加成类型和值（仅固定值加成）

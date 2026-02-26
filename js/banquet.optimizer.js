@@ -483,7 +483,13 @@ var BanquetOptimizer = (function() {
         _recipeMap = {};
         _intentCache = {};  // 清空意图缓存
         _recipeDependentIntentCache = {};  // 清空菜谱依赖意图缓存
+        _threeSkillIntentCache = {};  // 清空三道技法意图缓存
+        _condimentIntentCache = {};  // 清空调料加成缓存
+        _rarityRankIntentCache = {};  // 清空稀有度/品阶加成缓存
+        _cookSkillIntentCache = {};  // 清空技法加成缓存
         _synergyCache = {};  // 清空协同缓存
+        _intentAddCache = {};  // 清空IntentAdd缓存
+        _priceAuraChefCache = {};  // 清空售价光环缓存
         
         for (var ri = 0; ri < _rules.length; ri++) {
             var rule = _rules[ri];
@@ -990,6 +996,13 @@ var BanquetOptimizer = (function() {
         var savedRecipe = ruleState[chefIndex].recipes[recipeIndex];
         var slotIdx = 3 * chefIndex + recipeIndex;
         
+        // ===== 分析调料/稀有度/品阶/技法加成意图 =====
+        var condimentBonus = _analyzeCondimentIntents(ruleIndex);
+        var rarityRankBonus = _analyzeRarityRankIntents(ruleIndex);
+        var cookSkillBonus = _analyzeCookSkillIntents(ruleIndex);
+        var intentAddInfo = _analyzeIntentAddPositions(ruleIndex);
+        var rankPref = _analyzeRankPreference(ruleIndex);
+        
         // ===== 预计算基准加成（循环外只算一次） =====
         var baseCustomArr = [];
         for (var ci2 = 0; ci2 < ruleState.length; ci2++) {
@@ -1046,10 +1059,72 @@ var BanquetOptimizer = (function() {
             var actAdd = (g.data && g.data.activityAddition) ? g.data.activityAddition : 0;
             var est = Math.ceil(+(g.totalScore * (1 + actAdd / 100)).toFixed(2));
             
-            phase1.push({rd: rd, qty: qty, est: est});
+            // 加入调料/稀有度/品阶/技法加成的考虑（作为排序加分）
+            var bonusWeight = 0;
+            if (rd.condiment && condimentBonus[rd.condiment]) {
+                bonusWeight += condimentBonus[rd.condiment];
+            }
+            if (rd.rarity && rarityRankBonus.rarityBonus[rd.rarity]) {
+                bonusWeight += rarityRankBonus.rarityBonus[rd.rarity];
+            }
+            if (rd.rank && rarityRankBonus.rankBonus[rd.rank]) {
+                bonusWeight += rarityRankBonus.rankBonus[rd.rank];
+            }
+            // 技法加成：检查菜谱的所有技法
+            var skillKeys = ['stirfry', 'fry', 'bake', 'steam', 'boil', 'knife'];
+            for (var ski = 0; ski < skillKeys.length; ski++) {
+                var sk = skillKeys[ski];
+                if (rd[sk] > 0 && cookSkillBonus[sk]) {
+                    bonusWeight += cookSkillBonus[sk];
+                }
+            }
+            
+            // 优化1: IntentAdd叠加加分 — 如果当前位置有IntentAdd，
+            // 能触发更多同位置意图条件的菜谱获得额外加分
+            if (intentAddInfo.hasIntentAdd && intentAddInfo.positionWeights[chefIndex]) {
+                // 当前位置有IntentAdd，检查菜谱能触发多少同位置意图
+                var intentAddBonus = 0;
+                // 调料匹配
+                if (rd.condiment && condimentBonus[rd.condiment]) {
+                    intentAddBonus += condimentBonus[rd.condiment] * 0.5; // IntentAdd翻倍效果
+                }
+                // 技法匹配
+                for (var ski2 = 0; ski2 < skillKeys.length; ski2++) {
+                    if (rd[skillKeys[ski2]] > 0 && cookSkillBonus[skillKeys[ski2]]) {
+                        intentAddBonus += cookSkillBonus[skillKeys[ski2]] * 0.5;
+                    }
+                }
+                // 稀有度匹配
+                if (rd.rarity && rarityRankBonus.rarityBonus[rd.rarity]) {
+                    intentAddBonus += rarityRankBonus.rarityBonus[rd.rarity] * 0.5;
+                }
+                bonusWeight += intentAddBonus;
+            }
+            
+            // 优化4: 品阶偏好加分 — 如果有特定品阶触发高价值意图
+            // 注意：这里只是排序加分，不改变实际品阶计算
+            if (rankPref.hasRankPreference) {
+                // 菜谱的品阶取决于厨师，这里用菜谱的rarity作为近似
+                // 高rarity菜谱更容易达到高品阶
+                for (var prefRank in rankPref.preferredRanks) {
+                    var prefRankNum = Number(prefRank);
+                    // 如果偏好的品阶不是最高的（5=传），说明可能需要控制品阶
+                    if (prefRankNum <= 3 && rankPref.preferredRanks[prefRank] > 50) {
+                        // 低rarity菜谱更容易停在低品阶，给予小加分
+                        if (rd.rarity <= 3) {
+                            bonusWeight += rankPref.preferredRanks[prefRank] * 0.2;
+                        }
+                    }
+                }
+            }
+            
+            // 将加成权重转换为等效分数（权重*10作为加分）
+            var estWithBonus = est + bonusWeight * 10;
+            
+            phase1.push({rd: rd, qty: qty, est: est, estWithBonus: estWithBonus, bonusWeight: bonusWeight});
         }
         
-        phase1.sort(function(a, b) { return b.est - a.est; });
+        phase1.sort(function(a, b) { return b.estWithBonus - a.estWithBonus; });
         // 粗排取top（根据topK动态调整各阶段候选数）
         var needPhase2 = _hasRecipeDependentIntents(ruleIndex, chefIndex);
         // 动态候选数 — topK小时大幅减少Phase2/3开销
@@ -1196,6 +1271,586 @@ var BanquetOptimizer = (function() {
      * 意图分析缓存（key: ruleIndex_chefIndex → result）
      */
     var _intentCache = {};
+
+    /**
+     * 三道技法意图缓存（key: ruleIndex → [{skill, buffEffect, weight}]）
+     * 用于多技法组合种子生成
+     */
+    var _threeSkillIntentCache = {};
+
+    /**
+     * 分析"三道某技法"类型的意图
+     * 这类意图的特点：当3道菜都包含某技法时，触发CreateBuff给下一轮加成
+     * 返回: [{skill: 'stirfry', buffEffect: {...}, weight: 100}]
+     */
+    function _analyzeThreeSkillIntents(ruleIndex) {
+        if (_threeSkillIntentCache.hasOwnProperty(ruleIndex)) {
+            return _threeSkillIntentCache[ruleIndex];
+        }
+        
+        var rule = _rules[ruleIndex];
+        var results = [];
+        var gName = rule.Title || ('贵客' + (ruleIndex + 1));
+        
+        console.log('[多技法分析] 开始分析贵客:', gName, 'ruleIndex:', ruleIndex);
+        
+        if (!rule.IntentList || !_gameData || !_gameData.intents) {
+            console.log('[多技法分析] 缺少数据: IntentList=', !!rule.IntentList, '_gameData=', !!_gameData, 'intents=', !!(_gameData && _gameData.intents));
+            _threeSkillIntentCache[ruleIndex] = results;
+            return results;
+        }
+        
+        console.log('[多技法分析] IntentList长度:', rule.IntentList.length, '意图总数:', _gameData.intents.length);
+        
+        // 技法名称映射
+        var skillNameMap = {
+            'stirfry': '炒', 'fry': '炸', 'bake': '烤',
+            'steam': '蒸', 'boil': '煮', 'knife': '切'
+        };
+        var skillKeys = ['stirfry', 'fry', 'bake', 'steam', 'boil', 'knife'];
+        
+        // 遍历所有厨师位置的意图
+        for (var ci = 0; ci < rule.IntentList.length; ci++) {
+            var intentIds = rule.IntentList[ci];
+            if (!intentIds) {
+                console.log('[多技法分析] 位置', ci, '无意图ID');
+                continue;
+            }
+            
+            console.log('[多技法分析] 位置', ci, '意图ID列表:', intentIds);
+            
+            for (var ii = 0; ii < intentIds.length; ii++) {
+                for (var jj = 0; jj < _gameData.intents.length; jj++) {
+                    if (_gameData.intents[jj].intentId !== intentIds[ii]) continue;
+                    var intent = _gameData.intents[jj];
+                    
+                    console.log('[多技法分析] 检查意图:', intent.intentId, 'effectType:', intent.effectType, 'desc:', intent.desc);
+                    
+                    // 检查是否是CreateBuff类型且desc包含"三道"
+                    if (intent.effectType === 'CreateBuff' && intent.desc && intent.desc.indexOf('三道') >= 0) {
+                        console.log('[多技法分析] 发现三道意图:', intent.desc);
+                        // 从desc中提取技法名称
+                        for (var sk = 0; sk < skillKeys.length; sk++) {
+                            var skillKey = skillKeys[sk];
+                            var skillName = skillNameMap[skillKey];
+                            if (intent.desc.indexOf('三道' + skillName) >= 0) {
+                                console.log('[多技法分析] 匹配技法:', skillName, '(' + skillKey + ')');
+                                // 计算权重：根据buff效果估算
+                                var weight = 1;
+                                if (_gameData.buffs) {
+                                    for (var bk = 0; bk < _gameData.buffs.length; bk++) {
+                                        if (_gameData.buffs[bk].buffId === intent.effectValue) {
+                                            var buff = _gameData.buffs[bk];
+                                            console.log('[多技法分析] 找到buff:', buff.buffId, 'effectType:', buff.effectType, 'effectValue:', buff.effectValue);
+                                            // 售价加成权重高
+                                            if (buff.effectType === 'PriceChangePercent' || buff.effectType === 'BasicPriceChangePercent') {
+                                                weight = Math.abs(buff.effectValue || 50);
+                                            } else if (buff.effectType === 'BasicPriceChange') {
+                                                weight = Math.abs(buff.effectValue || 100) / 2;
+                                            } else {
+                                                weight = 10; // 其他效果给基础权重
+                                            }
+                                            break;
+                                        }
+                                    }
+                                }
+                                
+                                // 检查是否已存在相同技法
+                                var exists = false;
+                                for (var ri = 0; ri < results.length; ri++) {
+                                    if (results[ri].skill === skillKey) {
+                                        results[ri].weight += weight; // 累加权重
+                                        exists = true;
+                                        break;
+                                    }
+                                }
+                                if (!exists) {
+                                    results.push({
+                                        skill: skillKey,
+                                        skillName: skillName,
+                                        intentDesc: intent.desc,
+                                        weight: weight
+                                    });
+                                    console.log('[多技法分析] 添加技法:', skillName, '权重:', weight);
+                                }
+                                break;
+                            }
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+        
+        // 按权重降序排序
+        results.sort(function(a, b) { return b.weight - a.weight; });
+        
+        console.log('[多技法分析] 分析结果:', results.length, '个技法意图:', results.map(function(r) { return r.skillName + '(' + r.weight + ')'; }).join(', '));
+        
+        _threeSkillIntentCache[ruleIndex] = results;
+        return results;
+    }
+
+    /**
+     * 分析"下道料理"和"下阶段"类型的意图
+     * 包括：
+     * 1. CreateIntent - 下道料理意图（当前轮内）
+     * 2. CreateBuff（非Group条件）- 单道菜触发的下阶段buff（跨轮次）
+     * 
+     * 这类意图的特点：当前菜满足条件时，给下一道菜或下阶段创建加成
+     * 如果有这类意图，触发它的菜不应该放在最后一位（位置2），否则加成浪费或减少触发机会
+     * 
+     * 返回: [{
+     *   conditionType: 'CookSkill'/'Rarity'/etc,
+     *   conditionValue: 'stirfry'/5/etc,
+     *   desc: '4火：下道料理意图生效次数加一',
+     *   weight: 50,  // 子意图/buff的价值权重
+     *   intentType: 'CreateIntent'/'CreateBuff'
+     * }]
+     */
+    function _analyzeNextDishIntents(ruleIndex, chefIndex) {
+        var rule = _rules[ruleIndex];
+        var results = [];
+        
+        if (!rule.IntentList || !rule.IntentList[chefIndex] || !_gameData || !_gameData.intents) {
+            return results;
+        }
+        
+        var intentIds = rule.IntentList[chefIndex];
+        
+        for (var ii = 0; ii < intentIds.length; ii++) {
+            for (var jj = 0; jj < _gameData.intents.length; jj++) {
+                if (_gameData.intents[jj].intentId !== intentIds[ii]) continue;
+                var intent = _gameData.intents[jj];
+                
+                // 1. 检查是否是CreateIntent类型（下道料理意图）
+                if (intent.effectType === 'CreateIntent') {
+                    // 找到子意图
+                    var childIntent = null;
+                    for (var kk = 0; kk < _gameData.intents.length; kk++) {
+                        if (_gameData.intents[kk].intentId === intent.effectValue) {
+                            childIntent = _gameData.intents[kk];
+                            break;
+                        }
+                    }
+                    
+                    // 跳过纯饱食度的子意图
+                    if (!childIntent || SATIETY_ONLY_EFFECTS[childIntent.effectType]) continue;
+                    
+                    // 计算子意图的价值权重
+                    var weight = 1;
+                    if (childIntent.effectType === 'PriceChangePercent' || childIntent.effectType === 'BasicPriceChangePercent') {
+                        weight = Math.abs(childIntent.effectValue || 50);
+                    } else if (childIntent.effectType === 'BasicPriceChange') {
+                        weight = Math.abs(childIntent.effectValue || 100) / 2;
+                    } else if (childIntent.effectType === 'IntentAdd') {
+                        weight = Math.abs(childIntent.effectValue || 1) * 50; // 意图加一很有价值
+                    } else {
+                        weight = 10;
+                    }
+                    
+                    results.push({
+                        conditionType: intent.conditionType,
+                        conditionValue: intent.conditionValue,
+                        desc: intent.desc || 'CreateIntent',
+                        childEffectType: childIntent.effectType,
+                        weight: weight,
+                        intentType: 'CreateIntent'
+                    });
+                }
+                
+                // 2. 检查是否是CreateBuff类型（下阶段buff）
+                // 排除Group条件（三道某技法），因为那个需要3道菜才能触发，已在多技法种子中处理
+                if (intent.effectType === 'CreateBuff' && intent.conditionType !== 'Group') {
+                    // 找到buff
+                    var buff = null;
+                    if (_gameData.buffs) {
+                        for (var bk = 0; bk < _gameData.buffs.length; bk++) {
+                            if (_gameData.buffs[bk].buffId === intent.effectValue) {
+                                buff = _gameData.buffs[bk];
+                                break;
+                            }
+                        }
+                    }
+                    
+                    // 跳过纯饱食度的buff
+                    if (!buff || SATIETY_ONLY_EFFECTS[buff.effectType]) continue;
+                    
+                    // 计算buff的价值权重（跨轮次buff权重稍低，因为不影响当前轮）
+                    var buffWeight = 1;
+                    if (buff.effectType === 'PriceChangePercent' || buff.effectType === 'BasicPriceChangePercent') {
+                        buffWeight = Math.abs(buff.effectValue || 50) * 0.5; // 跨轮次打5折
+                    } else if (buff.effectType === 'BasicPriceChange') {
+                        buffWeight = Math.abs(buff.effectValue || 100) / 4;
+                    } else {
+                        buffWeight = 5;
+                    }
+                    
+                    results.push({
+                        conditionType: intent.conditionType,
+                        conditionValue: intent.conditionValue,
+                        desc: intent.desc || 'CreateBuff',
+                        buffEffectType: buff.effectType,
+                        weight: buffWeight,
+                        intentType: 'CreateBuff'
+                    });
+                }
+                break;
+            }
+        }
+        
+        return results;
+    }
+
+    /**
+     * 检查菜谱是否能触发"下道料理"意图
+     * @param {Object} recipe - 菜谱数据
+     * @param {Array} nextDishIntents - _analyzeNextDishIntents的返回结果
+     * @returns {number} 能触发的意图总权重（0表示不能触发任何下道料理意图）
+     */
+    function _canTriggerNextDishIntent(recipe, nextDishIntents) {
+        if (!nextDishIntents || nextDishIntents.length === 0) return 0;
+        
+        var totalWeight = 0;
+        for (var i = 0; i < nextDishIntents.length; i++) {
+            var ndi = nextDishIntents[i];
+            var canTrigger = false;
+            
+            if (!ndi.conditionType) {
+                // 无条件，任何菜都能触发
+                canTrigger = true;
+            } else if (ndi.conditionType === 'CookSkill') {
+                // 技法条件
+                var skillKey = ndi.conditionValue ? ndi.conditionValue.toLowerCase() : '';
+                if (skillKey && recipe[skillKey] > 0) {
+                    canTrigger = true;
+                }
+            } else if (ndi.conditionType === 'Rarity') {
+                // 稀有度条件（几火）
+                if (recipe.rarity === Number(ndi.conditionValue)) {
+                    canTrigger = true;
+                }
+            } else if (ndi.conditionType === 'CondimentSkill') {
+                // 调料条件
+                if (recipe.condiment === ndi.conditionValue) {
+                    canTrigger = true;
+                }
+            } else if (ndi.conditionType === 'Rank') {
+                // 品阶条件
+                if (recipe.rank === Number(ndi.conditionValue)) {
+                    canTrigger = true;
+                }
+            }
+            // Order条件在这里不处理（位置相关，不是菜谱属性）
+            
+            if (canTrigger) {
+                totalWeight += ndi.weight;
+            }
+        }
+        
+        return totalWeight;
+    }
+
+    /**
+     * 生成多技法组合
+     * 输入: [{skill: 'stirfry', weight: 100}, {skill: 'bake', weight: 80}, ...]
+     * 输出: [
+     *   {skills: ['stirfry'], totalWeight: 100},
+     *   {skills: ['stirfry', 'bake'], totalWeight: 180},
+     *   {skills: ['stirfry', 'bake', 'steam'], totalWeight: 230},
+     *   ...
+     * ]
+     */
+    function _generateMultiSkillCombinations(threeSkillIntents) {
+        var combinations = [];
+        if (!threeSkillIntents || threeSkillIntents.length === 0) return combinations;
+        
+        // 单技法组合
+        for (var i = 0; i < threeSkillIntents.length; i++) {
+            combinations.push({
+                skills: [threeSkillIntents[i].skill],
+                skillNames: [threeSkillIntents[i].skillName],
+                totalWeight: threeSkillIntents[i].weight
+            });
+        }
+        
+        // 双技法组合（最多取前3个技法的组合）
+        var maxSkills = Math.min(3, threeSkillIntents.length);
+        for (var i = 0; i < maxSkills; i++) {
+            for (var j = i + 1; j < maxSkills; j++) {
+                combinations.push({
+                    skills: [threeSkillIntents[i].skill, threeSkillIntents[j].skill],
+                    skillNames: [threeSkillIntents[i].skillName, threeSkillIntents[j].skillName],
+                    totalWeight: threeSkillIntents[i].weight + threeSkillIntents[j].weight
+                });
+            }
+        }
+        
+        // 三技法组合（如果有3个以上技法意图）
+        if (threeSkillIntents.length >= 3) {
+            combinations.push({
+                skills: [threeSkillIntents[0].skill, threeSkillIntents[1].skill, threeSkillIntents[2].skill],
+                skillNames: [threeSkillIntents[0].skillName, threeSkillIntents[1].skillName, threeSkillIntents[2].skillName],
+                totalWeight: threeSkillIntents[0].weight + threeSkillIntents[1].weight + threeSkillIntents[2].weight
+            });
+        }
+        
+        // 按总权重降序排序
+        combinations.sort(function(a, b) { return b.totalWeight - a.totalWeight; });
+        
+        return combinations;
+    }
+
+    /**
+     * 筛选同时具有指定技法的菜谱
+     * @param {number} ruleIndex - 贵客索引
+     * @param {string[]} skills - 技法数组，如 ['stirfry', 'bake']
+     * @returns {Array} 满足条件的菜谱列表
+     */
+    function _filterRecipesByMultiSkills(ruleIndex, skills) {
+        var menus = _menusByRule[ruleIndex];
+        var filtered = [];
+        
+        // 分析各种加成意图
+        var condimentBonus = _analyzeCondimentIntents(ruleIndex);
+        var rarityRankBonus = _analyzeRarityRankIntents(ruleIndex);
+        
+        for (var i = 0; i < menus.length; i++) {
+            var rd = menus[i];
+            var hasAllSkills = true;
+            
+            for (var j = 0; j < skills.length; j++) {
+                if (!rd[skills[j]] || rd[skills[j]] <= 0) {
+                    hasAllSkills = false;
+                    break;
+                }
+            }
+            
+            if (hasAllSkills) {
+                // 计算调料加成权重
+                var condimentWeight = 0;
+                if (rd.condiment && condimentBonus[rd.condiment]) {
+                    condimentWeight = condimentBonus[rd.condiment];
+                }
+                
+                // 计算稀有度加成权重
+                var rarityWeight = 0;
+                if (rd.rarity && rarityRankBonus.rarityBonus[rd.rarity]) {
+                    rarityWeight = rarityRankBonus.rarityBonus[rd.rarity];
+                }
+                
+                // 计算品阶加成权重
+                var rankWeight = 0;
+                if (rd.rank && rarityRankBonus.rankBonus[rd.rank]) {
+                    rankWeight = rarityRankBonus.rankBonus[rd.rank];
+                }
+                
+                filtered.push({
+                    recipe: rd,
+                    price: rd.price || 0,
+                    bonusWeight: condimentWeight + rarityWeight + rankWeight
+                });
+            }
+        }
+        
+        // 按价格+加成权重排序（加成权重转换为等效价格）
+        filtered.sort(function(a, b) { 
+            var scoreA = a.price + a.bonusWeight * 10; // 权重转换为等效价格
+            var scoreB = b.price + b.bonusWeight * 10;
+            return scoreB - scoreA; 
+        });
+        
+        // 返回菜谱数据
+        return filtered.map(function(f) { return f.recipe; });
+    }
+
+    /**
+     * 分析调料加成意图
+     * 返回: { 'Spicy': 100, 'Salty': 50, ... } 调料 -> 加成权重
+     */
+    var _condimentIntentCache = {};
+    function _analyzeCondimentIntents(ruleIndex) {
+        if (_condimentIntentCache.hasOwnProperty(ruleIndex)) {
+            return _condimentIntentCache[ruleIndex];
+        }
+        var rule = _rules[ruleIndex];
+        var condimentBonus = {};
+        
+        if (!rule.IntentList || !_gameData || !_gameData.intents) {
+            return condimentBonus;
+        }
+        
+        // 遍历所有厨师位置的意图
+        for (var ci = 0; ci < rule.IntentList.length; ci++) {
+            var intentIds = rule.IntentList[ci];
+            if (!intentIds) continue;
+            
+            for (var ii = 0; ii < intentIds.length; ii++) {
+                for (var jj = 0; jj < _gameData.intents.length; jj++) {
+                    if (_gameData.intents[jj].intentId !== intentIds[ii]) continue;
+                    var intent = _gameData.intents[jj];
+                    
+                    // 检查是否是CondimentSkill条件的加成意图
+                    if (intent.conditionType === 'CondimentSkill' && intent.conditionValue) {
+                        // 跳过纯饱食度意图
+                        if (SATIETY_ONLY_EFFECTS[intent.effectType]) continue;
+                        
+                        // 计算权重
+                        var weight = 0;
+                        if (intent.effectType === 'PriceChangePercent' || intent.effectType === 'BasicPriceChangePercent') {
+                            weight = Math.abs(intent.effectValue || 0);
+                        } else if (intent.effectType === 'BasicPriceChange') {
+                            weight = Math.abs(intent.effectValue || 0) / 5; // 固定值转换为百分比等效
+                        } else if (intent.effectType === 'IntentAdd') {
+                            weight = 50; // 意图加一很有价值
+                        } else if (intent.effectType === 'CreateIntent' || intent.effectType === 'CreateBuff') {
+                            weight = 30; // 链式意图也有价值
+                        }
+                        
+                        if (weight > 0) {
+                            var condiment = intent.conditionValue;
+                            if (!condimentBonus[condiment]) {
+                                condimentBonus[condiment] = 0;
+                            }
+                            condimentBonus[condiment] += weight;
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+        
+        _condimentIntentCache[ruleIndex] = condimentBonus;
+        return condimentBonus;
+    }
+
+    /**
+     * 分析稀有度（几火）和品阶加成意图
+     * 返回: { rarityBonus: {1: 100, 5: 50}, rankBonus: {4: 100, 5: 50} }
+     */
+    var _rarityRankIntentCache = {};
+    function _analyzeRarityRankIntents(ruleIndex) {
+        if (_rarityRankIntentCache.hasOwnProperty(ruleIndex)) {
+            return _rarityRankIntentCache[ruleIndex];
+        }
+        var rule = _rules[ruleIndex];
+        var result = { rarityBonus: {}, rankBonus: {} };
+        
+        if (!rule.IntentList || !_gameData || !_gameData.intents) {
+            return result;
+        }
+        
+        // 遍历所有厨师位置的意图
+        for (var ci = 0; ci < rule.IntentList.length; ci++) {
+            var intentIds = rule.IntentList[ci];
+            if (!intentIds) continue;
+            
+            for (var ii = 0; ii < intentIds.length; ii++) {
+                for (var jj = 0; jj < _gameData.intents.length; jj++) {
+                    if (_gameData.intents[jj].intentId !== intentIds[ii]) continue;
+                    var intent = _gameData.intents[jj];
+                    
+                    // 跳过纯饱食度意图
+                    if (SATIETY_ONLY_EFFECTS[intent.effectType]) continue;
+                    
+                    // 计算权重
+                    var weight = 0;
+                    if (intent.effectType === 'PriceChangePercent' || intent.effectType === 'BasicPriceChangePercent') {
+                        weight = Math.abs(intent.effectValue || 0);
+                    } else if (intent.effectType === 'BasicPriceChange') {
+                        weight = Math.abs(intent.effectValue || 0) / 5;
+                    } else if (intent.effectType === 'IntentAdd') {
+                        weight = 50;
+                    } else if (intent.effectType === 'CreateIntent' || intent.effectType === 'CreateBuff') {
+                        weight = 30;
+                    }
+                    
+                    if (weight > 0) {
+                        // 检查是否是Rarity条件
+                        if (intent.conditionType === 'Rarity' && intent.conditionValue) {
+                            var rarity = Number(intent.conditionValue);
+                            if (!result.rarityBonus[rarity]) {
+                                result.rarityBonus[rarity] = 0;
+                            }
+                            result.rarityBonus[rarity] += weight;
+                        }
+                        // 检查是否是Rank条件
+                        else if (intent.conditionType === 'Rank' && intent.conditionValue) {
+                            var rank = Number(intent.conditionValue);
+                            if (!result.rankBonus[rank]) {
+                                result.rankBonus[rank] = 0;
+                            }
+                            result.rankBonus[rank] += weight;
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+        
+        _rarityRankIntentCache[ruleIndex] = result;
+        return result;
+    }
+
+    /**
+     * 分析技法加成意图（非"三道"类型的单道菜技法加成）
+     * 返回: { 'stirfry': 100, 'steam': 50, ... } 技法 -> 加成权重
+     */
+    var _cookSkillIntentCache = {};
+    function _analyzeCookSkillIntents(ruleIndex) {
+        if (_cookSkillIntentCache.hasOwnProperty(ruleIndex)) {
+            return _cookSkillIntentCache[ruleIndex];
+        }
+        var rule = _rules[ruleIndex];
+        var skillBonus = {};
+        
+        if (!rule.IntentList || !_gameData || !_gameData.intents) {
+            return skillBonus;
+        }
+        
+        // 遍历所有厨师位置的意图
+        for (var ci = 0; ci < rule.IntentList.length; ci++) {
+            var intentIds = rule.IntentList[ci];
+            if (!intentIds) continue;
+            
+            for (var ii = 0; ii < intentIds.length; ii++) {
+                for (var jj = 0; jj < _gameData.intents.length; jj++) {
+                    if (_gameData.intents[jj].intentId !== intentIds[ii]) continue;
+                    var intent = _gameData.intents[jj];
+                    
+                    // 检查是否是CookSkill条件的加成意图（排除"三道"类型，那个是Group条件）
+                    if (intent.conditionType === 'CookSkill' && intent.conditionValue) {
+                        // 跳过纯饱食度意图
+                        if (SATIETY_ONLY_EFFECTS[intent.effectType]) continue;
+                        
+                        // 计算权重
+                        var weight = 0;
+                        if (intent.effectType === 'PriceChangePercent' || intent.effectType === 'BasicPriceChangePercent') {
+                            weight = Math.abs(intent.effectValue || 0);
+                        } else if (intent.effectType === 'BasicPriceChange') {
+                            weight = Math.abs(intent.effectValue || 0) / 5;
+                        } else if (intent.effectType === 'IntentAdd') {
+                            weight = 50;
+                        } else if (intent.effectType === 'CreateIntent' || intent.effectType === 'CreateBuff') {
+                            weight = 30;
+                        }
+                        
+                        if (weight > 0) {
+                            var skill = intent.conditionValue.toLowerCase();
+                            if (!skillBonus[skill]) {
+                                skillBonus[skill] = 0;
+                            }
+                            skillBonus[skill] += weight;
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+        
+        _cookSkillIntentCache[ruleIndex] = skillBonus;
+        return skillBonus;
+    }
 
     /**
      * 菜谱依赖意图缓存（key: ruleIndex_chefIndex → boolean）
@@ -1408,10 +2063,45 @@ var BanquetOptimizer = (function() {
                     infoList.push('链式(' + (triggerCondType || '无条件') + ':' + skillName + '→下道菜加成)');
                 }
             } else if (intent.effectType === 'CreateBuff') {
-                // CreateBuff：创建buff影响后续轮次，不影响当前轮内位置选择
-                // 但触发条件仍然重要（需要满足条件才能触发buff）
-                // 这里不做特殊处理，让正常的评分机制处理
-                continue;
+                // CreateBuff：创建buff影响后续轮次
+                // Group条件（三道某技法）已在多技法种子中处理
+                // 非Group条件的单道CreateBuff也应该考虑位置优化
+                if (intent.conditionType !== 'Group') {
+                    // 单道菜触发的buff，应该尽量放在前面位置以增加触发机会
+                    // 找到buff来判断价值
+                    var buff = null;
+                    if (_gameData.buffs) {
+                        for (var bk = 0; bk < _gameData.buffs.length; bk++) {
+                            if (_gameData.buffs[bk].buffId === intent.effectValue) {
+                                buff = _gameData.buffs[bk];
+                                break;
+                            }
+                        }
+                    }
+                    
+                    if (buff && !SATIETY_ONLY_EFFECTS[buff.effectType]) {
+                        // 有价值的buff，记录为链式触发（虽然是跨轮次，但位置0/1比位置2更好）
+                        var buffCondType = intent.conditionType;
+                        var buffCondVal = intent.conditionValue;
+                        
+                        if (buffCondType !== 'Order') {
+                            // 非Order条件，任何位置都可以触发，但前面位置更好
+                            for (var tp = 0; tp < 2; tp++) {
+                                chainTriggers.push({
+                                    triggerPos: tp,
+                                    bonusPos: tp, // buff是跨轮次的，bonusPos设为自己
+                                    conditionType: buffCondType,
+                                    conditionValue: buffCondVal,
+                                    chainIntent: buff, // 用buff代替childIntent
+                                    desc: intent.desc || (buffCondType + ':' + buffCondVal + '→CreateBuff'),
+                                    isCrossTurn: true // 标记为跨轮次
+                                });
+                            }
+                            infoList.push('单道Buff(' + (buffCondType || '无条件') + ':' + (buffCondVal || '') + ')');
+                        }
+                    }
+                }
+                // Group条件的三道意图不在这里处理
             } else if (intent.conditionType === 'Order') {
                 // 直接效果 + Order条件：指定位置获得加成
                 var bonusPos = intent.conditionValue - 1; // 0-based
@@ -1467,6 +2157,17 @@ var BanquetOptimizer = (function() {
                 
                 // 优先选triggerPos=0的（这样bonusPos=1，种子在位置1，还有位置2可以自由选）
                 if (chain.triggerPos === 0) chainScore += 0.1;
+                
+                // 优化5: 如果bonusPos有IntentAdd，链式意图的价值翻倍
+                var intentAddInfo = _analyzeIntentAddPositions(ruleIndex);
+                if (intentAddInfo.hasIntentAdd && intentAddInfo.positionWeights[chain.bonusPos]) {
+                    chainScore *= 1.5; // IntentAdd位置的链式意图价值更高
+                }
+                
+                // 优化2: 跨轮次buff的链式意图额外加分
+                if (chain.isCrossTurn) {
+                    chainScore *= 0.8; // 跨轮次稍微降权（不确定下一轮是否能利用）
+                }
                 
                 if (chainScore > bestChainScore) {
                     bestChainScore = chainScore;
@@ -1556,6 +2257,164 @@ var BanquetOptimizer = (function() {
             if (order.indexOf(i) < 0) order.push(i);
         }
         return order;
+    }
+
+    // ==================== 优化1: IntentAdd叠加分析 ====================
+
+    /**
+     * 分析IntentAdd意图的位置分布
+     * IntentAdd意图使同位置的其他意图生效次数+1，相当于翻倍
+     * 返回: { positionWeights: {0: weight, 1: weight, 2: weight}, hasIntentAdd: boolean }
+     * 
+     * 策略：如果某个位置有IntentAdd，该位置的其他意图会被翻倍
+     * 因此应该在IntentAdd位置放能触发最多高价值意图的菜
+     */
+    var _intentAddCache = {};
+    function _analyzeIntentAddPositions(ruleIndex) {
+        if (_intentAddCache.hasOwnProperty(ruleIndex)) {
+            return _intentAddCache[ruleIndex];
+        }
+        var rule = _rules[ruleIndex];
+        var result = { positionWeights: {}, hasIntentAdd: false, intentAddPositions: [] };
+        
+        if (!rule.IntentList || !_gameData || !_gameData.intents) {
+            _intentAddCache[ruleIndex] = result;
+            return result;
+        }
+        
+        // 遍历每个厨师位置
+        for (var ci = 0; ci < rule.IntentList.length; ci++) {
+            var intentIds = rule.IntentList[ci];
+            if (!intentIds) continue;
+            
+            var hasAdd = false;
+            var otherIntentValue = 0; // 同位置其他意图的总价值
+            
+            for (var ii = 0; ii < intentIds.length; ii++) {
+                for (var jj = 0; jj < _gameData.intents.length; jj++) {
+                    if (_gameData.intents[jj].intentId !== intentIds[ii]) continue;
+                    var intent = _gameData.intents[jj];
+                    
+                    if (intent.effectType === 'IntentAdd') {
+                        hasAdd = true;
+                        result.hasIntentAdd = true;
+                        result.intentAddPositions.push(ci);
+                    } else if (!SATIETY_ONLY_EFFECTS[intent.effectType]) {
+                        // 计算非饱食度意图的价值
+                        var val = 0;
+                        if (intent.effectType === 'PriceChangePercent' || intent.effectType === 'BasicPriceChangePercent') {
+                            val = Math.abs(intent.effectValue || 0);
+                        } else if (intent.effectType === 'BasicPriceChange') {
+                            val = Math.abs(intent.effectValue || 0) / 5;
+                        } else if (intent.effectType === 'CreateIntent' || intent.effectType === 'CreateBuff') {
+                            val = 30;
+                        }
+                        otherIntentValue += val;
+                    }
+                    break;
+                }
+            }
+            
+            // 如果该位置有IntentAdd，权重 = 同位置其他意图价值（因为会被翻倍）
+            if (hasAdd) {
+                result.positionWeights[ci] = otherIntentValue;
+            }
+        }
+        
+        _intentAddCache[ruleIndex] = result;
+        return result;
+    }
+
+    // ==================== 优化3: 售价光环厨师识别 ====================
+
+    /**
+     * 识别售价光环厨师（只识别售价光环，不识别技法值光环）
+     * 售价光环: ultimateSkillEffect中condition=Partial且type以BasicPriceUse开头
+     * 技法光环: ultimateSkillEffect中condition=Partial且type是Stirfry/Boil/Knife/Fry/Bake/Steam（排除）
+     * 
+     * 返回: [{chefId, chefName, auraEffects: [{type, value, condition}], auraScore}]
+     */
+    var _priceAuraChefCache = {};
+    function _analyzePriceAuraChefs(ruleIndex) {
+        if (_priceAuraChefCache.hasOwnProperty(ruleIndex)) {
+            return _priceAuraChefCache[ruleIndex];
+        }
+        var rule = _rules[ruleIndex];
+        var results = [];
+        
+        if (!rule.chefs) {
+            _priceAuraChefCache[ruleIndex] = results;
+            return results;
+        }
+        
+        // 只有已修炼的厨师才有光环效果
+        var partialChefIds = rule.calPartialChefIds || [];
+        
+        for (var ci = 0; ci < rule.chefs.length; ci++) {
+            var chef = rule.chefs[ci];
+            if (_cachedConfig.useGot && !chef.got && !isAllUltimateMode) continue;
+            if (!chef.ultimateSkillEffect) continue;
+            
+            // 检查是否在已修炼列表中（或全修炼模式）
+            var isUltimated = (typeof isAllUltimateMode !== 'undefined' && isAllUltimateMode) || 
+                              partialChefIds.indexOf(chef.chefId) >= 0;
+            if (!isUltimated) continue;
+            
+            var auraEffects = [];
+            var auraScore = 0;
+            
+            for (var ei = 0; ei < chef.ultimateSkillEffect.length; ei++) {
+                var eff = chef.ultimateSkillEffect[ei];
+                // 只要Partial条件的售价光环（BasicPriceUse开头）
+                if (eff.condition === 'Partial' && eff.type && eff.type.indexOf('BasicPriceUse') === 0) {
+                    auraEffects.push(eff);
+                    auraScore += Math.abs(eff.value || 0);
+                }
+                // Next条件的售价光环也算（影响下一轮）
+                if (eff.condition === 'Next' && eff.type && eff.type.indexOf('BasicPriceUse') === 0) {
+                    auraEffects.push(eff);
+                    auraScore += Math.abs(eff.value || 0) * 0.5; // 下一轮打折
+                }
+            }
+            
+            if (auraEffects.length > 0) {
+                results.push({
+                    chefId: chef.chefId,
+                    chefName: chef.name,
+                    auraEffects: auraEffects,
+                    auraScore: auraScore
+                });
+            }
+        }
+        
+        // 按光环分数降序
+        results.sort(function(a, b) { return b.auraScore - a.auraScore; });
+        
+        _priceAuraChefCache[ruleIndex] = results;
+        return results;
+    }
+
+    // ==================== 优化4: 品阶控制分析 ====================
+
+    /**
+     * 分析是否有特定品阶触发的高价值意图
+     * 如果某个品阶（如特级=3）触发的意图价值很高，可能值得故意降低品阶
+     * 
+     * 返回: { preferredRanks: {rank: totalWeight}, hasRankPreference: boolean }
+     */
+    function _analyzeRankPreference(ruleIndex) {
+        var rarityRankBonus = _analyzeRarityRankIntents(ruleIndex);
+        var result = { preferredRanks: {}, hasRankPreference: false };
+        
+        // 如果有品阶加成意图，记录偏好
+        for (var rank in rarityRankBonus.rankBonus) {
+            if (rarityRankBonus.rankBonus[rank] > 0) {
+                result.preferredRanks[rank] = rarityRankBonus.rankBonus[rank];
+                result.hasRankPreference = true;
+            }
+        }
+        
+        return result;
     }
 
     // ==================== 厨师-菜谱协同分析 ====================
@@ -1778,6 +2637,84 @@ var BanquetOptimizer = (function() {
             var numChefs = rule.IntentList ? rule.IntentList.length : 3;
             var gName = rule.Title || ('贵客' + (mainRule + 1));
             
+            // 输出该贵客的调料/稀有度/品阶加成意图
+            var condimentBonus = _analyzeCondimentIntents(mainRule);
+            var rarityRankBonus = _analyzeRarityRankIntents(mainRule);
+            var condimentList = [];
+            var condimentNameMap = {'Spicy': '辣', 'Sweet': '甜', 'Sour': '酸', 'Salty': '咸', 'Bitter': '苦', 'Tasty': '鲜'};
+            for (var cond in condimentBonus) {
+                var condName = condimentNameMap[cond] || cond;
+                condimentList.push(condName + ':' + condimentBonus[cond]);
+            }
+            var rarityList = [];
+            for (var rar in rarityRankBonus.rarityBonus) {
+                rarityList.push(rar + '火:' + rarityRankBonus.rarityBonus[rar]);
+            }
+            var rankList = [];
+            var rankNames = {2: '优', 3: '特', 4: '神', 5: '传'};
+            for (var rnk in rarityRankBonus.rankBonus) {
+                rankList.push((rankNames[rnk] || rnk) + ':' + rarityRankBonus.rankBonus[rnk]);
+            }
+            if (condimentList.length > 0 || rarityList.length > 0 || rankList.length > 0) {
+                console.log('[意图分析] 贵客:', gName);
+                if (condimentList.length > 0) {
+                    console.log('[意图分析]   调料加成:', condimentList.join(', '));
+                }
+                if (rarityList.length > 0) {
+                    console.log('[意图分析]   稀有度加成:', rarityList.join(', '));
+                }
+                if (rankList.length > 0) {
+                    console.log('[意图分析]   品阶加成:', rankList.join(', '));
+                }
+            }
+            
+            // 输出技法加成意图
+            var cookSkillBonus = _analyzeCookSkillIntents(mainRule);
+            var skillNameMap = {'stirfry': '炒', 'fry': '炸', 'bake': '烤', 'steam': '蒸', 'boil': '煮', 'knife': '切'};
+            var skillList = [];
+            for (var sk in cookSkillBonus) {
+                var skName = skillNameMap[sk] || sk;
+                skillList.push(skName + ':' + cookSkillBonus[sk]);
+            }
+            if (skillList.length > 0) {
+                console.log('[意图分析] 贵客:', gName);
+                console.log('[意图分析]   技法加成:', skillList.join(', '));
+            }
+            
+            // 输出IntentAdd叠加信息
+            var intentAddInfo = _analyzeIntentAddPositions(mainRule);
+            if (intentAddInfo.hasIntentAdd) {
+                var addPosList = [];
+                for (var addPos in intentAddInfo.positionWeights) {
+                    addPosList.push('位置' + (Number(addPos)+1) + '(价值' + intentAddInfo.positionWeights[addPos] + ')');
+                }
+                console.log('[意图分析] 贵客:', gName);
+                console.log('[意图分析]   IntentAdd位置:', addPosList.join(', '));
+            }
+            
+            // 输出售价光环厨师信息
+            var priceAuraChefs = _analyzePriceAuraChefs(mainRule);
+            if (priceAuraChefs.length > 0) {
+                var auraList = priceAuraChefs.slice(0, 5).map(function(a) {
+                    var types = a.auraEffects.map(function(e) { return e.type + '(' + e.value + ')'; });
+                    return a.chefName + '[' + types.join(',') + ']分' + a.auraScore;
+                });
+                console.log('[意图分析] 贵客:', gName);
+                console.log('[意图分析]   售价光环厨师:', auraList.join(', '));
+            }
+            
+            // 输出品阶偏好信息
+            var rankPref = _analyzeRankPreference(mainRule);
+            if (rankPref.hasRankPreference) {
+                var rankNames = {2: '优', 3: '特', 4: '神', 5: '传'};
+                var prefList = [];
+                for (var pr in rankPref.preferredRanks) {
+                    prefList.push((rankNames[pr] || pr) + ':' + rankPref.preferredRanks[pr]);
+                }
+                console.log('[意图分析] 贵客:', gName);
+                console.log('[意图分析]   品阶偏好:', prefList.join(', '));
+            }
+            
             var phase2Info = [];
             for (var ci = 0; ci < numChefs; ci++) {
                 phase2Info.push('pos' + (ci+1) + ':' + (_hasRecipeDependentIntents(mainRule, ci) ? '需Phase2' : '跳Phase2'));
@@ -1999,9 +2936,393 @@ var BanquetOptimizer = (function() {
                 
                 _updateInitProgress(_getBestCandidateScore());
                 
-                // 下一个贵客
-                mainIdx++;
-                setTimeout(_processNextRule, 0);
+                // 处理售价光环厨师种子
+                _processAuraChefSeeds();
+            }
+            
+            // ==================== 售价光环厨师种子生成 ====================
+            function _processAuraChefSeeds() {
+                var auraChefs = _analyzePriceAuraChefs(mainRule);
+                if (auraChefs.length === 0) {
+                    _processMultiSkillSeeds();
+                    return;
+                }
+                
+                console.log('[光环种子] 开始处理贵客:', gName, '售价光环厨师数:', auraChefs.length);
+                
+                // 最多尝试top3光环厨师
+                var maxAuraSeeds = Math.min(3, auraChefs.length);
+                var auraTried = {};
+                
+                for (var ai = 0; ai < maxAuraSeeds; ai++) {
+                    var auraChef = auraChefs[ai];
+                    if (auraTried[auraChef.chefId]) continue;
+                    auraTried[auraChef.chefId] = true;
+                    
+                    // 光环厨师放在每个位置都试一次（光环是Partial，影响全场）
+                    for (var auraPos = 0; auraPos < numChefs; auraPos++) {
+                        _initSimState();
+                        
+                        // 先设置光环厨师
+                        _simSetChef(mainRule, auraPos, auraChef.chefId);
+                        
+                        // 用意图感知策略填充该位置的菜谱
+                        var auraStrategy = _analyzeIntents(mainRule, auraPos);
+                        if (auraStrategy.prePlaceList.length > 0) {
+                            for (var pp = 0; pp < auraStrategy.prePlaceList.length; pp++) {
+                                var prePlace = auraStrategy.prePlaceList[pp];
+                                var prePlaceRecipeId = _findBestFilteredRecipe(mainRule, auraPos, prePlace.recipeIndex, prePlace.filterFn);
+                                if (prePlaceRecipeId) _simSetRecipe(mainRule, auraPos, prePlace.recipeIndex, prePlaceRecipeId);
+                            }
+                        }
+                        var auraRk = _fastGetRecipeRanking(mainRule, auraPos, auraStrategy.seedRecipeIndex, 1, true);
+                        if (auraRk.length > 0) _simSetRecipe(mainRule, auraPos, auraStrategy.seedRecipeIndex, auraRk[0].recipeId);
+                        _greedyFillRecipesOrdered(mainRule, auraPos, auraStrategy.fillOrder, auraStrategy.seedRecipeIndex);
+                        
+                        // 填充其他位置
+                        for (var aci = 0; aci < numChefs; aci++) {
+                            if (aci === auraPos) continue;
+                            var auraOtherStrategy = _analyzeIntents(mainRule, aci);
+                            _greedyFillPositionWithIntent(mainRule, aci, auraOtherStrategy);
+                        }
+                        
+                        // 填充其他贵客
+                        for (var aOtherIdx = 0; aOtherIdx < activeRules.length; aOtherIdx++) {
+                            if (activeRules[aOtherIdx] === mainRule) continue;
+                            _greedyFillGuestFullWithIntent(activeRules[aOtherIdx]);
+                        }
+                        
+                        _quickRefineFast(activeRules, true);
+                        
+                        var auraScore = _fastCalcScore();
+                        console.log('[光环种子] 生成候选:', auraChef.chefName, 'pos' + (auraPos+1), '分数:', auraScore);
+                        candidates.push({
+                            state: _cloneSimState(_simState),
+                            score: auraScore,
+                            label: gName + '光环(' + auraChef.chefName + ')pos' + (auraPos+1)
+                        });
+                        
+                        if (_targetScore && auraScore >= _targetScore && _isAllSatietyOk()) {
+                            _finishInitialization(candidates, activeRules, onDone);
+                            return;
+                        }
+                        
+                        completedSubSteps++;
+                    }
+                }
+                
+                _updateInitProgress(_getBestCandidateScore());
+                
+                // 处理多技法组合种子
+                _processMultiSkillSeeds();
+            }
+            
+            // ==================== 多技法组合种子生成 ====================
+            function _processMultiSkillSeeds() {
+                console.log('[多技法种子] 开始处理贵客:', gName);
+                var threeSkillIntents = _analyzeThreeSkillIntents(mainRule);
+                
+                console.log('[多技法种子] 三道技法意图数量:', threeSkillIntents.length);
+                
+                // 只有当存在2个以上"三道某技法"意图时才生成多技法组合种子
+                if (threeSkillIntents.length < 2) {
+                    console.log('[多技法种子] 技法意图不足2个，跳过');
+                    // 没有多技法意图，直接进入下一个贵客
+                    mainIdx++;
+                    setTimeout(_processNextRule, 0);
+                    return;
+                }
+                
+                var skillCombinations = _generateMultiSkillCombinations(threeSkillIntents);
+                console.log('[多技法种子] 生成组合数:', skillCombinations.length);
+                
+                // 只处理双技法和三技法组合（单技法已在普通种子中覆盖）
+                var multiSkillCombos = [];
+                for (var ci = 0; ci < skillCombinations.length; ci++) {
+                    if (skillCombinations[ci].skills.length >= 2) {
+                        multiSkillCombos.push(skillCombinations[ci]);
+                    }
+                }
+                
+                // 按技法数量排序：双技法优先（更容易找到满足条件的菜谱）
+                multiSkillCombos.sort(function(a, b) {
+                    // 先按技法数量升序（双技法优先）
+                    if (a.skills.length !== b.skills.length) {
+                        return a.skills.length - b.skills.length;
+                    }
+                    // 同技法数量按权重降序
+                    return b.totalWeight - a.totalWeight;
+                });
+                
+                console.log('[多技法种子] 多技法组合数:', multiSkillCombos.length, multiSkillCombos.map(function(c) { return c.skillNames.join('+'); }));
+                
+                if (multiSkillCombos.length === 0) {
+                    console.log('[多技法种子] 无多技法组合，跳过');
+                    mainIdx++;
+                    setTimeout(_processNextRule, 0);
+                    return;
+                }
+                
+                // 限制最多处理4个组合（优先双技法）
+                if (multiSkillCombos.length > 4) multiSkillCombos.length = 4;
+                
+                var comboIdx = 0;
+                
+                function _processNextCombo() {
+                    if (comboIdx >= multiSkillCombos.length) {
+                        // 所有组合处理完成，进入下一个贵客
+                        console.log('[多技法种子] 所有组合处理完成');
+                        mainIdx++;
+                        setTimeout(_processNextRule, 0);
+                        return;
+                    }
+                    
+                    var combo = multiSkillCombos[comboIdx];
+                    var comboSkillNames = combo.skillNames.join('+');
+                    
+                    console.log('[多技法种子] 处理组合:', comboSkillNames, '技法:', combo.skills);
+                    
+                    // 筛选同时具有这些技法的菜谱（会考虑调料/稀有度/品阶加成）
+                    var multiSkillRecipes = _filterRecipesByMultiSkills(mainRule, combo.skills);
+                    
+                    // 显示识别到的加成意图
+                    if (comboIdx === 0) {
+                        var condimentBonus = _analyzeCondimentIntents(mainRule);
+                        var rarityRankBonus = _analyzeRarityRankIntents(mainRule);
+                        var condimentList = [];
+                        for (var cond in condimentBonus) {
+                            condimentList.push(cond + ':' + condimentBonus[cond]);
+                        }
+                        var rarityList = [];
+                        for (var rar in rarityRankBonus.rarityBonus) {
+                            rarityList.push(rar + '火:' + rarityRankBonus.rarityBonus[rar]);
+                        }
+                        var rankList = [];
+                        var rankNames = {2: '优', 3: '特', 4: '神', 5: '传'};
+                        for (var rnk in rarityRankBonus.rankBonus) {
+                            rankList.push((rankNames[rnk] || rnk) + ':' + rarityRankBonus.rankBonus[rnk]);
+                        }
+                        if (condimentList.length > 0) {
+                            console.log('[多技法种子] 调料加成意图:', condimentList.join(', '));
+                        }
+                        if (rarityList.length > 0) {
+                            console.log('[多技法种子] 稀有度加成意图:', rarityList.join(', '));
+                        }
+                        if (rankList.length > 0) {
+                            console.log('[多技法种子] 品阶加成意图:', rankList.join(', '));
+                        }
+                    }
+                    
+                    console.log('[多技法种子] 满足条件的菜谱数:', multiSkillRecipes.length);
+                    if (multiSkillRecipes.length > 0) {
+                        console.log('[多技法种子] 前5道菜谱:', multiSkillRecipes.slice(0, 5).map(function(r) { return r.name; }));
+                    }
+                    
+                    if (multiSkillRecipes.length < 3) {
+                        // 满足条件的菜谱不足3道，跳过此组合
+                        console.log('[多技法种子] 菜谱不足3道，跳过此组合');
+                        comboIdx++;
+                        setTimeout(_processNextCombo, 0);
+                        return;
+                    }
+                    
+                    // 取前10道菜谱作为候选池（用于厨师技能不足时回退）
+                    var topMultiRecipes = multiSkillRecipes.slice(0, Math.min(10, multiSkillRecipes.length));
+                    
+                    // 为每个厨师位置尝试多技法组合
+                    for (var msPos = 0; msPos < numChefs; msPos++) {
+                        _initSimState();
+                        
+                        // 尝试找到厨师能做的3道多技法菜谱组合
+                        var msChefSet = false;
+                        var bestChefId = null;
+                        var bestRecipeSet = null;
+                        
+                        // 策略：遍历厨师，找到能做最多高价多技法菜谱的厨师
+                        var rule = _rules[mainRule];
+                        var msUsedChefIds = _getUsedChefIds(mainRule, msPos);
+                        
+                        for (var chefIdx = 0; chefIdx < rule.chefs.length && !msChefSet; chefIdx++) {
+                            var chef = rule.chefs[chefIdx];
+                            if (_cachedConfig.useGot && !chef.got && !isAllUltimateMode) continue;
+                            if (msUsedChefIds[chef.chefId]) continue;
+                            
+                            // 临时设置厨师来检查技能
+                            _simSetChef(mainRule, msPos, chef.chefId);
+                            var chefObj = _simState[mainRule][msPos].chefObj;
+                            
+                            // 找出这个厨师能做的多技法菜谱
+                            var canMakeRecipes = [];
+                            for (var ri = 0; ri < topMultiRecipes.length && canMakeRecipes.length < 3; ri++) {
+                                var recipe = topMultiRecipes[ri];
+                                // 检查厨师技能是否足够做这道菜
+                                var tempChef = JSON.parse(JSON.stringify(chefObj));
+                                addCheffSkillDiff(tempChef, recipe);
+                                var diff = getChefSillDiff(tempChef, chefObj);
+                                if (diff === "") {
+                                    canMakeRecipes.push(recipe);
+                                }
+                            }
+                            
+                            // 如果能做3道菜，就用这个厨师
+                            if (canMakeRecipes.length >= 3) {
+                                bestChefId = chef.chefId;
+                                bestRecipeSet = canMakeRecipes.slice(0, 3);
+                                msChefSet = true;
+                                console.log('[多技法种子] 找到厨师:', chef.name, '能做菜谱:', bestRecipeSet.map(function(r) { return r.name; }));
+                            }
+                        }
+                        
+                        if (!msChefSet) {
+                            console.log('[多技法种子] pos' + (msPos+1) + ' 没有厨师能做3道多技法菜谱，跳过');
+                            continue;
+                        }
+                        
+                        // 分析"下道料理"和"下阶段"意图，用于优化菜谱位置分配
+                        var nextDishIntents = _analyzeNextDishIntents(mainRule, msPos);
+                        if (nextDishIntents.length > 0) {
+                            console.log('[多技法种子] 检测到下道/下阶段意图:', nextDishIntents.map(function(n) { 
+                                return n.desc + '(' + n.intentType + ',权重' + n.weight.toFixed(0) + ')'; 
+                            }));
+                        }
+                        
+                        // 设置找到的厨师和菜谱
+                        _simSetChef(mainRule, msPos, bestChefId);
+                        var usedRecipeIds = {};
+                        
+                        // 智能分配菜谱位置：能触发"下道料理"意图的菜不放最后一位
+                        if (nextDishIntents.length > 0 && bestRecipeSet.length >= 3) {
+                            // 计算每道菜能触发的"下道料理"意图权重
+                            var recipeWithWeight = [];
+                            for (var rwi = 0; rwi < bestRecipeSet.length; rwi++) {
+                                var triggerWeight = _canTriggerNextDishIntent(bestRecipeSet[rwi], nextDishIntents);
+                                recipeWithWeight.push({
+                                    recipe: bestRecipeSet[rwi],
+                                    triggerWeight: triggerWeight
+                                });
+                            }
+                            
+                            // 按触发权重升序排序（权重低的放后面，权重高的放前面）
+                            recipeWithWeight.sort(function(a, b) { return b.triggerWeight - a.triggerWeight; });
+                            
+                            // 分配位置：权重高的放位置0和1，权重最低的放位置2
+                            for (var reci = 0; reci < 3; reci++) {
+                                var assignRecipe = recipeWithWeight[reci].recipe;
+                                _simSetRecipe(mainRule, msPos, reci, assignRecipe.recipeId);
+                                usedRecipeIds[assignRecipe.recipeId] = true;
+                                if (recipeWithWeight[reci].triggerWeight > 0) {
+                                    console.log('[多技法种子] 位置', reci, '放置', assignRecipe.name, '(下道料理权重:', recipeWithWeight[reci].triggerWeight, ')');
+                                }
+                            }
+                        } else {
+                            // 没有下道料理意图，按原顺序分配
+                            for (var reci = 0; reci < bestRecipeSet.length; reci++) {
+                                _simSetRecipe(mainRule, msPos, reci, bestRecipeSet[reci].recipeId);
+                                usedRecipeIds[bestRecipeSet[reci].recipeId] = true;
+                            }
+                        }
+                        
+                        // 填充其他厨师位置
+                        for (var otherCi = 0; otherCi < numChefs; otherCi++) {
+                            if (otherCi === msPos) continue;
+                            
+                            // 收集已使用的菜谱ID
+                            var otherUsedIds = {};
+                            for (var ori = 0; ori < _simState[mainRule].length; ori++) {
+                                for (var oreci = 0; oreci < 3; oreci++) {
+                                    var orec = _simState[mainRule][ori].recipes[oreci];
+                                    if (orec.data) otherUsedIds[orec.data.recipeId] = true;
+                                }
+                            }
+                            
+                            // 先选厨师，再根据厨师技能选菜谱
+                            var otherUsedChefIds = _getUsedChefIds(mainRule, otherCi);
+                            var otherChefSet = false;
+                            
+                            for (var oci = 0; oci < rule.chefs.length && !otherChefSet; oci++) {
+                                var otherChef = rule.chefs[oci];
+                                if (_cachedConfig.useGot && !otherChef.got && !isAllUltimateMode) continue;
+                                if (otherUsedChefIds[otherChef.chefId]) continue;
+                                
+                                _simSetChef(mainRule, otherCi, otherChef.chefId);
+                                var otherChefObj = _simState[mainRule][otherCi].chefObj;
+                                
+                                // 找这个厨师能做的多技法菜谱
+                                var otherCanMake = [];
+                                for (var mri = 0; mri < multiSkillRecipes.length && otherCanMake.length < 3; mri++) {
+                                    var mRecipe = multiSkillRecipes[mri];
+                                    if (otherUsedIds[mRecipe.recipeId]) continue;
+                                    
+                                    var tempChef2 = JSON.parse(JSON.stringify(otherChefObj));
+                                    addCheffSkillDiff(tempChef2, mRecipe);
+                                    var diff2 = getChefSillDiff(tempChef2, otherChefObj);
+                                    if (diff2 === "") {
+                                        otherCanMake.push(mRecipe);
+                                    }
+                                }
+                                
+                                // 如果能做至少1道多技法菜谱，就用这个厨师
+                                if (otherCanMake.length > 0) {
+                                    otherChefSet = true;
+                                    // 设置能做的多技法菜谱
+                                    for (var oreci = 0; oreci < otherCanMake.length; oreci++) {
+                                        _simSetRecipe(mainRule, otherCi, oreci, otherCanMake[oreci].recipeId);
+                                        otherUsedIds[otherCanMake[oreci].recipeId] = true;
+                                    }
+                                    // 剩余位置用普通排名填充
+                                    for (var oreci = otherCanMake.length; oreci < 3; oreci++) {
+                                        var fallbackRanking = _fastGetRecipeRanking(mainRule, otherCi, oreci, 5, true);
+                                        for (var fri = 0; fri < fallbackRanking.length; fri++) {
+                                            if (!otherUsedIds[fallbackRanking[fri].recipeId]) {
+                                                _simSetRecipe(mainRule, otherCi, oreci, fallbackRanking[fri].recipeId);
+                                                otherUsedIds[fallbackRanking[fri].recipeId] = true;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            // 如果没找到能做多技法菜谱的厨师，用普通贪心填充
+                            if (!otherChefSet) {
+                                var otherStrategy = _analyzeIntents(mainRule, otherCi);
+                                _greedyFillPositionWithIntent(mainRule, otherCi, otherStrategy);
+                            }
+                        }
+                        
+                        // 填充其他贵客
+                        for (var otherRuleIdx = 0; otherRuleIdx < activeRules.length; otherRuleIdx++) {
+                            if (activeRules[otherRuleIdx] === mainRule) continue;
+                            _greedyFillGuestFullWithIntent(activeRules[otherRuleIdx]);
+                        }
+                        
+                        // 精调
+                        _quickRefineFast(activeRules, true);
+                        
+                        var msScore = _fastCalcScore();
+                        console.log('[多技法种子] 生成候选:', comboSkillNames, 'pos' + (msPos+1), '分数:', msScore);
+                        candidates.push({
+                            state: _cloneSimState(_simState),
+                            score: msScore,
+                            label: gName + '多技法(' + comboSkillNames + ')pos' + (msPos+1)
+                        });
+                        
+                        // 检查是否达标
+                        if (_targetScore && msScore >= _targetScore && _isAllSatietyOk()) {
+                            _finishInitialization(candidates, activeRules, onDone);
+                            return;
+                        }
+                        
+                        completedSubSteps++;
+                    }
+                    
+                    comboIdx++;
+                    _updateInitProgress(_getBestCandidateScore());
+                    setTimeout(_processNextCombo, 0);
+                }
+                
+                // 开始处理第一个组合
+                setTimeout(_processNextCombo, 0);
             }
             
             // 开始处理第一个位置
@@ -2235,38 +3556,49 @@ var BanquetOptimizer = (function() {
             // 当前分数作为基准
             var baseScore = _fastCalcScore();
             
-            // 尝试替换菜谱来改善饱食度
-            // 策略：如果饱食度过高，尝试用低稀有度菜谱替换；反之亦然
+            // 优化6: 增强饱食度管理
+            // 策略1: 尝试替换菜谱来改善饱食度（允许小幅分数损失换取饱食度达标）
             var bestAdjScore = baseScore;
             var bestAdjState = null;
+            var bestAdjSatDiff = Math.abs(diff);
+            // 允许的最大分数损失比例（饱食度达标的奖励很大，值得小幅牺牲）
+            var maxScoreLoss = baseScore * 0.02; // 允许2%分数损失
             
             for (var ci = 0; ci < numChefs; ci++) {
                 for (var reci = 0; reci < 3; reci++) {
                     var curRec = ruleState[ci].recipes[reci];
                     if (!curRec.data) continue;
                     
-                    // 获取候选菜谱（多取几个）
-                    var candidates = _fastGetRecipeRanking(ruleIndex, ci, reci, 5, true);
+                    // 获取更多候选菜谱（扩大搜索范围）
+                    var adjCandidates = _fastGetRecipeRanking(ruleIndex, ci, reci, 10, true);
                     
-                    for (var candi = 0; candi < candidates.length; candi++) {
-                        if (candidates[candi].recipeId === curRec.data.recipeId) continue;
-                        var candRd = _recipeMap[candidates[candi].recipeId];
+                    for (var candi = 0; candi < adjCandidates.length; candi++) {
+                        if (adjCandidates[candi].recipeId === curRec.data.recipeId) continue;
+                        var candRd = _recipeMap[adjCandidates[candi].recipeId];
                         if (!candRd) continue;
-                        
-                        // 预估饱食度变化
-                        var satDelta = (candRd.rarity || 0) - (curRec.data.rarity || 0);
-                        // 只考虑能改善饱食度方向的替换
-                        if (diff > 0 && satDelta >= 0) continue; // 饱食度过高，需要降低
-                        if (diff < 0 && satDelta <= 0) continue; // 饱食度过低，需要升高
                         
                         // 临时替换并评估
                         var savedRecipe = ruleState[ci].recipes[reci];
-                        _simSetRecipe(ruleIndex, ci, reci, candidates[candi].recipeId);
+                        _simSetRecipe(ruleIndex, ci, reci, adjCandidates[candi].recipeId);
                         var adjScore = _fastCalcScore();
+                        var newSat = _calcCurrentSatiety(ruleIndex);
+                        var newSatDiff = Math.abs(newSat - targetSatiety);
                         
+                        // 接受条件：
+                        // 1. 分数更高（无条件接受）
+                        // 2. 分数略低但饱食度显著改善（允许小幅损失）
+                        var accept = false;
                         if (adjScore > bestAdjScore) {
+                            accept = true;
+                        } else if (newSatDiff < bestAdjSatDiff && adjScore >= baseScore - maxScoreLoss) {
+                            // 饱食度改善且分数损失在可接受范围内
+                            accept = true;
+                        }
+                        
+                        if (accept) {
                             bestAdjScore = adjScore;
-                            bestAdjState = {ri: ruleIndex, ci: ci, reci: reci, recipeId: candidates[candi].recipeId};
+                            bestAdjState = {ri: ruleIndex, ci: ci, reci: reci, recipeId: adjCandidates[candi].recipeId};
+                            bestAdjSatDiff = newSatDiff;
                         }
                         
                         // 恢复
@@ -2571,32 +3903,27 @@ var BanquetOptimizer = (function() {
                 var currentChefId = _simState[ruleIndex][chefIndex].chefId;
                 var usedChefIds = _getUsedChefIds(ruleIndex, chefIndex);
                 
-                // 先算当前分数（fastMode，只算当前rule）
-                var currentRuleScore = _fastCalcRuleScore(ruleIndex);
-                
                 // 排名函数内部已经计算了每个厨师的分数（fastMode加速）
                 var chefRanking = _fastGetChefRanking(ruleIndex, chefIndex, true);
                 
-                // 找到最佳可用厨师
-                var bestCandidate = null;
-                for (var i = 0; i < chefRanking.length; i++) {
+                // 遍历top候选厨师，用全局分数验证（不再只看第一个）
+                var triedCount = 0;
+                var maxTry = 3; // 最多尝试3个厨师
+                for (var i = 0; i < chefRanking.length && triedCount < maxTry; i++) {
                     var cr = chefRanking[i];
                     if (cr.used || usedChefIds[cr.chefId]) continue;
                     if (cr.chefId === currentChefId) continue;
                     if (cr.skillOk === false) continue;
-                    if (cr.score > currentRuleScore) {
-                        bestCandidate = cr;
-                    }
-                    break; // 排名是降序的，第一个可用的就是最佳
-                }
-                
-                if (bestCandidate) {
-                    _simSetChef(ruleIndex, chefIndex, bestCandidate.chefId);
+                    triedCount++;
+                    
+                    _simSetChef(ruleIndex, chefIndex, cr.chefId);
                     var newTotal = _fastCalcScore();
                     if (newTotal > _bestScore) {
                         _bestScore = newTotal;
                         _bestSimState = _cloneSimState(_simState);
                         improved = true;
+                        currentChefId = cr.chefId; // 更新当前厨师
+                        break; // 找到改进就停
                     } else {
                         // 回退
                         _simSetChef(ruleIndex, chefIndex, currentChefId);
@@ -2623,37 +3950,28 @@ var BanquetOptimizer = (function() {
                     var currentRecipeId = _simState[ruleIndex][chefIndex].recipes[recipeIndex].data 
                         ? _simState[ruleIndex][chefIndex].recipes[recipeIndex].data.recipeId : null;
                     
-                    // 先算当前rule分数
-                    var currentRuleScore = _fastCalcRuleScore(ruleIndex);
+                    // 用全局分数作为基准（而非单贵客分数，避免跨贵客效果导致误判）
+                    var currentTotalScore = _bestScore;
                     
-                    // 排名函数内部已经计算了每道菜的分数（fastMode加速）
-                    var recipeRanking = _fastGetRecipeRanking(ruleIndex, chefIndex, recipeIndex, CONFIG.recipeTopN, true);
+                    // 扩大搜索宽度：取top7候选
+                    var recipeRanking = _fastGetRecipeRanking(ruleIndex, chefIndex, recipeIndex, 7, true);
                     
-                    // 找到最佳可用菜谱
-                    var bestCandidate = null;
+                    // 遍历所有候选，用全局分数验证（不再只看第一个）
+                    var savedRecipe = _simState[ruleIndex][chefIndex].recipes[recipeIndex];
                     for (var c = 0; c < recipeRanking.length; c++) {
                         if (recipeRanking[c].recipeId === currentRecipeId) continue;
-                        if (recipeRanking[c].score > currentRuleScore) {
-                            bestCandidate = recipeRanking[c];
-                        }
-                        break;
-                    }
-                    
-                    if (bestCandidate) {
-                        _simSetRecipe(ruleIndex, chefIndex, recipeIndex, bestCandidate.recipeId);
+                        
+                        _simSetRecipe(ruleIndex, chefIndex, recipeIndex, recipeRanking[c].recipeId);
                         var newTotal = _fastCalcScore();
                         if (newTotal > _bestScore) {
                             _bestScore = newTotal;
                             _bestSimState = _cloneSimState(_simState);
                             improved = true;
-                            var recipeName = _recipeMap[bestCandidate.recipeId] ? _recipeMap[bestCandidate.recipeId].name : '?';
+                            currentRecipeId = recipeRanking[c].recipeId; // 更新当前菜谱
+                            break; // 找到改进就停
                         } else {
                             // 回退
-                            if (currentRecipeId) {
-                                _simSetRecipe(ruleIndex, chefIndex, recipeIndex, currentRecipeId);
-                            } else {
-                                _simState[ruleIndex][chefIndex].recipes[recipeIndex] = {data: null, quantity: 0, max: 0};
-                            }
+                            _simState[ruleIndex][chefIndex].recipes[recipeIndex] = savedRecipe;
                         }
                     }
                 }
@@ -2737,12 +4055,86 @@ var BanquetOptimizer = (function() {
         return improved;
     }
 
+    // ==================== 厨师+菜谱联合替换 ====================
+
+    /**
+     * 联合替换：对每个位置，尝试换一个新厨师并重新选菜谱
+     * 这能发现"当前厨师做当前菜不如换个厨师做别的菜"的情况
+     * 单独换厨师或单独换菜谱都找不到这种组合
+     */
+    function _climbJointChefRecipe() {
+        var improved = false;
+        
+        for (var ruleIndex = 0; ruleIndex < _rules.length; ruleIndex++) {
+            if (!_shouldProcessRule(ruleIndex)) continue;
+            
+            var rule = _rules[ruleIndex];
+            var numChefs = rule.IntentList ? rule.IntentList.length : 3;
+            
+            for (var chefIndex = 0; chefIndex < numChefs; chefIndex++) {
+                var currentChefId = _simState[ruleIndex][chefIndex].chefId;
+                var usedChefIds = _getUsedChefIds(ruleIndex, chefIndex);
+                
+                // 保存当前位置完整状态
+                var savedSlot = {
+                    chefId: _simState[ruleIndex][chefIndex].chefId,
+                    chefObj: _simState[ruleIndex][chefIndex].chefObj,
+                    equipObj: _simState[ruleIndex][chefIndex].equipObj,
+                    recipes: [
+                        _simState[ruleIndex][chefIndex].recipes[0],
+                        _simState[ruleIndex][chefIndex].recipes[1],
+                        _simState[ruleIndex][chefIndex].recipes[2]
+                    ]
+                };
+                
+                var chefRanking = _fastGetChefRanking(ruleIndex, chefIndex, true);
+                var triedCount = 0;
+                
+                for (var ci = 0; ci < chefRanking.length && triedCount < 3; ci++) {
+                    var cr = chefRanking[ci];
+                    if (cr.used || usedChefIds[cr.chefId]) continue;
+                    if (cr.chefId === currentChefId) continue;
+                    if (cr.skillOk === false) continue;
+                    triedCount++;
+                    
+                    // 换厨师
+                    _simSetChef(ruleIndex, chefIndex, cr.chefId);
+                    
+                    // 重新选所有3道菜谱
+                    for (var reci = 0; reci < 3; reci++) {
+                        var rk = _fastGetRecipeRanking(ruleIndex, chefIndex, reci, 1, true);
+                        if (rk.length > 0) {
+                            _simSetRecipe(ruleIndex, chefIndex, reci, rk[0].recipeId);
+                        }
+                    }
+                    
+                    var newTotal = _fastCalcScore();
+                    if (newTotal > _bestScore) {
+                        _bestScore = newTotal;
+                        _bestSimState = _cloneSimState(_simState);
+                        improved = true;
+                        break; // 找到改进就停
+                    } else {
+                        // 回退整个位置
+                        _simState[ruleIndex][chefIndex].chefId = savedSlot.chefId;
+                        _simState[ruleIndex][chefIndex].chefObj = savedSlot.chefObj;
+                        _simState[ruleIndex][chefIndex].equipObj = savedSlot.equipObj;
+                        _simState[ruleIndex][chefIndex].recipes = savedSlot.recipes;
+                    }
+                }
+            }
+        }
+        
+        return improved;
+    }
+
     // ==================== 主流程 ====================
 
     // 匀速进度系统 — 定时器驱动，避免阶段性跳跃
     var _progressTimer = null;
     var _progressTarget = 0;      // 各阶段设置的目标进度 (0-99)
     var _progressDisplay = 0;     // 当前显示的进度
+    var _progressDisplayScore = 0; // 进度条显示的最高分（只升不降）
     var _progressCallback = null; // 外部回调
     var _progressStartTime = 0;   // 优化开始时间
     var _progressEstTotal = 80000; // 预估总时间(ms)，动态调整
@@ -2750,6 +4142,7 @@ var BanquetOptimizer = (function() {
     function _startProgressTimer(onProgress) {
         _progressCallback = onProgress;
         _progressDisplay = 0;
+        _progressDisplayScore = 0;
         _progressTarget = 0;
         _progressStartTime = Date.now();
         _progressEstTotal = 80000; // 初始预估80秒
@@ -2775,8 +4168,13 @@ var BanquetOptimizer = (function() {
             // 限制最大99%（100%由完成回调设置）
             _progressDisplay = Math.min(_progressDisplay, 99);
             
+            // 分数只升不降：始终显示历史最高分
+            if (_bestScore > _progressDisplayScore) {
+                _progressDisplayScore = _bestScore;
+            }
+            
             if (typeof _progressCallback === 'function') {
-                _progressCallback(_progressDisplay, _bestScore);
+                _progressCallback(_progressDisplay, _progressDisplayScore);
             }
         }, 300);
     }
@@ -3441,7 +4839,7 @@ var BanquetOptimizer = (function() {
         
         _simState = _cloneSimState(_bestSimState);
         var scoreBefore = _bestScore;
-        var chefImproved = false, swapImproved = false, recipeImproved = false, recipeSwapImproved = false;
+        var chefImproved = false, swapImproved = false, recipeImproved = false, recipeSwapImproved = false, jointImproved = false;
         
         // 每个操作独立setTimeout，避免阻塞浏览器
         // Step 1: 厨师爬山
@@ -3463,21 +4861,25 @@ var BanquetOptimizer = (function() {
                         _simState = _cloneSimState(_bestSimState);
                         recipeSwapImproved = _climbRecipeSwap();
                         
-                        // 爬山进度通过匀速定时器自动更新，不再硬编码
+                        // Step 5: 厨师+菜谱联合替换（同时换厨师和菜谱，发现单独换找不到的组合）
+                        setTimeout(function() {
+                            _simState = _cloneSimState(_bestSimState);
+                            jointImproved = _climbJointChefRecipe();
                         
-                        // 爬山后检查：分数和饱食度都达标时结束
-                        if (_isTargetReachedWithSatiety()) {
-                            if (typeof onDone === 'function') onDone();
-                            return;
-                        }
-                        
-                        if (!chefImproved && !recipeImproved && !swapImproved && !recipeSwapImproved) {
-                            if (typeof onDone === 'function') onDone();
-                        } else {
-                            setTimeout(function() {
-                                _runClimbingPhase(round + 1, onDone, onProgress);
-                            }, 2);
-                        }
+                            // 爬山后检查：分数和饱食度都达标时结束
+                            if (_isTargetReachedWithSatiety()) {
+                                if (typeof onDone === 'function') onDone();
+                                return;
+                            }
+                            
+                            if (!chefImproved && !recipeImproved && !swapImproved && !recipeSwapImproved && !jointImproved) {
+                                if (typeof onDone === 'function') onDone();
+                            } else {
+                                setTimeout(function() {
+                                    _runClimbingPhase(round + 1, onDone, onProgress);
+                                }, 2);
+                            }
+                        }, 0);
                     }, 0);
                 }, 0);
             }, 0);
@@ -3496,8 +4898,184 @@ var BanquetOptimizer = (function() {
         // 将最佳模拟状态写回系统（这里才触碰DOM）
         var memTotal = 0;
         if (_bestSimState) {
-            // 先恢复到最佳状态计算内存分数明细
+            // 先恢复到最佳状态
             _simState = _bestSimState;
+            
+            // 补充缺失的厨师：如果有位置没有厨师，用未使用的厨师补上并重选菜谱
+            var usedChefIds = {};
+            for (var ri = 0; ri < _rules.length; ri++) {
+                if (!_shouldProcessRule(ri)) continue;  // 跳过不需要处理的贵客
+                var rule = _rules[ri];
+                var numChefs = rule.IntentList ? rule.IntentList.length : 3;
+                for (var ci = 0; ci < numChefs; ci++) {
+                    if (_simState[ri][ci].chefId) {
+                        usedChefIds[_simState[ri][ci].chefId] = true;
+                    }
+                }
+            }
+            
+            // 辅助函数：为指定位置优化菜谱（只替换厨师技法不达标的菜谱，保留能做的）
+            function _fillRecipesWithSkillCheck(ri, ci) {
+                var chefObj = _simState[ri][ci].chefObj;
+                var usedRecipeIds = {};
+                // 收集当前贵客已用的菜谱（排除当前位置）
+                var rule = _rules[ri];
+                var numChefs = rule.IntentList ? rule.IntentList.length : 3;
+                for (var oci = 0; oci < numChefs; oci++) {
+                    if (oci === ci) continue; // 排除当前位置
+                    for (var oreci = 0; oreci < 3; oreci++) {
+                        var r = _simState[ri][oci].recipes[oreci];
+                        if (r && r.data) usedRecipeIds[r.data.recipeId] = true;
+                    }
+                }
+                
+                // 检查当前位置每个菜谱，只替换技法不达标的
+                var skills = ['stirfry', 'boil', 'knife', 'fry', 'bake', 'steam'];
+                for (var reci = 0; reci < 3; reci++) {
+                    var currentRecipe = _simState[ri][ci].recipes[reci];
+                    var needReplace = false;
+                    
+                    if (!currentRecipe || !currentRecipe.data) {
+                        // 没有菜谱，需要分配
+                        needReplace = true;
+                    } else if (chefObj) {
+                        // 检查厨师技法是否足够做这道菜
+                        for (var sk = 0; sk < skills.length; sk++) {
+                            var s = skills[sk];
+                            if (currentRecipe.data[s] > 0 && (!chefObj[s] || chefObj[s] < currentRecipe.data[s])) {
+                                needReplace = true;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    if (needReplace) {
+                        // 清空当前菜谱
+                        _simState[ri][ci].recipes[reci] = {data: null, quantity: 0, max: 0};
+                        // 找能做的最高分菜谱
+                        var recipeRanking = _fastGetRecipeRanking(ri, ci, reci, 50, true);
+                        for (var rk = 0; rk < recipeRanking.length; rk++) {
+                            var rd = recipeRanking[rk];
+                            if (usedRecipeIds[rd.recipeId]) continue;
+                            // 检查厨师技法是否足够
+                            var canMake = true;
+                            if (chefObj && rd.data) {
+                                for (var sk = 0; sk < skills.length; sk++) {
+                                    var s = skills[sk];
+                                    if (rd.data[s] > 0 && (!chefObj[s] || chefObj[s] < rd.data[s])) {
+                                        canMake = false;
+                                        break;
+                                    }
+                                }
+                            }
+                            if (canMake) {
+                                _simSetRecipe(ri, ci, reci, rd.recipeId);
+                                usedRecipeIds[rd.recipeId] = true;
+                                break;
+                            }
+                        }
+                    } else {
+                        // 保留当前菜谱，加入已用列表
+                        usedRecipeIds[currentRecipe.data.recipeId] = true;
+                    }
+                }
+            }
+            
+            // 第一轮：补充缺失厨师并分配菜谱
+            var fixedPositions = [];
+            for (var ri = 0; ri < _rules.length; ri++) {
+                if (!_shouldProcessRule(ri)) continue;  // 跳过不需要处理的贵客
+                var rule = _rules[ri];
+                var numChefs = rule.IntentList ? rule.IntentList.length : 3;
+                for (var ci = 0; ci < numChefs; ci++) {
+                    if (!_simState[ri][ci].chefId) {
+                        var chefRanking = _fastGetChefRanking(ri, ci, true);
+                        for (var j = 0; j < chefRanking.length; j++) {
+                            if (!usedChefIds[chefRanking[j].chefId]) {
+                                _simSetChef(ri, ci, chefRanking[j].chefId);
+                                usedChefIds[chefRanking[j].chefId] = true;
+                                _fillRecipesWithSkillCheck(ri, ci);
+                                fixedPositions.push({ri: ri, ci: ci});
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // 第二轮：对每个位置单独迭代优化厨师和菜谱，直到收敛
+            // 每次替换菜谱后重新查找最优厨师，循环直到不再改进
+            var maxIterations = 10;
+            for (var fi = 0; fi < fixedPositions.length; fi++) {
+                var pos = fixedPositions[fi];
+                var rule = _rules[pos.ri];
+                var allChefs = rule.chefs || [];
+                
+                for (var iter = 0; iter < maxIterations; iter++) {
+                    var currentChefId = _simState[pos.ri][pos.ci].chefId;
+                    var currentScore = _calcRuleScore(pos.ri, true);
+                    var bestScore = currentScore;
+                    var bestChefId = currentChefId;
+                    var bestRecipes = [];
+                    for (var reci = 0; reci < 3; reci++) {
+                        var r = _simState[pos.ri][pos.ci].recipes[reci];
+                        bestRecipes.push(r && r.data ? r.data.recipeId : null);
+                    }
+                    
+                    // 尝试每个未使用的厨师
+                    for (var j = 0; j < allChefs.length; j++) {
+                        var candidateId = allChefs[j].chefId;
+                        // 跳过已被其他位置使用的厨师（但允许当前位置的厨师）
+                        if (usedChefIds[candidateId] && candidateId !== currentChefId) continue;
+                        // 跳过未拥有的厨师（如果启用了只用已有）
+                        if (_cachedConfig.useGot && !allChefs[j].got) continue;
+                        
+                        // 换厨师并重新分配菜谱
+                        _simSetChef(pos.ri, pos.ci, candidateId);
+                        _fillRecipesWithSkillCheck(pos.ri, pos.ci);
+                        var newScore = _calcRuleScore(pos.ri, true);
+                        
+                        if (newScore > bestScore) {
+                            bestScore = newScore;
+                            bestChefId = candidateId;
+                            bestRecipes = [];
+                            for (var reci = 0; reci < 3; reci++) {
+                                var r = _simState[pos.ri][pos.ci].recipes[reci];
+                                bestRecipes.push(r && r.data ? r.data.recipeId : null);
+                            }
+                        }
+                    }
+                    
+                    // 应用本轮最佳结果
+                    if (bestChefId !== currentChefId) {
+                        usedChefIds[currentChefId] = false;
+                        usedChefIds[bestChefId] = true;
+                    }
+                    _simSetChef(pos.ri, pos.ci, bestChefId);
+                    for (var reci = 0; reci < 3; reci++) {
+                        _simSetRecipe(pos.ri, pos.ci, reci, bestRecipes[reci]);
+                    }
+                    
+                    // 如果没有改进，该位置收敛，进入下一个位置
+                    if (bestScore <= currentScore) break;
+                }
+            }
+            
+            // 第三轮：如果饱食度不达标，调用现有的菜谱爬山函数
+            if (!_isAllSatietyOk()) {
+                // 先把当前状态设为最佳状态，这样爬山函数才能基于当前状态优化
+                _bestSimState = _cloneSimState(_simState);
+                _bestScore = _fastCalcScore();
+                
+                _climbRecipes();
+                _simState = _cloneSimState(_bestSimState);
+                _climbRecipeSwap();
+            }
+            
+            // 更新最佳状态
+            _bestSimState = _cloneSimState(_simState);
+            
+            // 计算内存分数明细
             var memScores = [];
             for (var ri = 0; ri < _rules.length; ri++) {
                 var rScore = _calcRuleScore(ri, true);
@@ -3537,7 +5115,13 @@ var BanquetOptimizer = (function() {
         _topCandidates = [];
         _intentCache = {};
         _recipeDependentIntentCache = {};
+        _threeSkillIntentCache = {};
+        _condimentIntentCache = {};
+        _rarityRankIntentCache = {};
+        _cookSkillIntentCache = {};
         _synergyCache = {};
+        _intentAddCache = {};
+        _priceAuraChefCache = {};
         _chefMap = {};
         _recipeMap = {};
         _menusByRule = [];
