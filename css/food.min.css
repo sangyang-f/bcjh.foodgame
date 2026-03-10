@@ -4437,3 +4437,172 @@ table.dataTable tr.selected td.select-checkbox:after,table.dataTable tr.selected
 #chk-cal-recipe-material-exclude ~ .dropdown-menu .dropdown-header.collapsible {
     border-bottom: none;
 }
+
+/* ==================== 前10名组合 Modal 样式 ==================== */
+
+/* Modal 主体样式 */
+#top10-modal .modal-dialog {
+    max-width: 800px;
+}
+
+#top10-modal .modal-body {
+    max-height: 70vh;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+/* 组合卡片样式 */
+.combo-card {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 15px;
+    margin-bottom: 15px;
+    background-color: #f9f9f9;
+    transition: box-shadow 0.2s;
+}
+
+.combo-card:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* 卡片头部 */
+.combo-header {
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #ddd;
+}
+
+.combo-rank {
+    font-weight: bold;
+    font-size: 16px;
+    color: #333;
+}
+
+.combo-card:first-child .combo-rank {
+    color: #d9534f;
+}
+
+.combo-score {
+    margin-left: 20px;
+    font-size: 16px;
+    color: #5cb85c;
+    font-weight: 500;
+}
+
+.combo-source {
+    margin-left: 20px;
+    font-size: 14px;
+    color: #777;
+}
+
+/* 厨师位置 */
+.chef-position {
+    margin-bottom: 10px;
+    padding: 10px;
+    background-color: #fff;
+    border-radius: 3px;
+}
+
+.chef-position h5 {
+    margin: 0 0 8px 0;
+    color: #337ab7;
+    font-size: 15px;
+}
+
+.chef-position ul {
+    margin: 5px 0;
+    padding-left: 20px;
+    font-size: 13px;
+}
+
+.chef-position li {
+    margin-bottom: 3px;
+}
+
+/* 装备遗玉信息 */
+.chef-position > div {
+    font-size: 12px;
+    color: #666;
+    margin-top: 5px;
+}
+
+/* 应用按钮 */
+.combo-footer {
+    margin-top: 10px;
+    text-align: right;
+}
+
+.apply-combo-btn {
+    padding: 6px 12px;
+    font-size: 14px;
+}
+
+.apply-combo-btn:hover {
+    background-color: #286090;
+    border-color: #204d74;
+}
+
+/* 查看前10名按钮 */
+#btn-view-top10 {
+    margin-left: 10px;
+    font-weight: 500;
+}
+
+#btn-view-top10:hover {
+    background-color: #449d44;
+    border-color: #398439;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    #top10-modal .modal-dialog {
+        margin: 10px;
+        max-width: calc(100% - 20px);
+    }
+    
+    #top10-modal .modal-body {
+        padding: 10px;
+    }
+    
+    .combo-card {
+        padding: 10px;
+    }
+    
+    .combo-rank,
+    .combo-score,
+    .combo-source {
+        display: block;
+        margin-left: 0;
+        margin-top: 5px;
+    }
+}
+
+/* 排除食材下拉框折叠图标样式 */
+.bootstrap-select .dropdown-menu .dropdown-header.collapsible {
+    cursor: pointer;
+    position: relative;
+    padding-right: 25px;
+}
+
+.bootstrap-select .dropdown-menu .dropdown-header.collapsible:hover {
+    background-color: #f5f5f5;
+}
+
+.bootstrap-select .dropdown-menu .dropdown-header .collapse-icon {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%) rotate(0deg);
+    transition: transform 0.2s ease;
+    color: #999;
+    font-size: 12px;
+}
+
+/* 排除食材下拉框隐藏分组间的分隔线和标题底部线 */
+#chk-recipe-material-exclude ~ .dropdown-menu .divider,
+#chk-recipe-material-exclude + .dropdown-menu .divider {
+    display: none !important;
+}
+#chk-recipe-material-exclude ~ .dropdown-menu .dropdown-header.collapsible {
+    border-bottom: none;
+}
