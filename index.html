@@ -10,11 +10,12 @@
     <script type="text/javascript" src="js/script.min.js?v=3"></script>
     <script type="text/javascript" src="js/common.min.js?v=9"></script>
     <link rel="stylesheet" type="text/css" href="css/food.min.css?v=13" />
-    <script type="text/javascript" src="js/guest.calculator.js?v=7"></script>
+    <script type="text/javascript" src="js/guest.calculator.js?v=8"></script>
     <script type="text/javascript" src="js/query.guest.js?v=2"></script>
-    <script type="text/javascript" src="js/food.min.js?v=22"></script>
+    <script type="text/javascript" src="js/food.min.js?v=23"></script>
     <script type="text/javascript" src="js/query.cultivate.js?v=6"></script>
-    <script type="text/javascript" src="js/banquet.optimizer.js?v=3"></script>
+    <script type="text/javascript" src="js/banquet.optimizer.js?v=4"></script>
+    <script type="text/javascript" src="js/jianghu.optimizer.js?v=1"></script>
     <link rel="stylesheet" type="text/css" href="css/image.css?v=10" />
     <script>
         $(function () {
@@ -157,9 +158,12 @@
                                 <input type="checkbox" id="chk-recipe-apply-ex-person" data-toggle="toggle"
                                     data-on="已熟练" data-off="全熟练" data-onstyle="default" data-width="80px" checked>
                             </div>
-                            <div class="inline-wrapper select-wrapper" data-toggle="tooltip" title="选择品级查询（点击专精份数后可编辑进度查询剩余份数）">
-                                <select id="select-recipe-ex-gap" class="selectpicker monitor-none"
-                                    data-width="100px" data-dropdown-align-right='auto' data-none-selected-text="专精查询" data-actions-box="true" data-actions-box-only-clear="true" data-deselect-all-text="清空" data-hide-disabled="true">
+                            <div class="inline-wrapper select-wrapper" data-toggle="tooltip"
+                                title="选择品级查询（点击专精份数后可编辑进度查询剩余份数）">
+                                <select id="select-recipe-ex-gap" class="selectpicker monitor-none" data-width="100px"
+                                    data-dropdown-align-right='auto' data-none-selected-text="专精查询"
+                                    data-actions-box="true" data-actions-box-only-clear="true"
+                                    data-deselect-all-text="清空" data-hide-disabled="true">
                                     <option value="" selected disabled></option>
                                     <option value="1">可级</option>
                                     <option value="2">优级</option>
@@ -303,12 +307,11 @@
                             </div>
                             <div class="inline-wrapper select-wrapper" data-toggle="tooltip" title="选择食材,排除含该食材的菜谱">
                                 <select id="chk-recipe-material-exclude" multiple class="monitor-none"
-                                    data-live-search="true" data-live-search-placeholder="查找"
-                                    data-width="120px" data-dropdown-align-right='auto'
-                                    data-none-selected-text="排除食材" data-selected-text-format="count>2"
-                                    data-count-selected-text="{0} 食材" data-none-results-text="没有找到"
-                                    data-actions-box="true" data-actions-box-only-clear="true"
-                                    data-deselect-all-text="清空">
+                                    data-live-search="true" data-live-search-placeholder="查找" data-width="120px"
+                                    data-dropdown-align-right='auto' data-none-selected-text="排除食材"
+                                    data-selected-text-format="count>2" data-count-selected-text="{0} 食材"
+                                    data-none-results-text="没有找到" data-actions-box="true"
+                                    data-actions-box-only-clear="true" data-deselect-all-text="清空">
                                 </select>
                             </div>
                             <div class="input-group">
@@ -318,8 +321,8 @@
                                         data-live-search-placeholder="查找" data-width="125px"
                                         data-dropdown-align-right='auto' data-none-selected-text="选择开业贵客"
                                         data-selected-text-format="count" data-count-selected-text="{0} 开业贵客"
-                                        data-none-results-text="没有找到" data-actions-box="true"
-                                        data-select-all-text="全选" data-deselect-all-text="清空"></select>
+                                        data-none-results-text="没有找到" data-actions-box="true" data-select-all-text="全选"
+                                        data-deselect-all-text="清空"></select>
                                 </div>
                                 <span class="input-group-btn input-group-mid">
                                     <label class="btn btn-default" data-toggle="tooltip" title="包含升阶贵客">
@@ -470,21 +473,19 @@
                                 <input type="checkbox" id="chk-chef-apply-ambers" data-toggle="toggle" data-on="遗玉加成开"
                                     data-off="遗玉加成关" data-onstyle="default" data-width="105px" checked>
                             </div>
-                            <div class="inline-wrapper select-wrapper chef-apply-ambers" data-toggle="tooltip" title="批量应用遗玉(最多设置三种,清空则使用厨师自身遗玉)">
+                            <div class="inline-wrapper select-wrapper chef-apply-ambers" data-toggle="tooltip"
+                                title="批量应用遗玉(最多设置三种,清空则使用厨师自身遗玉)">
                                 <select id="chk-chef-apply-amber-select" multiple class="selectpicker monitor-none"
-                                    data-width="150px" data-dropdown-align-right='auto' 
-                                    data-none-selected-text="批量应用遗玉"
+                                    data-width="150px" data-dropdown-align-right='auto' data-none-selected-text="批量应用遗玉"
                                     data-live-search="true" data-live-search-placeholder="查找"
-                                    data-none-results-text="没有找到"
-                                    data-max-options="3"
-                                    data-selected-text-format="count>0"
-                                    data-count-selected-text="{0} 遗玉"
-                                    data-actions-box="true"
-                                    data-actions-box-only-clear="true"
+                                    data-none-results-text="没有找到" data-max-options="3"
+                                    data-selected-text-format="count>0" data-count-selected-text="{0} 遗玉"
+                                    data-actions-box="true" data-actions-box-only-clear="true"
                                     data-deselect-all-text="清空">
                                 </select>
                             </div>
-                            <label class="btn btn-default chef-apply-ambers" data-toggle="tooltip" title="将所有厨师心法盘设置为满级(不勾选为使用厨师自身等级)">
+                            <label class="btn btn-default chef-apply-ambers" data-toggle="tooltip"
+                                title="将所有厨师心法盘设置为满级(不勾选为使用厨师自身等级)">
                                 <input type="checkbox" id="chk-chef-max-disk-level" class="monitor-none">
                                 <i class="fa fa-check glyphicon glyphicon-ok"></i>
                                 默认满级心法盘
@@ -493,14 +494,13 @@
                                 <input type="checkbox" id="chk-chef-apply-equips" data-toggle="toggle" data-on="厨具加成开"
                                     data-off="厨具加成关" data-onstyle="default" data-width="105px" checked>
                             </div>
-                            <div class="inline-wrapper select-wrapper chef-apply-equips" data-toggle="tooltip" title="为所有厨师设置厨具(清空则使用厨师自身厨具)">
+                            <div class="inline-wrapper select-wrapper chef-apply-equips" data-toggle="tooltip"
+                                title="为所有厨师设置厨具(清空则使用厨师自身厨具)">
                                 <select id="chk-chef-apply-equip-select" class="selectpicker monitor-none"
-                                    data-width="130px" data-dropdown-align-right='auto' 
-                                    data-none-selected-text="批量应用厨具"
+                                    data-width="130px" data-dropdown-align-right='auto' data-none-selected-text="批量应用厨具"
                                     data-live-search="true" data-live-search-placeholder="查找"
-                                    data-none-results-text="没有找到"
-                                    data-actions-box="true" data-actions-box-only-clear="true"
-                                    data-deselect-all-text="清空">
+                                    data-none-results-text="没有找到" data-actions-box="true"
+                                    data-actions-box-only-clear="true" data-deselect-all-text="清空">
                                     <option value="" selected class="hidden"></option>
                                 </select>
                             </div>
@@ -544,7 +544,8 @@
                                 </select>
                             </div>
                             <div class="input-group">
-                                <div class="inline-wrapper select-wrapper input-group-first" data-toggle="tooltip" title="选择类型,过滤厨师">
+                                <div class="inline-wrapper select-wrapper input-group-first" data-toggle="tooltip"
+                                    title="选择类型,过滤厨师">
                                     <select id="chk-chef-category" multiple class="selectpicker monitor-none"
                                         data-width="120px" data-dropdown-align-right='auto'
                                         data-none-selected-text="选择类型" data-selected-text-format="count"
@@ -561,7 +562,9 @@
                                         <option value="SkillAura">技法光环</option>
                                     </select>
                                 </div>
-                                <div id="chef-global-subtype-wrapper" class="inline-wrapper select-wrapper input-group-mid" style="display:none;" data-toggle="tooltip" title="选择基础修炼细分类型">
+                                <div id="chef-global-subtype-wrapper"
+                                    class="inline-wrapper select-wrapper input-group-mid" style="display:none;"
+                                    data-toggle="tooltip" title="选择基础修炼细分类型">
                                     <select id="chk-chef-global-subtype" multiple class="selectpicker monitor-none"
                                         data-width="100px" data-dropdown-align-right='auto'
                                         data-none-selected-text="细分类型" data-selected-text-format="count"
@@ -574,7 +577,9 @@
                                         <option value="other">其他</option>
                                     </select>
                                 </div>
-                                <div id="chef-aura-subtype-wrapper" class="inline-wrapper select-wrapper input-group-mid" style="display:none;" data-toggle="tooltip" title="选择光环技法类型">
+                                <div id="chef-aura-subtype-wrapper"
+                                    class="inline-wrapper select-wrapper input-group-mid" style="display:none;"
+                                    data-toggle="tooltip" title="选择光环技法类型">
                                     <select id="chk-chef-aura-subtype" multiple class="selectpicker monitor-none"
                                         data-width="100px" data-dropdown-align-right='auto'
                                         data-none-selected-text="技法类型" data-selected-text-format="count"
@@ -640,8 +645,7 @@
                             </div>
                             <div class="inline-wrapper select-wrapper" data-toggle="tooltip" title="选择采集类型组合">
                                 <select id="chk-chef-material-combo" class="selectpicker monitor-none"
-                                    data-width="130px" data-dropdown-align-right='auto' 
-                                    data-none-selected-text="选择采集组合"
+                                    data-width="130px" data-dropdown-align-right='auto' data-none-selected-text="选择采集组合"
                                     data-actions-box="true" data-actions-box-only-clear="true"
                                     data-deselect-all-text="清空">
                                     <option value="" selected class="hidden"></option>
@@ -658,8 +662,8 @@
                                     data-live-search="true" data-live-search-placeholder="查找"
                                     data-dropdown-align-right='auto' data-none-selected-text="选择遗玉"
                                     data-selected-text-format="count>1" data-count-selected-text="{0} 遗玉"
-                                    data-none-results-text="没有找到" data-actions-box="true"
-                                    data-select-all-text="全选" data-deselect-all-text="清空">
+                                    data-none-results-text="没有找到" data-actions-box="true" data-select-all-text="全选"
+                                    data-deselect-all-text="清空">
                                 </select>
                             </div>
                             <div class="inline-wrapper select-wrapper" data-toggle="tooltip" title="选择厨具,过滤厨师">
@@ -667,8 +671,8 @@
                                     data-live-search="true" data-live-search-placeholder="查找"
                                     data-dropdown-align-right='auto' data-none-selected-text="选择厨具"
                                     data-selected-text-format="count>1" data-count-selected-text="{0} 厨具"
-                                    data-none-results-text="没有找到" data-actions-box="true"
-                                    data-select-all-text="全选" data-deselect-all-text="清空">
+                                    data-none-results-text="没有找到" data-actions-box="true" data-select-all-text="全选"
+                                    data-deselect-all-text="清空">
                                 </select>
                             </div>
                             <label class="btn btn-default" data-toggle="tooltip" title="只显示未修炼的厨师">
@@ -1043,8 +1047,7 @@
                                 </select>
                             </div>
                             <div class="select-wrapper" id="history-sub-rule-wrapper" style="display:none;">
-                                <select id="select-history-sub-rule" data-width="200px"
-                                    data-dropdown-align-right='auto'
+                                <select id="select-history-sub-rule" data-width="200px" data-dropdown-align-right='auto'
                                     data-none-selected-text='选择具体规则'>
                                 </select>
                             </div>
@@ -1203,7 +1206,8 @@
                                         <i class="fa fa-check glyphicon glyphicon-ok"></i>
                                         已有
                                     </label>
-                                    <label class="btn btn-default" id="label-cal-ultimated" data-toggle="tooltip" title="只显示已修炼的厨师（需要先勾选已有）" style="display: none;">
+                                    <label class="btn btn-default" id="label-cal-ultimated" data-toggle="tooltip"
+                                        title="只显示已修炼的厨师（需要先勾选已有）" style="display: none;">
                                         <input type="checkbox" id="chk-cal-ultimated" class="monitor-none" disabled>
                                         <i class="fa fa-check glyphicon glyphicon-ok"></i>
                                         已修炼
@@ -1246,14 +1250,14 @@
                                             </label>
                                         </span>
                                     </div>
-                                    <div class="inline-wrapper select-wrapper" data-toggle="tooltip" title="选择食材,排除含该食材的菜谱">
+                                    <div class="inline-wrapper select-wrapper" data-toggle="tooltip"
+                                        title="选择食材,排除含该食材的菜谱">
                                         <select id="chk-cal-recipe-material-exclude" multiple class="monitor-none"
-                                            data-live-search="true" data-live-search-placeholder="查找"
-                                            data-width="120px" data-dropdown-align-right='auto'
-                                            data-none-selected-text="排除食材" data-selected-text-format="count>2"
-                                            data-count-selected-text="{0} 食材" data-none-results-text="没有找到"
-                                            data-actions-box="true" data-actions-box-only-clear="true"
-                                            data-deselect-all-text="清空">
+                                            data-live-search="true" data-live-search-placeholder="查找" data-width="120px"
+                                            data-dropdown-align-right='auto' data-none-selected-text="排除食材"
+                                            data-selected-text-format="count>2" data-count-selected-text="{0} 食材"
+                                            data-none-results-text="没有找到" data-actions-box="true"
+                                            data-actions-box-only-clear="true" data-deselect-all-text="清空">
                                         </select>
                                     </div>
                                     <div class="inline-wrapper select-wrapper" data-toggle="tooltip" title="选择调料,过滤菜谱">
@@ -1277,46 +1281,59 @@
                                         清空场上已选
                                     </button>
 
-                                    <div id="cultivation-mode-switch-wrapper" class="inline-wrapper hidden" style="margin-left: 10px;">
-                                        <input type="checkbox" id="chk-cultivation-mode" data-toggle="toggle" 
-                                            data-on="神级方案" data-off="修炼查询" data-onstyle="primary" data-offstyle="primary" data-width="90px">
+                                    <div id="cultivation-mode-switch-wrapper" class="inline-wrapper hidden"
+                                        style="margin-left: 10px;">
+                                        <input type="checkbox" id="chk-cultivation-mode" data-toggle="toggle"
+                                            data-on="神级方案" data-off="修炼查询" data-onstyle="primary"
+                                            data-offstyle="primary" data-width="90px">
                                     </div>
 
-                                    <div id="guest-query-mode-switch-wrapper" class="inline-wrapper hidden" style="margin-left: 10px;">
-                                        <input type="checkbox" id="chk-guest-query-mode" data-toggle="toggle" 
-                                            data-on="碰瓷查询" data-off="贵客查询" data-onstyle="primary" data-offstyle="primary" data-width="90px">
+                                    <div id="guest-query-mode-switch-wrapper" class="inline-wrapper hidden"
+                                        style="margin-left: 10px;">
+                                        <input type="checkbox" id="chk-guest-query-mode" data-toggle="toggle"
+                                            data-on="碰瓷查询" data-off="贵客查询" data-onstyle="primary"
+                                            data-offstyle="primary" data-width="90px">
                                     </div>
 
                                     <div id="unultimated-chef-wrapper" class="inline-wrapper hidden">
                                         <div class="unultimated-dropdown-wrapper" id="unultimated-dropdown-wrapper">
-                                            <button type="button" class="btn btn-default pengci-dropdown-toggle" id="unultimated-dropdown-btn">
+                                            <button type="button" class="btn btn-default pengci-dropdown-toggle"
+                                                id="unultimated-dropdown-btn">
                                                 <span class="pengci-dropdown-text">修炼厨师</span>
                                                 <span class="caret"></span>
                                             </button>
-                                            <div class="pengci-dropdown-menu" id="unultimated-dropdown-menu" style="display: none;">
+                                            <div class="pengci-dropdown-menu" id="unultimated-dropdown-menu"
+                                                style="display: none;">
                                                 <div id="unultimated-select-container"></div>
                                             </div>
                                         </div>
                                     </div>
                                     <div id="unultimated-chef-action-wrapper" class="btn-group hidden">
-                                        <button id="btn-unultimated-query" class="btn btn-default" type="button" onmouseup="this.blur()">查询</button>
-                                        <button id="btn-unultimated-config" class="btn btn-default" type="button" data-toggle="modal" data-target="#unultimated-config-modal">配置</button>
+                                        <button id="btn-unultimated-query" class="btn btn-default" type="button"
+                                            onmouseup="this.blur()">查询</button>
+                                        <button id="btn-unultimated-config" class="btn btn-default" type="button"
+                                            data-toggle="modal" data-target="#unultimated-config-modal">配置</button>
                                     </div>
 
-                                    <div id="recipe-god-query-wrapper" class="inline-wrapper hidden" data-toggle="tooltip" title="选择查询菜谱神级方案">
+                                    <div id="recipe-god-query-wrapper" class="inline-wrapper hidden"
+                                        data-toggle="tooltip" title="选择查询菜谱神级方案">
                                         <div class="recipe-god-dropdown-wrapper" id="recipe-god-dropdown-wrapper">
-                                            <button type="button" class="btn btn-default pengci-dropdown-toggle" id="recipe-god-dropdown-btn">
+                                            <button type="button" class="btn btn-default pengci-dropdown-toggle"
+                                                id="recipe-god-dropdown-btn">
                                                 <span class="pengci-dropdown-text">选择菜谱</span>
                                                 <span class="caret"></span>
                                             </button>
-                                            <div class="pengci-dropdown-menu" id="recipe-god-dropdown-menu" style="display: none;">
+                                            <div class="pengci-dropdown-menu" id="recipe-god-dropdown-menu"
+                                                style="display: none;">
                                                 <div id="recipe-god-select-container"></div>
                                             </div>
                                         </div>
                                     </div>
                                     <div id="recipe-god-query-action-wrapper" class="btn-group hidden">
-                                        <button id="btn-recipe-god-query" class="btn btn-default" type="button" onmouseup="this.blur()">查询</button>
-                                        <button id="btn-recipe-god-config" class="btn btn-default" type="button" data-toggle="modal" data-target="#recipe-god-config-modal">配置</button>
+                                        <button id="btn-recipe-god-query" class="btn btn-default" type="button"
+                                            onmouseup="this.blur()">查询</button>
+                                        <button id="btn-recipe-god-config" class="btn btn-default" type="button"
+                                            data-toggle="modal" data-target="#recipe-god-config-modal">配置</button>
                                     </div>
                                 </div>
                             </div>
@@ -1749,16 +1766,16 @@
                     <input class="form-control" id="input-import-data" placeholder="校验码" style="width:220px;">
                 </div>
                 <div class="form-group" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                    <button id="btn-import-data" class="btn btn-default" type="button"
-                        data-toggle="tooltip" title="输入官方校验码, 弹窗填写用户名称后新增用户数据">
+                    <button id="btn-import-data" class="btn btn-default" type="button" data-toggle="tooltip"
+                        title="输入官方校验码, 弹窗填写用户名称后新增用户数据">
                         新增用户
                     </button>
-                    <button id="btn-update-user-data" class="btn btn-default" type="button"
-                        data-toggle="tooltip" title="使用校验码更新当前用户的数据">
+                    <button id="btn-update-user-data" class="btn btn-default" type="button" data-toggle="tooltip"
+                        title="使用校验码更新当前用户的数据">
                         更新用户
                     </button>
-                    <button id="btn-remove-user" class="btn btn-danger" type="button"
-                        data-toggle="tooltip" title="删除当前选中的用户及其所有数据">
+                    <button id="btn-remove-user" class="btn btn-danger" type="button" data-toggle="tooltip"
+                        title="删除当前选中的用户及其所有数据">
                         删除用户
                     </button>
                 </div>
@@ -1768,8 +1785,8 @@
                             data-none-selected-text="切换用户" data-style="btn-default">
                         </select>
                     </div>
-                    <button id="btn-rename-user" class="btn btn-default" type="button"
-                        data-toggle="tooltip" title="修改当前用户的名称">
+                    <button id="btn-rename-user" class="btn btn-default" type="button" data-toggle="tooltip"
+                        title="修改当前用户的名称">
                         修改用户名
                     </button>
                 </div>
@@ -2014,17 +2031,20 @@
                             <div>
                                 <div class="input-group">
                                     <div class="input-group-addon">菜类售价</div>
-                                    <input type="number" class="form-control" id="input-cal-activity-vegetable-price" aria-label="蔬菜售价">
+                                    <input type="number" class="form-control" id="input-cal-activity-vegetable-price"
+                                        aria-label="蔬菜售价">
                                     <div class="input-group-addon">%</div>
                                 </div>
                                 <div class="input-group">
                                     <div class="input-group-addon">面类售价</div>
-                                    <input type="number" class="form-control" id="input-cal-activity-creation-price" aria-label="面类售价">
+                                    <input type="number" class="form-control" id="input-cal-activity-creation-price"
+                                        aria-label="面类售价">
                                     <div class="input-group-addon">%</div>
                                 </div>
                                 <div class="input-group">
                                     <div class="input-group-addon">鱼类售价</div>
-                                    <input type="number" class="form-control" id="input-cal-activity-fish-price" aria-label="鱼类售价">
+                                    <input type="number" class="form-control" id="input-cal-activity-fish-price"
+                                        aria-label="鱼类售价">
                                     <div class="input-group-addon">%</div>
                                 </div>
                                 <div class="input-group">
@@ -2128,9 +2148,11 @@
                 </div>
                 <div id="pane-cal-rules" class='pane-cal-rules pane-cal-sub hidden'>
                     <div id="pane-cal-custom">
-                        <div class="banquet-auto-calc hidden" id="banquet-auto-calc" style="max-width: 1130px; margin: 0 auto 8px;">
+                        <div class="banquet-auto-calc hidden" id="banquet-auto-calc"
+                            style="max-width: 1130px; margin: 0 auto 8px;">
                             <div class="select-wrapper" style="display: inline-block; margin-right: 5px;">
-                                <select id="select-banquet-level" class="selectpicker" data-width="auto" data-style="btn-default">
+                                <select id="select-banquet-level" class="selectpicker" data-width="auto"
+                                    data-style="btn-default">
                                     <option value="0">省</option>
                                     <option value="1">州</option>
                                     <option value="2">郡</option>
@@ -2139,12 +2161,14 @@
                                 </select>
                             </div>
                             <div class="select-wrapper" style="display: inline-block; margin-right: 5px;">
-                                <select id="select-banquet-guest" class="selectpicker" data-width="auto" data-style="btn-default">
+                                <select id="select-banquet-guest" class="selectpicker" data-width="auto"
+                                    data-style="btn-default">
                                     <option value="all">双贵客</option>
                                 </select>
                             </div>
                             <div class="select-wrapper" style="display: inline-block; margin-right: 5px;">
-                                <select id="select-banquet-tier" class="selectpicker" data-width="auto" data-style="btn-default">
+                                <select id="select-banquet-tier" class="selectpicker" data-width="auto"
+                                    data-style="btn-default">
                                     <option value="-1">不限分数</option>
                                 </select>
                             </div>
@@ -2152,59 +2176,75 @@
                                 自动计算
                             </button>
                         </div>
-                        <div id="banquet-progress-wrapper" class="hidden" style="max-width: 1130px; margin: 0 auto 6px; display: flex; align-items: center; gap: 8px;">
-                            <div style="flex: 1; height: 8px; background: #e8e8e8; border-radius: 4px; overflow: hidden;">
-                                <div id="banquet-progress-bar" style="width: 0%; height: 100%; background: #4a90d9; border-radius: 4px; transition: width 0.3s;"></div>
+                        <div id="banquet-progress-wrapper" class="hidden"
+                            style="max-width: 1130px; margin: 0 auto 6px; display: flex; align-items: center; gap: 8px;">
+                            <div
+                                style="flex: 1; height: 8px; background: #e8e8e8; border-radius: 4px; overflow: hidden;">
+                                <div id="banquet-progress-bar"
+                                    style="width: 0%; height: 100%; background: #4a90d9; border-radius: 4px; transition: width 0.3s;">
+                                </div>
                             </div>
-                            <span id="banquet-progress-text" style="white-space: nowrap; font-size: 13px; color: #666;">0%</span>
+                            <span id="banquet-progress-text"
+                                style="white-space: nowrap; font-size: 13px; color: #666;">0%</span>
                         </div>
-                        <div class="competition-auto-calc hidden" id="competition-auto-calc" style="max-width: 1130px; margin: 0 auto 8px;">
+                        <div class="competition-auto-calc hidden" id="competition-auto-calc"
+                            style="max-width: 1130px; margin: 0 auto 8px;">
                             <div class="select-wrapper chushen-only" style="display: inline-block; margin-right: 5px;">
-                                <select id="select-competition-chefs" class="selectpicker" multiple
-                                    data-width="auto" data-style="btn-default"
-                                    data-live-search="true" data-live-search-placeholder="查找厨师"
+                                <select id="select-competition-chefs" class="selectpicker" multiple data-width="auto"
+                                    data-style="btn-default" data-live-search="true" data-live-search-placeholder="查找厨师"
                                     data-none-selected-text="全部厨师" data-selected-text-format="count"
                                     data-count-selected-text="{0}个厨师" data-none-results-text="没有找到"
-                                    data-actions-box="true" data-deselect-all-text="清空"
-                                    data-select-all-text="全选">
+                                    data-actions-box="true" data-deselect-all-text="清空" data-select-all-text="全选">
                                 </select>
                             </div>
-                            <button id="btn-save-chef-combo" class="btn btn-default btn-sm chushen-only" type="button" style="display: inline-block; margin-right: 3px; vertical-align: top; margin-top: 1px;" title="保存当前厨师组合">
+                            <button id="btn-save-chef-combo" class="btn btn-default btn-sm chushen-only" type="button"
+                                style="display: inline-block; margin-right: 3px; vertical-align: top; margin-top: 1px;"
+                                title="保存当前厨师组合">
                                 <span class="glyphicon glyphicon-floppy-disk"></span>
                             </button>
                             <div class="select-wrapper chushen-only" style="display: inline-block; margin-right: 5px;">
-                                <select id="select-chef-combo" class="selectpicker" data-width="auto" data-style="btn-default"
-                                    data-none-selected-text="厨师组合" data-none-results-text="无">
+                                <select id="select-chef-combo" class="selectpicker" data-width="auto"
+                                    data-style="btn-default" data-none-selected-text="厨师组合" data-none-results-text="无">
                                 </select>
                             </div>
                             <div class="select-wrapper chushen-only" style="display: inline-block; margin-right: 5px;">
-                                <select id="select-competition-tier" class="selectpicker" data-width="auto" data-style="btn-default">
+                                <select id="select-competition-tier" class="selectpicker" data-width="auto"
+                                    data-style="btn-default">
                                     <option value="-1">不限制分数</option>
                                 </select>
                             </div>
                             <button id="btn-competition-auto" class="btn btn-primary chushen-only" type="button">
                                 自动计算
                             </button>
-                            <button id="btn-competition-settings" class="btn btn-default btn-sm chushen-only" type="button" style="display: inline-block; margin-left: 3px; vertical-align: top; margin-top: 1px;" title="算法设置">
+                            <button id="btn-competition-settings" class="btn btn-default btn-sm chushen-only"
+                                type="button"
+                                style="display: inline-block; margin-left: 3px; vertical-align: top; margin-top: 1px;"
+                                title="算法设置">
                                 <span class="glyphicon glyphicon-cog"></span>
                             </button>
                         </div>
-                        <div id="competition-progress-wrapper" class="hidden" style="max-width: 1130px; margin: 0 auto 6px; display: flex; align-items: center; gap: 8px;">
-                            <div style="flex: 1; height: 8px; background: #e8e8e8; border-radius: 4px; overflow: hidden;">
-                                <div id="competition-progress-bar" style="width: 0%; height: 100%; background: #e67e22; border-radius: 4px; transition: width 0.3s;"></div>
+                        <div id="competition-progress-wrapper" class="hidden"
+                            style="max-width: 1130px; margin: 0 auto 6px; display: flex; align-items: center; gap: 8px;">
+                            <div
+                                style="flex: 1; height: 8px; background: #e8e8e8; border-radius: 4px; overflow: hidden;">
+                                <div id="competition-progress-bar"
+                                    style="width: 0%; height: 100%; background: #e67e22; border-radius: 4px; transition: width 0.3s;">
+                                </div>
                             </div>
-                            <span id="competition-progress-text" style="white-space: nowrap; font-size: 13px; color: #666;">0%</span>
+                            <span id="competition-progress-text"
+                                style="white-space: nowrap; font-size: 13px; color: #666;">0%</span>
                         </div>
                         <div class="cal-custom-item">
                             <div id="mobile-cultivate-container" class="hidden" style="padding: 4px 8px;"></div>
                             <div class="rule-desc"></div>
-                            
+
                             <!-- 贵客率计算结果区域 -->
                             <div class="guest-rate-calculator hidden" id="guest-rate-result">
                                 <div class="calc-result-header">
                                     <h4>计算结果</h4>
                                     <div class="calc-header-buttons">
-                                        <button class="btn btn-primary btn-sm" id="btn-oneclick-query" type="button">一键查询</button>
+                                        <button class="btn btn-primary btn-sm" id="btn-oneclick-query"
+                                            type="button">一键查询</button>
                                         <button class="btn btn-default btn-sm" id="btn-query-settings" type="button">
                                             <span class="glyphicon glyphicon-cog"></span> 查询设置
                                         </button>
@@ -2245,7 +2285,8 @@
                                     <div class="calc-result-row calc-controls">
                                         <div class="calc-control-group">
                                             <label>星级</label>
-                                            <select class="selectpicker" id="star-level" data-width="70px" data-container="body">
+                                            <select class="selectpicker" id="star-level" data-width="70px"
+                                                data-container="body">
                                                 <option value="1">1星</option>
                                                 <option value="2">2星</option>
                                                 <option value="3">3星</option>
@@ -2255,23 +2296,37 @@
                                         </div>
                                         <div class="calc-control-group">
                                             <label>品级</label>
-                                            <select class="selectpicker" id="quality-level" data-width="70px" data-container="body">
-                                                <option value="1" data-content="<span style='color:#000000;font-weight:bold'>可</span>" selected>可</option>
-                                                <option value="2" data-content="<span style='color:#28a745;font-weight:bold'>优</span>">优</option>
-                                                <option value="3" data-content="<span style='color:#fd7e14;font-weight:bold'>特</span>">特</option>
-                                                <option value="4" data-content="<span style='color:#dc3545;font-weight:bold'>神</span>">神</option>
-                                                <option value="5" data-content="<span style='color:#6f42c1;font-weight:bold'>传</span>">传</option>
+                                            <select class="selectpicker" id="quality-level" data-width="70px"
+                                                data-container="body">
+                                                <option value="1"
+                                                    data-content="<span style='color:#000000;font-weight:bold'>可</span>"
+                                                    selected>可</option>
+                                                <option value="2"
+                                                    data-content="<span style='color:#28a745;font-weight:bold'>优</span>">
+                                                    优</option>
+                                                <option value="3"
+                                                    data-content="<span style='color:#fd7e14;font-weight:bold'>特</span>">
+                                                    特</option>
+                                                <option value="4"
+                                                    data-content="<span style='color:#dc3545;font-weight:bold'>神</span>">
+                                                    神</option>
+                                                <option value="5"
+                                                    data-content="<span style='color:#6f42c1;font-weight:bold'>传</span>">
+                                                    传</option>
                                             </select>
                                         </div>
                                         <div class="calc-control-group">
                                             <label>份数</label>
                                             <div class="input-group input-group-sm quantity-control">
                                                 <span class="input-group-btn">
-                                                    <button class="btn btn-default" type="button" id="quantity-minus">-</button>
+                                                    <button class="btn btn-default" type="button"
+                                                        id="quantity-minus">-</button>
                                                 </span>
-                                                <input type="number" class="form-control" id="quantity-value" value="7" min="1" max="999">
+                                                <input type="number" class="form-control" id="quantity-value" value="7"
+                                                    min="1" max="999">
                                                 <span class="input-group-btn">
-                                                    <button class="btn btn-default" type="button" id="quantity-plus">+</button>
+                                                    <button class="btn btn-default" type="button"
+                                                        id="quantity-plus">+</button>
                                                 </span>
                                             </div>
                                         </div>
@@ -2286,23 +2341,25 @@
                                             <span class="value" id="unit-time">7.17</span>
                                         </div>
                                         <div class="calc-result-item">
-                                            <button class="btn btn-primary btn-sm" id="sync-guest-double">同贵客双菜谱</button>
+                                            <button class="btn btn-primary btn-sm"
+                                                id="sync-guest-double">同贵客双菜谱</button>
                                         </div>
                                     </div>
-                                    
+
                                     <div class="double-recipe-section" style="display: none;">
                                         <div class="calc-section-title">同贵客双菜谱实现贵客必来 品级默认可</div>
-                                        
+
                                         <div class="calc-result-row">
                                             <div class="calc-control-group">
                                                 <label>贵客率</label>
                                                 <div class="input-group input-group-sm">
-                                                    <input type="number" class="form-control" id="guest-rate-input" value="0" min="0" max="999">
+                                                    <input type="number" class="form-control" id="guest-rate-input"
+                                                        value="0" min="0" max="999">
                                                     <span class="input-group-addon">%</span>
                                                 </div>
                                             </div>
                                         </div>
-                                        
+
                                         <div class="calc-result-row calc-controls">
                                             <div class="calc-control-group">
                                                 <label>星级</label>
@@ -2318,11 +2375,14 @@
                                                 <label>份数</label>
                                                 <div class="input-group input-group-sm quantity-control">
                                                     <span class="input-group-btn">
-                                                        <button class="btn btn-default" type="button" id="quantity-minus-2">-</button>
+                                                        <button class="btn btn-default" type="button"
+                                                            id="quantity-minus-2">-</button>
                                                     </span>
-                                                    <input type="number" class="form-control" id="quantity-value-2" value="7" min="1" max="999">
+                                                    <input type="number" class="form-control" id="quantity-value-2"
+                                                        value="7" min="1" max="999">
                                                     <span class="input-group-btn">
-                                                        <button class="btn btn-default" type="button" id="quantity-plus-2">+</button>
+                                                        <button class="btn btn-default" type="button"
+                                                            id="quantity-plus-2">+</button>
                                                     </span>
                                                 </div>
                                             </div>
@@ -2331,7 +2391,7 @@
                                                 <span class="value" id="actual-guest-rate-2">10.05%</span>
                                             </div>
                                         </div>
-                                        
+
                                         <div class="calc-result-row calc-controls">
                                             <div class="calc-control-group">
                                                 <label>星级</label>
@@ -2347,11 +2407,14 @@
                                                 <label>份数</label>
                                                 <div class="input-group input-group-sm quantity-control">
                                                     <span class="input-group-btn">
-                                                        <button class="btn btn-default" type="button" id="quantity-minus-3">-</button>
+                                                        <button class="btn btn-default" type="button"
+                                                            id="quantity-minus-3">-</button>
                                                     </span>
-                                                    <input type="number" class="form-control" id="quantity-value-3" value="7" min="1" max="999">
+                                                    <input type="number" class="form-control" id="quantity-value-3"
+                                                        value="7" min="1" max="999">
                                                     <span class="input-group-btn">
-                                                        <button class="btn btn-default" type="button" id="quantity-plus-3">+</button>
+                                                        <button class="btn btn-default" type="button"
+                                                            id="quantity-plus-3">+</button>
                                                     </span>
                                                 </div>
                                             </div>
@@ -2360,7 +2423,7 @@
                                                 <span class="value" id="actual-guest-rate-3">10.05%</span>
                                             </div>
                                         </div>
-                                        
+
                                         <div class="calc-result-row calc-summary">
                                             <div class="calc-summary-item">
                                                 <span>符文A</span>
@@ -2382,13 +2445,15 @@
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <!-- 碰瓷查询区域 -->
                             <div class="pengci-query-area hidden" id="pengci-query-area">
                                 <div class="pengci-query-header">
                                     <ul class="nav nav-tabs pengci-tabs">
                                         <li class="active"><a href="#pengci-guest-tab" data-toggle="tab">贵客碰瓷</a></li>
-                                        <li><a href="#pengci-rune-tab" data-toggle="tab"><span>神级符文碰瓷</span><button class="btn-collapse" type="button"><span class="glyphicon glyphicon-chevron-up"></span></button></a></li>
+                                        <li><a href="#pengci-rune-tab" data-toggle="tab"><span>神级符文碰瓷</span><button
+                                                    class="btn-collapse" type="button"><span
+                                                        class="glyphicon glyphicon-chevron-up"></span></button></a></li>
                                     </ul>
                                 </div>
                                 <div class="pengci-query-content">
@@ -2396,39 +2461,50 @@
                                         <div class="tab-pane active" id="pengci-guest-tab">
                                             <div class="pengci-search-box">
                                                 <div class="pengci-control-group">
-                                                    <div class="pengci-guest-dropdown-wrapper" id="pengci-guest-dropdown-wrapper">
-                                                        <button type="button" class="btn btn-default pengci-dropdown-toggle" id="pengci-guest-dropdown-btn">
+                                                    <div class="pengci-guest-dropdown-wrapper"
+                                                        id="pengci-guest-dropdown-wrapper">
+                                                        <button type="button"
+                                                            class="btn btn-default pengci-dropdown-toggle"
+                                                            id="pengci-guest-dropdown-btn">
                                                             <span class="pengci-dropdown-text">选择碰瓷菜谱</span>
                                                             <span class="caret"></span>
                                                         </button>
-                                                        <div class="pengci-dropdown-menu" id="pengci-guest-dropdown-menu" style="display: none;">
-                                                            <div class="pengci-guest-dropdown" id="pengci-guest-select-container"></div>
+                                                        <div class="pengci-dropdown-menu"
+                                                            id="pengci-guest-dropdown-menu" style="display: none;">
+                                                            <div class="pengci-guest-dropdown"
+                                                                id="pengci-guest-select-container"></div>
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <button class="btn btn-primary btn-sm" id="btn-pengci-guest-query">查询厨师配置</button>
-                                                <div class="pengci-control-group pengci-mainline-group" id="pengci-mainline-wrapper">
-                                                    <input type="number" class="form-control input-sm" id="input-pengci-mainline" placeholder="绑定主线编号" min="1" max="999" style="width: 100px;">
+                                                <button class="btn btn-primary btn-sm"
+                                                    id="btn-pengci-guest-query">查询厨师配置</button>
+                                                <div class="pengci-control-group pengci-mainline-group"
+                                                    id="pengci-mainline-wrapper">
+                                                    <input type="number" class="form-control input-sm"
+                                                        id="input-pengci-mainline" placeholder="绑定主线编号" min="1"
+                                                        max="999" style="width: 100px;">
                                                 </div>
                                             </div>
                                         </div>
                                         <div class="tab-pane" id="pengci-rune-tab">
                                             <div class="pengci-rune-controls">
                                                 <div class="pengci-rune-dropdown-wrapper">
-                                                    <button type="button" class="btn btn-default pengci-dropdown-btn" id="pengci-rune-dropdown-btn">
+                                                    <button type="button" class="btn btn-default pengci-dropdown-btn"
+                                                        id="pengci-rune-dropdown-btn">
                                                         <span class="pengci-dropdown-text">选择符文菜谱</span>
                                                         <span class="caret"></span>
                                                     </button>
                                                     <div class="pengci-rune-dropdown" id="pengci-rune-select-container">
                                                     </div>
                                                 </div>
-                                                <button class="btn btn-primary btn-sm" id="btn-pengci-rune-query">查询厨师配置</button>
+                                                <button class="btn btn-primary btn-sm"
+                                                    id="btn-pengci-rune-query">查询厨师配置</button>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <div class="selected-sum-wrapper">
                                 <span class='btn-resize glyphicon glyphicon-resize-small'></span>
                                 <div class="selected-sum"></div>
@@ -2452,20 +2528,21 @@
                                             <div class="disk-level-box edit-box">
                                                 <div class="content"></div>
                                                 <div class="select-picker position-c">
-                                                    <select class='selectpicker select-picker-disk-level' data-width="auto"
-                                                        data-dropdown-align-right='auto' data-done-button="true"
-                                                        data-done-button-text="关闭"></select>
+                                                    <select class='selectpicker select-picker-disk-level'
+                                                        data-width="auto" data-dropdown-align-right='auto'
+                                                        data-done-button="true" data-done-button-text="关闭"></select>
                                                 </div>
                                             </div>
                                             <div class="disk-box edit-box">
                                                 <div class="content"></div>
                                                 <div class="select-picker">
                                                     <select class='selectpicker select-picker-amber' data-width="auto"
-                                                        data-live-search="true" data-live-search-style="commaSplitContains"
-                                                        data-live-search-placeholder="查找" data-dropdown-align-right='auto'
-                                                        data-none-results-text="没有找到" data-actions-box="true"
-                                                        data-deselect-all-text="清空" data-done-button="true"
-                                                        data-done-button-text="关闭"></select>
+                                                        data-live-search="true"
+                                                        data-live-search-style="commaSplitContains"
+                                                        data-live-search-placeholder="查找"
+                                                        data-dropdown-align-right='auto' data-none-results-text="没有找到"
+                                                        data-actions-box="true" data-deselect-all-text="清空"
+                                                        data-done-button="true" data-done-button-text="关闭"></select>
                                                 </div>
                                             </div>
                                         </div>
@@ -2789,30 +2866,27 @@
                     </div>
                     <div class="amber-box">
                         <div>
-                            <select class='selectpicker select-chef-amber' data-width="95px"
-                                data-live-search="true" data-live-search-style="commaSplitContains"
-                                data-live-search-placeholder="查找" data-dropdown-align-right='auto'
-                                data-none-results-text="没有找到" data-actions-box="true"
+                            <select class='selectpicker select-chef-amber' data-width="95px" data-live-search="true"
+                                data-live-search-style="commaSplitContains" data-live-search-placeholder="查找"
+                                data-dropdown-align-right='auto' data-none-results-text="没有找到" data-actions-box="true"
                                 data-deselect-all-text="清空"></select>
                         </div>
                         <div class="content"></div>
                     </div>
                     <div class="amber-box">
                         <div>
-                            <select class='selectpicker select-chef-amber' data-width="95px"
-                                data-live-search="true" data-live-search-style="commaSplitContains"
-                                data-live-search-placeholder="查找" data-dropdown-align-right='auto'
-                                data-none-results-text="没有找到" data-actions-box="true"
+                            <select class='selectpicker select-chef-amber' data-width="95px" data-live-search="true"
+                                data-live-search-style="commaSplitContains" data-live-search-placeholder="查找"
+                                data-dropdown-align-right='auto' data-none-results-text="没有找到" data-actions-box="true"
                                 data-deselect-all-text="清空"></select>
                         </div>
                         <div class="content"></div>
                     </div>
                     <div class="amber-box">
                         <div>
-                            <select class='selectpicker select-chef-amber' data-width="95px"
-                                data-live-search="true" data-live-search-style="commaSplitContains"
-                                data-live-search-placeholder="查找" data-dropdown-align-right='auto'
-                                data-none-results-text="没有找到" data-actions-box="true"
+                            <select class='selectpicker select-chef-amber' data-width="95px" data-live-search="true"
+                                data-live-search-style="commaSplitContains" data-live-search-placeholder="查找"
+                                data-dropdown-align-right='auto' data-none-results-text="没有找到" data-actions-box="true"
                                 data-deselect-all-text="清空"></select>
                         </div>
                         <div class="content"></div>
@@ -2930,15 +3004,15 @@
                 </div>
                 <div class="modal-body">
                     <p>
-                        <input type="checkbox" id="chk-unultimated-use-strong-equip" data-toggle="toggle" 
-                            data-on="开" data-off="关" data-onstyle="default" data-size="small" data-width="50px">
+                        <input type="checkbox" id="chk-unultimated-use-strong-equip" data-toggle="toggle" data-on="开"
+                            data-off="关" data-onstyle="default" data-size="small" data-width="50px">
                         <span class="setting-tip">
-                                 使用强力厨具（勾选已配厨具时会强行使用已配厨具）
+                            使用强力厨具（勾选已配厨具时会强行使用已配厨具）
                         </span>
                     </p>
                     <p>
-                        <input type="checkbox" id="chk-unultimated-use-no-recipe" data-toggle="toggle" 
-                            data-on="开" data-off="关" data-onstyle="default" data-size="small" data-width="50px">
+                        <input type="checkbox" id="chk-unultimated-use-no-recipe" data-toggle="toggle" data-on="开"
+                            data-off="关" data-onstyle="default" data-size="small" data-width="50px">
                         <span class="setting-tip">
                             使用未拥有菜谱
                         </span>
@@ -2960,27 +3034,32 @@
                         <span style="display: flex; align-items: center;">
                             <span class="setting-tip" style="margin-right: 5px;">查询品级：</span>
                             <select class="selectpicker" id="select-recipe-god-grade" data-width="80px">
-                                <option value="5" data-content="<span style='color:#6f42c1;font-weight:bold'>传</span>">传</option>
-                                <option value="4" data-content="<span style='color:#dc3545;font-weight:bold'>神</span>" selected>神</option>
-                                <option value="3" data-content="<span style='color:#fd7e14;font-weight:bold'>特</span>">特</option>
-                                <option value="2" data-content="<span style='color:#28a745;font-weight:bold'>优</span>">优</option>
-                                <option value="1" data-content="<span style='color:#000000;font-weight:bold'>可</span>">可</option>
+                                <option value="5" data-content="<span style='color:#6f42c1;font-weight:bold'>传</span>">传
+                                </option>
+                                <option value="4" data-content="<span style='color:#dc3545;font-weight:bold'>神</span>"
+                                    selected>神</option>
+                                <option value="3" data-content="<span style='color:#fd7e14;font-weight:bold'>特</span>">特
+                                </option>
+                                <option value="2" data-content="<span style='color:#28a745;font-weight:bold'>优</span>">优
+                                </option>
+                                <option value="1" data-content="<span style='color:#000000;font-weight:bold'>可</span>">可
+                                </option>
                             </select>
                         </span>
                     </p>
                     <p style="display: flex; align-items: center; gap: 15px;">
                         <span style="display: flex; align-items: center;">
-                            <input type="checkbox" id="chk-recipe-god-use-strong-equip" data-toggle="toggle" 
-                                data-on="开" data-off="关" data-onstyle="default" data-size="small" data-width="50px">
+                            <input type="checkbox" id="chk-recipe-god-use-strong-equip" data-toggle="toggle" data-on="开"
+                                data-off="关" data-onstyle="default" data-size="small" data-width="50px">
                             <span class="setting-tip" style="margin-left: 5px;">
-                                 使用强力厨具（勾选已配厨具时会强行使用已配厨具）
+                                使用强力厨具（勾选已配厨具时会强行使用已配厨具）
                             </span>
                         </span>
                     </p>
                     <p style="display: flex; align-items: center; gap: 15px;">
                         <span style="display: flex; align-items: center;">
-                            <input type="checkbox" id="chk-cal-no-gift-chef" data-toggle="toggle" 
-                                data-on="开" data-off="关" data-onstyle="default" data-size="small" data-width="50px">
+                            <input type="checkbox" id="chk-cal-no-gift-chef" data-toggle="toggle" data-on="开"
+                                data-off="关" data-onstyle="default" data-size="small" data-width="50px">
                             <span class="setting-tip" style="margin-left: 5px;">
                                 不用礼包厨师
                             </span>
@@ -3021,11 +3100,13 @@
 
     <!-- 排除食材方案 - 方案项模板 -->
     <template id="exclude-scheme-item-template">
-        <div class="scheme-item" style="background: #f5f5f5; border: 1px solid #ddd; border-radius: 4px; padding: 12px 15px; margin-bottom: 12px;">
+        <div class="scheme-item"
+            style="background: #f5f5f5; border: 1px solid #ddd; border-radius: 4px; padding: 12px 15px; margin-bottom: 12px;">
             <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                 <!-- 左侧信息 -->
                 <div style="flex: 1; min-width: 0;">
-                    <h5 class="scheme-name" style="margin: 0 0 10px 0; font-size: 15px; font-weight: 600; color: #333;"></h5>
+                    <h5 class="scheme-name" style="margin: 0 0 10px 0; font-size: 15px; font-weight: 600; color: #333;">
+                    </h5>
                     <div style="margin: 0; font-size: 13px; color: #666; line-height: 1.6;">
                         <span style="color: #888;">排除食材：</span>
                         <span class="scheme-materials" style="color: #333;"></span>
@@ -3077,7 +3158,8 @@
                 <div class="modal-body">
                     <div class="form-group">
                         <label for="top10-import-textarea">请粘贴组合数据（JSON格式）：</label>
-                        <textarea class="form-control" id="top10-import-textarea" rows="10" placeholder='粘贴组合数据...'></textarea>
+                        <textarea class="form-control" id="top10-import-textarea" rows="10"
+                            placeholder='粘贴组合数据...'></textarea>
                     </div>
                     <div id="top10-import-message" class="alert" style="display: none; margin-top: 10px;"></div>
                 </div>
@@ -3092,362 +3174,362 @@
 </body>
 
 <script>
-(function() {
-    'use strict';
+    (function () {
+        'use strict';
 
-    var STORAGE_KEY_PREFIX = 'competition_algorithm_';
-    var STORAGE_LIST_KEY = 'competition_algorithm_list';
-    var STORAGE_ACTIVE_KEY = 'competition_algorithm_active';
-    var STORAGE_AUTO_CONDIMENT_KEY = 'competition_auto_condiment';
-    var algorithmList = [];
-    var activeAlgorithmId = null;
+        var STORAGE_KEY_PREFIX = 'competition_algorithm_';
+        var STORAGE_LIST_KEY = 'competition_algorithm_list';
+        var STORAGE_ACTIVE_KEY = 'competition_algorithm_active';
+        var STORAGE_AUTO_CONDIMENT_KEY = 'competition_auto_condiment';
+        var algorithmList = [];
+        var activeAlgorithmId = null;
 
-    function checkChushenParam() {
-        var urlParams = new URLSearchParams(window.location.search);
-        return urlParams.get('chushen') === '123';
-    }
-
-    function initDisplayControl() {
-        var isChushenMode = checkChushenParam();
-        if (!isChushenMode) {
-            $('.chushen-only').hide();
-        } else {
-            $('.chushen-only').show();
+        function checkChushenParam() {
+            var urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('chushen') === '123';
         }
-    }
 
-    function loadAlgorithmList() {
-        try {
-            var stored = localStorage.getItem(STORAGE_LIST_KEY);
-            if (stored) {
-                algorithmList = JSON.parse(stored);
+        function initDisplayControl() {
+            var isChushenMode = checkChushenParam();
+            if (!isChushenMode) {
+                $('.chushen-only').hide();
+            } else {
+                $('.chushen-only').show();
             }
-            var activeId = localStorage.getItem(STORAGE_ACTIVE_KEY);
-            if (activeId) {
-                activeAlgorithmId = activeId;
+        }
+
+        function loadAlgorithmList() {
+            try {
+                var stored = localStorage.getItem(STORAGE_LIST_KEY);
+                if (stored) {
+                    algorithmList = JSON.parse(stored);
+                }
+                var activeId = localStorage.getItem(STORAGE_ACTIVE_KEY);
+                if (activeId) {
+                    activeAlgorithmId = activeId;
+                }
+            } catch (e) {
+                console.error('[厨神大赛] 加载算法列表失败:', e);
             }
-        } catch (e) {
-            console.error('[厨神大赛] 加载算法列表失败:', e);
         }
-    }
 
-    function saveAlgorithmList() {
-        try {
-            localStorage.setItem(STORAGE_LIST_KEY, JSON.stringify(algorithmList));
-            if (activeAlgorithmId) {
-                localStorage.setItem(STORAGE_ACTIVE_KEY, activeAlgorithmId);
+        function saveAlgorithmList() {
+            try {
+                localStorage.setItem(STORAGE_LIST_KEY, JSON.stringify(algorithmList));
+                if (activeAlgorithmId) {
+                    localStorage.setItem(STORAGE_ACTIVE_KEY, activeAlgorithmId);
+                }
+            } catch (e) {
+                console.error('[厨神大赛] 保存算法列表失败:', e);
             }
-        } catch (e) {
-            console.error('[厨神大赛] 保存算法列表失败:', e);
         }
-    }
 
-    function getAlgorithmCode(id) {
-        try {
-            return localStorage.getItem(STORAGE_KEY_PREFIX + id);
-        } catch (e) {
-            console.error('[厨神大赛] 读取算法失败:', e);
-            return null;
-        }
-    }
-
-    function saveAlgorithm(name, code) {
-        try {
-            var id = 'algo_' + Date.now();
-            var algorithm = {
-                id: id,
-                name: name,
-                size: code.length,
-                createTime: new Date().toLocaleString('zh-CN')
-            };
-            
-            localStorage.setItem(STORAGE_KEY_PREFIX + id, code);
-            algorithmList.push(algorithm);
-            saveAlgorithmList();
-            
-            return id;
-        } catch (e) {
-            console.error('[厨神大赛] 保存算法失败:', e);
-            return null;
-        }
-    }
-
-    function deleteAlgorithm(id) {
-        try {
-            localStorage.removeItem(STORAGE_KEY_PREFIX + id);
-            algorithmList = algorithmList.filter(function(a) { return a.id !== id; });
-            if (activeAlgorithmId === id) {
-                activeAlgorithmId = null;
-                localStorage.removeItem(STORAGE_ACTIVE_KEY);
+        function getAlgorithmCode(id) {
+            try {
+                return localStorage.getItem(STORAGE_KEY_PREFIX + id);
+            } catch (e) {
+                console.error('[厨神大赛] 读取算法失败:', e);
+                return null;
             }
-            saveAlgorithmList();
-            return true;
-        } catch (e) {
-            console.error('[厨神大赛] 删除算法失败:', e);
-            return false;
         }
-    }
 
-    function setActiveAlgorithm(id) {
-        activeAlgorithmId = id;
-        localStorage.setItem(STORAGE_ACTIVE_KEY, id);
-        var code = getAlgorithmCode(id);
-        if (code) {
-            executeAlgorithm(code);
+        function saveAlgorithm(name, code) {
+            try {
+                var id = 'algo_' + Date.now();
+                var algorithm = {
+                    id: id,
+                    name: name,
+                    size: code.length,
+                    createTime: new Date().toLocaleString('zh-CN')
+                };
+
+                localStorage.setItem(STORAGE_KEY_PREFIX + id, code);
+                algorithmList.push(algorithm);
+                saveAlgorithmList();
+
+                return id;
+            } catch (e) {
+                console.error('[厨神大赛] 保存算法失败:', e);
+                return null;
+            }
         }
-    }
 
-    function getAutoCondimentEnabled() {
-        try {
-            var stored = localStorage.getItem(STORAGE_AUTO_CONDIMENT_KEY);
-            if (stored === null || stored === undefined) return true;
-            return stored === '1';
-        } catch (e) {
-            return true;
-        }
-    }
-
-    function setAutoCondimentEnabled(enabled) {
-        try {
-            localStorage.setItem(STORAGE_AUTO_CONDIMENT_KEY, enabled ? '1' : '0');
-        } catch (e) {}
-    }
-
-    function executeAlgorithm(code) {
-        try {
-            // 使用间接eval调用，确保在全局作用域执行
-            (1, eval)(code);
-            
-            // 验证CompetitionOptimizer是否已定义
-            if (typeof window.CompetitionOptimizer === 'undefined') {
-                console.error('[厨神大赛] CompetitionOptimizer未定义');
-                showAlert('算法执行失败：CompetitionOptimizer未定义', '错误');
+        function deleteAlgorithm(id) {
+            try {
+                localStorage.removeItem(STORAGE_KEY_PREFIX + id);
+                algorithmList = algorithmList.filter(function (a) { return a.id !== id; });
+                if (activeAlgorithmId === id) {
+                    activeAlgorithmId = null;
+                    localStorage.removeItem(STORAGE_ACTIVE_KEY);
+                }
+                saveAlgorithmList();
+                return true;
+            } catch (e) {
+                console.error('[厨神大赛] 删除算法失败:', e);
                 return false;
             }
-            
-            return true;
-        } catch (e) {
-            console.error('[厨神大赛] 执行算法失败:', e);
-            showAlert('算法执行失败：' + e.message, '错误');
-            return false;
         }
-    }
 
-    function createSettingsModal() {
-        var modalHtml = '<div id="competition-settings-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center;">' +
-            '<div style="background: white; border-radius: 8px; padding: 20px; max-width: 600px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">' +
-                '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #e0e0e0; padding-bottom: 10px;">' +
-                    '<h4 style="margin: 0; font-size: 18px; font-weight: bold;">算法设置</h4>' +
-                    '<button id="close-settings-modal" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #999; line-height: 1;">&times;</button>' +
-                '</div>' +
-                '<div style="margin-bottom: 20px;">' +
-                    '<div style="display: flex; gap: 10px; align-items: flex-end; margin-bottom: 15px;">' +
-                        '<div style="flex: 1;">' +
-                            '<label style="display: block; margin-bottom: 8px; font-weight: bold; font-size: 14px;">选择文件（.js）：</label>' +
-                            '<input type="file" id="algorithm-file-input" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">' +
-                        '</div>' +
-                        '<button id="btn-import-algorithm" class="btn btn-primary" style="white-space: nowrap; height: 38px;"><span class="glyphicon glyphicon-upload"></span> 导入算法</button>' +
-                    '</div>' +
-                    '<div style="display: flex; gap: 10px; align-items: flex-end; margin-bottom: 15px;">' +
-                        '<div style="flex: 1;">' +
-                            '<label style="display: block; margin-bottom: 8px; font-weight: bold; font-size: 14px;">选择算法：</label>' +
-                            '<select id="algorithm-select" class="form-control" style="font-size: 14px; height: 38px;">' +
-                                '<option value="">暂无算法</option>' +
-                            '</select>' +
-                        '</div>' +
-                        '<button id="btn-delete-current-algorithm" class="btn btn-danger" style="white-space: nowrap; height: 38px;" disabled><span class="glyphicon glyphicon-trash"></span> 删除算法</button>' +
-                    '</div>' +
-                    '<div style="margin-top: 6px; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between;">' +
-                        '<span style="font-weight: bold; font-size: 14px;">自动搭配调料</span>' +
-                        '<input type="checkbox" id="chk-competition-auto-condiment" data-toggle="toggle" data-on="开" data-off="关" data-onstyle="default" data-size="small" data-width="56px" checked>' +
-                    '</div>' +
-                '</div>' +
-
-            '</div>' +
-        '</div>';
-        $('body').append(modalHtml);
-        if ($.fn.bootstrapToggle) {
-            $('#chk-competition-auto-condiment').bootstrapToggle();
-        }
-    }
-
-    function updateAlgorithmList() {
-        var $select = $('#algorithm-select');
-        $select.empty();
-        
-        if (algorithmList.length === 0) {
-            $select.append('<option value="">暂无算法</option>');
-        } else {
-            algorithmList.forEach(function(algo) {
-                var isActive = algo.id === activeAlgorithmId;
-                var optionText = algo.name + ' (' + (algo.size / 1024).toFixed(2) + ' KB)' + (isActive ? ' [当前]' : '');
-                var option = $('<option></option>')
-                    .val(algo.id)
-                    .text(optionText)
-                    .prop('selected', isActive);
-                $select.append(option);
-            });
-        }
-        
-        // 更新删除按钮状态
-        // 只要列表中有算法就可以删除（删除当前选中的算法）
-        var hasAlgorithms = algorithmList.length > 0;
-        $('#btn-delete-current-algorithm').prop('disabled', !hasAlgorithms);
-        
-        // 如果有算法但没有激活的，默认选中第一个
-        if (hasAlgorithms && !activeAlgorithmId) {
-            var firstAlgo = algorithmList[0];
-            $select.val(firstAlgo.id);
-        }
-    }
-
-
-
-    function initEventListeners() {
-        $(document).on('click', '#btn-competition-settings', function() {
-            $('#competition-settings-modal').css('display', 'flex');
-            updateAlgorithmList();
-            var enabled = getAutoCondimentEnabled();
-            $('#chk-competition-auto-condiment').prop('checked', enabled);
-            if ($('#chk-competition-auto-condiment').parent().hasClass('toggle')) {
-                $('#chk-competition-auto-condiment').bootstrapToggle(enabled ? 'on' : 'off');
-            }
-        });
-
-        $(document).on('click', '#close-settings-modal', function() {
-            $('#competition-settings-modal').hide();
-        });
-
-        $(document).on('click', '#competition-settings-modal', function(e) {
-            if (e.target.id === 'competition-settings-modal') {
-                $(this).hide();
-            }
-        });
-
-        $(document).on('click', '#btn-import-algorithm', function() {
-            var fileInput = document.getElementById('algorithm-file-input');
-            var file = fileInput.files[0];
-            
-            if (!file) {
-                showAlert('请先选择文件', '提示');
-                return;
-            }
-            
-            // 检查文件扩展名（提示用户，但不强制）
-            var fileName = file.name.toLowerCase();
-            if (!fileName.endsWith('.js')) {
-                if (!confirm('选择的文件不是 .js 文件，是否继续导入？')) {
-                    return;
-                }
-            }
-
-            var reader = new FileReader();
-            reader.onload = function(e) {
-                var code = e.target.result;
-                
-                if (code.indexOf('CompetitionOptimizer') === -1) {
-                    showAlert('文件格式不正确，请确保是有效的算法文件（需包含 CompetitionOptimizer）', '错误');
-                    return;
-                }
-
-                var id = saveAlgorithm(file.name, code);
-                if (id) {
-                    setActiveAlgorithm(id);
-                    showAlert('算法导入成功！新算法已生效。', '成功');
-                    updateAlgorithmList();
-                    fileInput.value = '';
-                }
-            };
-            
-            reader.onerror = function() {
-                showAlert('文件读取失败', '错误');
-            };
-            
-            reader.readAsText(file);
-        });
-
-        // 下拉框选择变化时自动加载算法
-        $(document).on('change', '#algorithm-select', function() {
-            var selectedId = $(this).val();
-            
-            if (!selectedId) {
-                return;
-            }
-            
-            if (selectedId === activeAlgorithmId) {
-                showAlert('该算法已经是当前使用的算法', '提示');
-                return;
-            }
-            
-            setActiveAlgorithm(selectedId);
-            showAlert('算法已切换！新算法已生效。', '成功');
-            updateAlgorithmList();
-        });
-
-        $(document).on('change', '#chk-competition-auto-condiment', function() {
-            setAutoCondimentEnabled($(this).prop('checked'));
-        });
-
-        $(document).on('click', '#btn-delete-current-algorithm', function() {
-            // 获取当前选中的算法（从下拉框）
-            var selectedId = $('#algorithm-select').val();
-            
-            if (!selectedId) {
-                showAlert('请先选择要删除的算法', '提示');
-                return;
-            }
-            
-            var selectedAlgo = algorithmList.find(function(a) { return a.id === selectedId; });
-            if (!selectedAlgo) return;
-            
-            if (confirm('确定要删除算法 "' + selectedAlgo.name + '" 吗？' + (selectedId === activeAlgorithmId ? '删除后将恢复使用默认算法。' : ''))) {
-                if (deleteAlgorithm(selectedId)) {
-                    // 如果删除的是当前激活的算法，清除全局 CompetitionOptimizer 对象
-                    if (selectedId === activeAlgorithmId && typeof window.CompetitionOptimizer !== 'undefined') {
-                        delete window.CompetitionOptimizer;
-                        console.log('[厨神大赛] 已清除 CompetitionOptimizer');
-                    }
-                    
-                    showAlert('算法已删除！' + (selectedId === activeAlgorithmId ? '已恢复使用默认算法。' : ''), '成功');
-                    updateAlgorithmList();
-                }
-            }
-        });
-    }
-
-    function init() {
-        loadAlgorithmList();
-        
-        if (activeAlgorithmId) {
-            var code = getAlgorithmCode(activeAlgorithmId);
+        function setActiveAlgorithm(id) {
+            activeAlgorithmId = id;
+            localStorage.setItem(STORAGE_ACTIVE_KEY, id);
+            var code = getAlgorithmCode(id);
             if (code) {
                 executeAlgorithm(code);
-                var activeAlgo = algorithmList.find(function(a) { return a.id === activeAlgorithmId; });
             }
         }
-        
-        initDisplayControl();
-        createSettingsModal();
-        initEventListeners();
-        
-    }
 
-    $(document).ready(function() {
-        init();
-    });
-
-    window.CompetitionSettings = {
-        hasCustomAlgorithm: function() {
-            return activeAlgorithmId !== null;
-        },
-        getActiveAlgorithm: function() {
-            return activeAlgorithmId ? getAlgorithmCode(activeAlgorithmId) : null;
-        },
-        getAlgorithmList: function() {
-            return algorithmList;
+        function getAutoCondimentEnabled() {
+            try {
+                var stored = localStorage.getItem(STORAGE_AUTO_CONDIMENT_KEY);
+                if (stored === null || stored === undefined) return true;
+                return stored === '1';
+            } catch (e) {
+                return true;
+            }
         }
-    };
-})();
+
+        function setAutoCondimentEnabled(enabled) {
+            try {
+                localStorage.setItem(STORAGE_AUTO_CONDIMENT_KEY, enabled ? '1' : '0');
+            } catch (e) { }
+        }
+
+        function executeAlgorithm(code) {
+            try {
+                // 使用间接eval调用，确保在全局作用域执行
+                (1, eval)(code);
+
+                // 验证CompetitionOptimizer是否已定义
+                if (typeof window.CompetitionOptimizer === 'undefined') {
+                    console.error('[厨神大赛] CompetitionOptimizer未定义');
+                    showAlert('算法执行失败：CompetitionOptimizer未定义', '错误');
+                    return false;
+                }
+
+                return true;
+            } catch (e) {
+                console.error('[厨神大赛] 执行算法失败:', e);
+                showAlert('算法执行失败：' + e.message, '错误');
+                return false;
+            }
+        }
+
+        function createSettingsModal() {
+            var modalHtml = '<div id="competition-settings-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center;">' +
+                '<div style="background: white; border-radius: 8px; padding: 20px; max-width: 600px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">' +
+                '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #e0e0e0; padding-bottom: 10px;">' +
+                '<h4 style="margin: 0; font-size: 18px; font-weight: bold;">算法设置</h4>' +
+                '<button id="close-settings-modal" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #999; line-height: 1;">&times;</button>' +
+                '</div>' +
+                '<div style="margin-bottom: 20px;">' +
+                '<div style="display: flex; gap: 10px; align-items: flex-end; margin-bottom: 15px;">' +
+                '<div style="flex: 1;">' +
+                '<label style="display: block; margin-bottom: 8px; font-weight: bold; font-size: 14px;">选择文件（.js）：</label>' +
+                '<input type="file" id="algorithm-file-input" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">' +
+                '</div>' +
+                '<button id="btn-import-algorithm" class="btn btn-primary" style="white-space: nowrap; height: 38px;"><span class="glyphicon glyphicon-upload"></span> 导入算法</button>' +
+                '</div>' +
+                '<div style="display: flex; gap: 10px; align-items: flex-end; margin-bottom: 15px;">' +
+                '<div style="flex: 1;">' +
+                '<label style="display: block; margin-bottom: 8px; font-weight: bold; font-size: 14px;">选择算法：</label>' +
+                '<select id="algorithm-select" class="form-control" style="font-size: 14px; height: 38px;">' +
+                '<option value="">暂无算法</option>' +
+                '</select>' +
+                '</div>' +
+                '<button id="btn-delete-current-algorithm" class="btn btn-danger" style="white-space: nowrap; height: 38px;" disabled><span class="glyphicon glyphicon-trash"></span> 删除算法</button>' +
+                '</div>' +
+                '<div style="margin-top: 6px; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between;">' +
+                '<span style="font-weight: bold; font-size: 14px;">自动搭配调料</span>' +
+                '<input type="checkbox" id="chk-competition-auto-condiment" data-toggle="toggle" data-on="开" data-off="关" data-onstyle="default" data-size="small" data-width="56px" checked>' +
+                '</div>' +
+                '</div>' +
+
+                '</div>' +
+                '</div>';
+            $('body').append(modalHtml);
+            if ($.fn.bootstrapToggle) {
+                $('#chk-competition-auto-condiment').bootstrapToggle();
+            }
+        }
+
+        function updateAlgorithmList() {
+            var $select = $('#algorithm-select');
+            $select.empty();
+
+            if (algorithmList.length === 0) {
+                $select.append('<option value="">暂无算法</option>');
+            } else {
+                algorithmList.forEach(function (algo) {
+                    var isActive = algo.id === activeAlgorithmId;
+                    var optionText = algo.name + ' (' + (algo.size / 1024).toFixed(2) + ' KB)' + (isActive ? ' [当前]' : '');
+                    var option = $('<option></option>')
+                        .val(algo.id)
+                        .text(optionText)
+                        .prop('selected', isActive);
+                    $select.append(option);
+                });
+            }
+
+            // 更新删除按钮状态
+            // 只要列表中有算法就可以删除（删除当前选中的算法）
+            var hasAlgorithms = algorithmList.length > 0;
+            $('#btn-delete-current-algorithm').prop('disabled', !hasAlgorithms);
+
+            // 如果有算法但没有激活的，默认选中第一个
+            if (hasAlgorithms && !activeAlgorithmId) {
+                var firstAlgo = algorithmList[0];
+                $select.val(firstAlgo.id);
+            }
+        }
+
+
+
+        function initEventListeners() {
+            $(document).on('click', '#btn-competition-settings', function () {
+                $('#competition-settings-modal').css('display', 'flex');
+                updateAlgorithmList();
+                var enabled = getAutoCondimentEnabled();
+                $('#chk-competition-auto-condiment').prop('checked', enabled);
+                if ($('#chk-competition-auto-condiment').parent().hasClass('toggle')) {
+                    $('#chk-competition-auto-condiment').bootstrapToggle(enabled ? 'on' : 'off');
+                }
+            });
+
+            $(document).on('click', '#close-settings-modal', function () {
+                $('#competition-settings-modal').hide();
+            });
+
+            $(document).on('click', '#competition-settings-modal', function (e) {
+                if (e.target.id === 'competition-settings-modal') {
+                    $(this).hide();
+                }
+            });
+
+            $(document).on('click', '#btn-import-algorithm', function () {
+                var fileInput = document.getElementById('algorithm-file-input');
+                var file = fileInput.files[0];
+
+                if (!file) {
+                    showAlert('请先选择文件', '提示');
+                    return;
+                }
+
+                // 检查文件扩展名（提示用户，但不强制）
+                var fileName = file.name.toLowerCase();
+                if (!fileName.endsWith('.js')) {
+                    if (!confirm('选择的文件不是 .js 文件，是否继续导入？')) {
+                        return;
+                    }
+                }
+
+                var reader = new FileReader();
+                reader.onload = function (e) {
+                    var code = e.target.result;
+
+                    if (code.indexOf('CompetitionOptimizer') === -1) {
+                        showAlert('文件格式不正确，请确保是有效的算法文件（需包含 CompetitionOptimizer）', '错误');
+                        return;
+                    }
+
+                    var id = saveAlgorithm(file.name, code);
+                    if (id) {
+                        setActiveAlgorithm(id);
+                        showAlert('算法导入成功！新算法已生效。', '成功');
+                        updateAlgorithmList();
+                        fileInput.value = '';
+                    }
+                };
+
+                reader.onerror = function () {
+                    showAlert('文件读取失败', '错误');
+                };
+
+                reader.readAsText(file);
+            });
+
+            // 下拉框选择变化时自动加载算法
+            $(document).on('change', '#algorithm-select', function () {
+                var selectedId = $(this).val();
+
+                if (!selectedId) {
+                    return;
+                }
+
+                if (selectedId === activeAlgorithmId) {
+                    showAlert('该算法已经是当前使用的算法', '提示');
+                    return;
+                }
+
+                setActiveAlgorithm(selectedId);
+                showAlert('算法已切换！新算法已生效。', '成功');
+                updateAlgorithmList();
+            });
+
+            $(document).on('change', '#chk-competition-auto-condiment', function () {
+                setAutoCondimentEnabled($(this).prop('checked'));
+            });
+
+            $(document).on('click', '#btn-delete-current-algorithm', function () {
+                // 获取当前选中的算法（从下拉框）
+                var selectedId = $('#algorithm-select').val();
+
+                if (!selectedId) {
+                    showAlert('请先选择要删除的算法', '提示');
+                    return;
+                }
+
+                var selectedAlgo = algorithmList.find(function (a) { return a.id === selectedId; });
+                if (!selectedAlgo) return;
+
+                if (confirm('确定要删除算法 "' + selectedAlgo.name + '" 吗？' + (selectedId === activeAlgorithmId ? '删除后将恢复使用默认算法。' : ''))) {
+                    if (deleteAlgorithm(selectedId)) {
+                        // 如果删除的是当前激活的算法，清除全局 CompetitionOptimizer 对象
+                        if (selectedId === activeAlgorithmId && typeof window.CompetitionOptimizer !== 'undefined') {
+                            delete window.CompetitionOptimizer;
+                            console.log('[厨神大赛] 已清除 CompetitionOptimizer');
+                        }
+
+                        showAlert('算法已删除！' + (selectedId === activeAlgorithmId ? '已恢复使用默认算法。' : ''), '成功');
+                        updateAlgorithmList();
+                    }
+                }
+            });
+        }
+
+        function init() {
+            loadAlgorithmList();
+
+            if (activeAlgorithmId) {
+                var code = getAlgorithmCode(activeAlgorithmId);
+                if (code) {
+                    executeAlgorithm(code);
+                    var activeAlgo = algorithmList.find(function (a) { return a.id === activeAlgorithmId; });
+                }
+            }
+
+            initDisplayControl();
+            createSettingsModal();
+            initEventListeners();
+
+        }
+
+        $(document).ready(function () {
+            init();
+        });
+
+        window.CompetitionSettings = {
+            hasCustomAlgorithm: function () {
+                return activeAlgorithmId !== null;
+            },
+            getActiveAlgorithm: function () {
+                return activeAlgorithmId ? getAlgorithmCode(activeAlgorithmId) : null;
+            },
+            getAlgorithmList: function () {
+                return algorithmList;
+            }
+        };
+    })();
 </script>
 
 </html>

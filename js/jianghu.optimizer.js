@@ -1,6 +1,6 @@
 /**
- * 风云宴自动跑分优化器
- * 
+ * 江湖帖自动跑分优化器
+ *
  * ==================== 算法总体架构 ====================
  * 
  * 核心思路：先选菜谱，再选厨师（厨师排名只有在选择了菜谱后才准确）
@@ -81,7 +81,7 @@
  * - 意图感知种子选择：利用意图链条找到高分起点
  */
 
-var BanquetOptimizer = (function() {
+var JianghuOptimizer = (function() {
     'use strict';
     
     var _isRunning = false;
@@ -103,262 +103,112 @@ var BanquetOptimizer = (function() {
         preFilterTop: 50     // 预过滤候选数
     };
 
-    // ==================== 风云宴级别/档位分数数据 ====================
-    // 级别：省(双客人)、州(双客人)、郡(单客人)、县(单客人)、村(单客人)
-    // 档位：1-5档，5档最高
-    // 琉璃币/玉璧：省(140-180)、州(120-160)、郡(100-140)、县(80-120)、村(60-100)
-    var BANQUET_LEVELS = [
-        { id: 'province', name: '省', dual: true,  rewards: [180, 170, 160, 150, 140] },
-        { id: 'state',    name: '州', dual: true,  rewards: [160, 150, 140, 130, 120] },
-        { id: 'county',   name: '郡', dual: false, rewards: [140, 130, 120, 110, 100] },
-        { id: 'district', name: '县', dual: false, rewards: [120, 110, 100, 90, 80] },
-        { id: 'village',  name: '村', dual: false, rewards: [100, 90, 80, 70, 60] }
-    ];
-
-    // 贵客组合分数表：key = "贵客1+贵客2" 或 "贵客1"（单客人时取第一个）
-    // scores[levelIndex][tierIndex]，tier 0=5档(最高), 4=1档(最低)
-    // order = 日期/轮次序号
-    var BANQUET_TIER_SCORES = {
-        '吕洞宾+胡喜媚': {
-            order: 214,
-            scores: [
-                [2598000, 2078400, 1662720, 997632, 448935],
-                [1818600, 1454880, 1163904, 698343, 314255],
-                [909300, 727440, 581952, 349172, 157128],
-                [454650, 363720, 290976, 174586, 78564],
-                [227325, 181860, 145488, 87293, 39282]
-            ]
-        },
-        '何仙姑+胡喜媚': {
-            order: 221,
-            scores: [
-                [1980000, 1584000, 1267200, 760320, 342144],
-                [1485000, 1188000, 950400, 570240, 256608],
-                [668250, 534600, 427680, 256608, 115474],
-                [267300, 213840, 171072, 102644, 46190],
-                [106920, 85536, 68429, 41058, 18477]
-            ]
-        },
-        '钟离权+玉贵人': {
-            order: 228,
-            scores: [
-                [2856000, 2284800, 1827840, 1096704, 493517],
-                [1999200, 1599360, 1279488, 767693, 345462],
-                [999600, 799680, 639744, 383847, 172732],
-                [499800, 399840, 319872, 191924, 86366],
-                [249900, 199920, 159936, 95962, 43183]
-            ]
-        },
-        '苏妲己+张果老': {
-            order: 307,
-            scores: [
-                [2272000, 1817600, 1454080, 872448, 392602],
-                [1635840, 1308672, 1046938, 628163, 282674],
-                [572544, 458036, 366429, 219858, 98937],
-                [286272, 229018, 183215, 109929, 49469],
-                [85882, 68706, 54965, 32979, 14841]
-            ]
-        },
-        '猪猪男孩+御弟哥哥': {
-            order: 314,
-            scores: [
-                [2052000, 1641600, 1313280, 787968, 354586],
-                [1436400, 1149120, 919296, 551578, 248211],
-                [718200, 574560, 459648, 275789, 124106],
-                [359100, 287280, 229824, 137895, 62053],
-                [179550, 143640, 114912, 68948, 31027]
-            ]
-        },
-        '打更人+玉贵人': {
-            order: 321,
-            scores: [
-                [2165000, 1732000, 1385600, 831360, 374112],
-                [1623750, 1299000, 1039200, 623520, 280584],
-                [730688, 584551, 467641, 280585, 126264],
-                [292276, 233821, 187057, 112235, 50506],
-                [116911, 93529, 74824, 44895, 20203]
-            ]
-        },
-        '猪猪男孩+空空': {
-            order: 328,
-            scores: [
-                [3195000, 2556000, 2044800, 1226880, 552096],
-                [2236500, 1789200, 1431360, 858816, 386468],
-                [1118250, 894600, 715680, 429408, 193234],
-                [559125, 447300, 357840, 214704, 96617],
-                [279563, 223651, 178921, 107353, 48309]
-            ]
-        },
-        '卷帘大将+御弟哥哥': {
-            order: 404,
-            scores: [
-                [3252000, 2601600, 2081280, 1248768, 561946],
-                [2276400, 1821120, 1456896, 874138, 393363],
-                [1138200, 910560, 728448, 437069, 196682],
-                [569100, 455280, 364224, 218535, 98341],
-                [284550, 227640, 182112, 109268, 49171]
-            ]
-        },
-        '王老板+白马王子': {
-            order: 411,
-            scores: [
-                [2798000, 2238400, 1790720, 1074432, 483495],
-                [1958600, 1566880, 1253504, 752103, 338447],
-                [979300, 783440, 626752, 376052, 169224],
-                [489650, 391720, 313376, 188026, 84612],
-                [244825, 195860, 156688, 94013, 42306]
-            ]
-        },
-        '胡喜媚+苏妲己': {
-            order: 418,
-            scores: [
-                [2621000, 2096800, 1677440, 1006464, 452909],
-                [1834700, 1467760, 1174208, 704525, 317037],
-                [917350, 733880, 587104, 352263, 158519],
-                [458675, 366940, 293552, 176132, 79260],
-                [229338, 183471, 146777, 88067, 39631]
-            ]
-        },
-        '蓝采和+铁拐李': {
-            order: 425,
-            scores: [
-                [2930000, 2344000, 1875200, 1125120, 506304],
-                [1758000, 1406400, 1125120, 675072, 303783],
-                [791100, 632880, 506304, 303783, 136703],
-                [395550, 316440, 253152, 151892, 68352],
-                [197775, 158220, 126576, 75946, 34176]
-            ]
-        },
-        '吕洞宾+曹国舅': {
-            order: 502,
-            scores: [
-                [2980000, 2384000, 1907200, 1144320, 514944],
-                [1788000, 1430400, 1144320, 686592, 308967],
-                [804600, 643680, 514944, 308967, 139036],
-                [402300, 321840, 257472, 154484, 69518],
-                [201150, 160920, 128736, 77242, 34759]
-            ]
-        },
-        '韩湘子+钟离权': {
-            order: 509,
-            scores: [
-                [3170000, 2536000, 2028800, 1217280, 547776],
-                [1902000, 1521600, 1217280, 730368, 328666],
-                [855900, 684720, 547776, 328666, 147900],
-                [427950, 342360, 273888, 164333, 73950],
-                [213975, 171180, 136944, 82167, 36976]
-            ]
-        },
-        '玉贵人+胡喜媚': {
-            order: 516,
-            scores: [
-                [2710000, 2168000, 1734400, 1040640, 468288],
-                [1626000, 1300800, 1040640, 624384, 280973],
-                [731700, 585360, 468288, 280973, 126438],
-                [365850, 292680, 234144, 140487, 63220],
-                [182925, 146340, 117072, 70244, 31610]
-            ]
-        },
-        '韩湘子+蓝采和': {
-            order: 523,
-            scores: [
-                [2360000, 1888000, 1510400, 906240, 407808],
-                [1770000, 1416000, 1132800, 679680, 305856],
-                [796500, 637200, 509760, 305856, 137636],
-                [318600, 254880, 203904, 122343, 55055],
-                [127440, 101952, 81562, 48938, 22023]
-            ]
-        },
-        '卷帘大将+白马王子': {
-            order: 606,
-            scores: [
-                [2416000, 1932800, 1546240, 927744, 417485],
-                [1691200, 1352960, 1082368, 649421, 292240],
-                [845600, 676480, 541184, 324711, 146120],
-                [422800, 338240, 270592, 162356, 73061],
-                [211400, 169120, 135296, 81178, 36531]
-            ]
-        },
-        '白马王子+吕洞宾': {
-            order: 613,
-            scores: [
-                [3238000, 2590400, 2072320, 1243392, 559527],
-                [2266600, 1813280, 1450624, 870375, 391669],
-                [1133300, 906640, 725312, 435188, 195835],
-                [566650, 453320, 362656, 217594, 97918],
-                [283325, 226660, 181328, 108797, 48959]
-            ]
-        },
-        '钟离权+曹国舅': {
-            order: 620,
-            scores: [
-                [3040000, 2432000, 1945600, 1167360, 525312],
-                [2128000, 1702400, 1361920, 817152, 367719],
-                [1064000, 851200, 680960, 408576, 183860],
-                [532000, 425600, 340480, 204288, 91930],
-                [266000, 212800, 170240, 102144, 45965]
-            ]
-        },
-        '胡喜媚+铁拐李': {
-            order: 711,
-            scores: [
-                [2338000, 1870400, 1496320, 897792, 404007],
-                [1753500, 1402800, 1122240, 673344, 303005],
-                [789075, 631260, 505008, 303005, 136353],
-                [315630, 252504, 202004, 121203, 54542],
-                [126252, 101002, 80802, 48482, 21817]
-            ]
-        },
-        '空空+御弟哥哥': {
-            order: 718,
-            scores: [
-                [2760000, 2208000, 1766400, 1059840, 476928],
-                [1932000, 1545600, 1236480, 741888, 333850],
-                [966000, 772800, 618240, 370944, 166925],
-                [483000, 386400, 309120, 185472, 83463],
-                [241500, 193200, 154560, 92736, 41732]
-            ]
-        }
+    // ==================== 江湖帖档位分数数据 ====================
+    // 江湖帖只有两个档位：普通、特级
+    // 数据来源：贵客-工作表1.csv
+    var JIANGHU_TIER_SCORES = {
+        '铁拐李': { normal: 65120, special: 81400 },
+        '何仙姑': { normal: 60560, special: 75700 },
+        '钟离权': { normal: 110560, special: 138200 },
+        '张国老': { normal: 85920, special: 107400 },
+        '蓝采和': { normal: 65632, special: 82040 },
+        '韩湘子': { normal: 50232, special: 62790 },
+        '曹国舅': { normal: 84160, special: 105200 },
+        '吕洞宾': { normal: 78800, special: 98500 },
+        '王老板': { normal: 126960, special: 158700 },
+        '风水大师': { normal: 99280, special: 124100 },
+        '土地婆': { normal: 63440, special: 79300 },
+        '不明人': { normal: 75680, special: 94600 },
+        '打更人': { normal: 114080, special: 142600 },
+        '苏侍中': { normal: 65520, special: 81900 },
+        '涧迭': { normal: 81600, special: 102000 },
+        '贾一': { normal: 50352, special: 62940 },
+        '秋风': { normal: 114192, special: 142740 },
+        '玉贵人': { normal: 100480, special: 125600 },
+        '苏妲己': { normal: 142640, special: 178300 },
+        '胡喜媚': { normal: 46664, special: 58330 },
+        '空空': { normal: 45904, special: 57380 },
+        '卷帘大将': { normal: 98880, special: 123600 },
+        '猪猪男孩': { normal: 91720, special: 114650 },
+        '白马王子': { normal: 57600, special: 72000 },
+        '御弟哥哥': { normal: 82456, special: 103070 }
     };
 
+    // 贤客楼：5档分数，按高到低存储（5档 -> 1档）
+    // 数据来源：贵客-工作表1.csv
+    var XIANKE_TIER_SCORES = {
+        '王老板 周1357': [60000, 30000, 10000, 2000, 200],
+        '土地婆 周2467': [60000, 30000, 10000, 2000, 200],
+        '风水大师 周135': [200000, 130000, 80000, 40000, 20000],
+        '风水大师 周246': [200000, 130000, 80000, 40000, 20000]
+    };
+
+    // 保留风云宴的数据结构以兼容接口
+    var BANQUET_LEVELS = [
+        { id: 'jianghu', name: '江湖帖', dual: false, rewards: [] }
+    ];
+
+    var BANQUET_TIER_SCORES = {};
+
     /**
-     * 根据当前规则中的贵客Title，查找对应的分数数据key
-     * @param {string} title1 - 贵客1的Title
-     * @param {string} title2 - 贵客2的Title（单客人时为null）
-     * @returns {string|null} BANQUET_TIER_SCORES中的key
+     * 根据当前规则中的贵客Title，查找对应的江湖帖/贤客楼分数数据
+     * @param {string} title1 - 贵客Title（从规则标题中提取）
+     * @returns {string|null} 分数表中的key
      */
     function _findTierScoreKey(title1, title2) {
         if (!title1) return null;
         
-        // 构建所有可能的组合名称（正序+反序）
-        var names = [];
-        if (title2) {
-            names.push(title1 + '+' + title2);
-            names.push(title2 + '+' + title1);
-        } else {
-            names.push(title1);
+        // 江湖帖规则标题格式：江湖帖 贵客名 [特]
+        // 例如："江湖帖 铁拐李"、"江湖帖 何仙姑 特"
+        // 提取贵客名称
+        var match = title1.match(/江湖帖\s+([^\s]+)/);
+        if (match && match[1]) {
+            var guestName = match[1];
+            // 检查是否存在该贵客的分数数据
+            if (JIANGHU_TIER_SCORES[guestName]) {
+                return guestName;
+            }
         }
-        
-        // 直接匹配
-        for (var i = 0; i < names.length; i++) {
-            if (BANQUET_TIER_SCORES[names[i]]) return names[i];
+
+        // 贤客楼规则标题格式：
+        // 例如："贤客楼 王老板 一 金币 周1357"、"贤客楼 风水大师 五 切蒸煮符文 周246"
+        var xiankeMatch = title1.match(/贤客楼\s+([^\s]+)\s+[一二三四五]\s+.*\s+(周\d+)/);
+        if (xiankeMatch && xiankeMatch[1] && xiankeMatch[2]) {
+            var xiankeKey = xiankeMatch[1] + ' ' + xiankeMatch[2];
+            if (XIANKE_TIER_SCORES[xiankeKey]) {
+                return xiankeKey;
+            }
         }
         
         return null;
     }
 
     /**
-     * 获取指定贵客组合在指定级别和档位的目标分数
-     * @param {string} key - BANQUET_TIER_SCORES中的key
-     * @param {number} levelIndex - 级别索引 (0=省, 1=州, 2=郡, 3=县, 4=村)
-     * @param {number} tierIndex - 档位索引 (0=5档最高, 4=1档最低)
+     * 获取指定贵客在指定档位的目标分数
+     * @param {string} key - 分数表中的key
+     * @param {number} levelIndex - 级别索引（江湖帖/贤客楼固定为0）
+     * @param {number} tierIndex - 江湖帖: 0=特级,1=普通；贤客楼: 0=5档最高,4=1档最低
      * @returns {number|null}
      */
     function _getTierScore(key, levelIndex, tierIndex) {
-        if (!key || !BANQUET_TIER_SCORES[key]) return null;
-        var data = BANQUET_TIER_SCORES[key];
-        if (!data.scores[levelIndex] || data.scores[levelIndex][tierIndex] === undefined) return null;
-        return data.scores[levelIndex][tierIndex];
+        if (!key) return null;
+        if (JIANGHU_TIER_SCORES[key]) {
+            var data = JIANGHU_TIER_SCORES[key];
+            
+            // tierIndex: 0=特级, 1=普通
+            if (tierIndex === 0) {
+                return data.special;
+            } else if (tierIndex === 1) {
+                return data.normal;
+            }
+        }
+        if (XIANKE_TIER_SCORES[key]) {
+            if (tierIndex >= 0 && tierIndex < XIANKE_TIER_SCORES[key].length) {
+                return XIANKE_TIER_SCORES[key][tierIndex];
+            }
+        }
+        
+        return null;
     }
 
     var _timeStats = {};
@@ -377,6 +227,7 @@ var BanquetOptimizer = (function() {
     var _chefMap = {};       // chefId -> chef对象的快速查找
     var _recipeMap = {};     // recipeId -> recipe.data的快速查找
     var _menusByRule = [];   // 每个rule的可用菜谱列表
+    var _quantitySearchMode = 'full'; // full=按最大份数搜索, single=按单份搜索结构
 
     /**
      * 检查是否已达到目标分数
@@ -441,6 +292,30 @@ var BanquetOptimizer = (function() {
         return _isTargetReached() && _isAllSatietyOk();
     }
 
+    function _getActiveQuantityMode() {
+        return _quantitySearchMode || 'full';
+    }
+
+    function _getRecipeInitialQuantity(maxQty, quantityMode) {
+        if (!maxQty || maxQty <= 0) return 0;
+        return quantityMode === 'single' ? 1 : maxQty;
+    }
+
+    function _calcTotalQuantity(state) {
+        var targetState = state || _simState;
+        var total = 0;
+        if (!targetState) return total;
+        for (var ri = 0; ri < targetState.length; ri++) {
+            for (var ci = 0; ci < targetState[ri].length; ci++) {
+                for (var reci = 0; reci < 3; reci++) {
+                    var rec = targetState[ri][ci].recipes[reci];
+                    if (rec && rec.data && rec.quantity > 0) total += rec.quantity;
+                }
+            }
+        }
+        return total;
+    }
+
     function init(gameData) {
         _bestResult = null;
         _isRunning = false;
@@ -448,6 +323,7 @@ var BanquetOptimizer = (function() {
         _gameData = gameData || null;
         _rules = [];
         _bestScore = 0;
+        _quantitySearchMode = 'full';
         _simState = null;
         _bestSimState = null;
         _topCandidates = [];
@@ -651,7 +527,7 @@ var BanquetOptimizer = (function() {
      * 修复：计算份数时扣除同rule内其他已选菜谱的食材消耗，匹配系统setCustomRecipe逻辑
      * preRemainMaterials: 可选，预计算的剩余食材池（避免重复计算）
      */
-    function _simSetRecipe(ruleIndex, chefIndex, recipeIndex, recipeId, preRemainMaterials) {
+    function _simSetRecipe(ruleIndex, chefIndex, recipeIndex, recipeId, preRemainMaterials, desiredQty) {
         var slot = _simState[ruleIndex][chefIndex];
         if (!recipeId) {
             slot.recipes[recipeIndex] = {data: null, quantity: 0, max: 0};
@@ -685,10 +561,16 @@ var BanquetOptimizer = (function() {
         }
         
         // 用剩余食材计算份数
-        var qty = getRecipeQuantity(recipeData, remainMaterials, rule, slot.chefObj);
-        if (rule.DisableMultiCookbook) qty = Math.min(qty, 1);
+        var maxQty = getRecipeQuantity(recipeData, remainMaterials, rule, slot.chefObj);
+        if (rule.DisableMultiCookbook) maxQty = Math.min(maxQty, 1);
+        var qty;
+        if (desiredQty == null) {
+            qty = _getRecipeInitialQuantity(maxQty, _getActiveQuantityMode());
+        } else {
+            qty = Math.min(Math.max(desiredQty, 0), maxQty);
+        }
         
-        slot.recipes[recipeIndex] = {data: recipeData, quantity: qty, max: qty};
+        slot.recipes[recipeIndex] = {data: recipeData, quantity: qty, max: maxQty};
     }
 
     /**
@@ -960,7 +842,16 @@ var BanquetOptimizer = (function() {
             _applyChefData(ruleIndex);
         }
         
-        results.sort(function(a, b) { return b.score - a.score; });
+        results.sort(function(a, b) {
+            var chefA = _chefMap[a.chefId];
+            var chefB = _chefMap[b.chefId];
+            var materialReduceA = _hasMaterialReduceEffect(chefA) ? 1 : 0;
+            var materialReduceB = _hasMaterialReduceEffect(chefB) ? 1 : 0;
+            if (materialReduceA !== materialReduceB) {
+                return materialReduceB - materialReduceA;
+            }
+            return b.score - a.score;
+        });
         return results;
     }
 
@@ -973,10 +864,11 @@ var BanquetOptimizer = (function() {
      * fastMode=true时只计算当前rule的分数
      * 返回: [{recipeId, score}] 按score降序
      */
-    function _fastGetRecipeRanking(ruleIndex, chefIndex, recipeIndex, topK, fastMode) {
+    function _fastGetRecipeRanking(ruleIndex, chefIndex, recipeIndex, topK, fastMode, quantityMode) {
         var rule = _rules[ruleIndex];
         var menus = _menusByRule[ruleIndex];
         var ruleState = _simState[ruleIndex];
+        var activeQuantityMode = quantityMode || _getActiveQuantityMode();
         
         // 收集所有已用菜谱
         var usedRecipeIds = {};
@@ -1038,8 +930,9 @@ var BanquetOptimizer = (function() {
                 if (rd.steam > 0 && (!chefObj.steamVal || chefObj.steamVal < rd.steam)) continue;
             }
             
-            var qty = getRecipeQuantity(rd, preRemainMaterials, rule, chefObj);
-            if (rule.DisableMultiCookbook) qty = Math.min(qty, 1);
+            var maxQty = getRecipeQuantity(rd, preRemainMaterials, rule, chefObj);
+            if (rule.DisableMultiCookbook) maxQty = Math.min(maxQty, 1);
+            var qty = _getRecipeInitialQuantity(maxQty, activeQuantityMode);
             
             var tempRecipes = [
                 ruleState[chefIndex].recipes[0],
@@ -1223,7 +1116,7 @@ var BanquetOptimizer = (function() {
         var calcFn = fastMode ? function() { return _fastCalcRuleScore(ruleIndex); } : _fastCalcScore;
         
         for (var i = 0; i < phase2.length; i++) {
-            _simSetRecipe(ruleIndex, chefIndex, recipeIndex, phase2[i].rd.recipeId, preRemainMaterials);
+            _simSetRecipe(ruleIndex, chefIndex, recipeIndex, phase2[i].rd.recipeId, preRemainMaterials, null);
             var score = calcFn();
             results.push({recipeId: phase2[i].rd.recipeId, score: score});
         }
@@ -1241,6 +1134,18 @@ var BanquetOptimizer = (function() {
     function _getChefNameById(chefId) {
         var chef = _chefMap[chefId];
         return chef ? chef.name : '未知';
+    }
+
+    function _hasMaterialReduceEffect(chefObj) {
+        if (!chefObj || !chefObj.materialEffects || !chefObj.materialEffects.length) return false;
+        for (var i = 0; i < chefObj.materialEffects.length; i++) {
+            var effect = chefObj.materialEffects[i];
+            if (!effect) continue;
+            if (effect.type === 'MaterialReduce' || effect.conditionType === 'MaterialReduce') {
+                return true;
+            }
+        }
+        return false;
     }
 
     function _getUsedChefIds(excludeRule, excludeChef) {
@@ -1292,15 +1197,10 @@ var BanquetOptimizer = (function() {
         var results = [];
         var gName = rule.Title || ('贵客' + (ruleIndex + 1));
         
-        console.log('[多技法分析] 开始分析贵客:', gName, 'ruleIndex:', ruleIndex);
-        
         if (!rule.IntentList || !_gameData || !_gameData.intents) {
-            console.log('[多技法分析] 缺少数据: IntentList=', !!rule.IntentList, '_gameData=', !!_gameData, 'intents=', !!(_gameData && _gameData.intents));
             _threeSkillIntentCache[ruleIndex] = results;
             return results;
         }
-        
-        console.log('[多技法分析] IntentList长度:', rule.IntentList.length, '意图总数:', _gameData.intents.length);
         
         // 技法名称映射
         var skillNameMap = {
@@ -1313,35 +1213,27 @@ var BanquetOptimizer = (function() {
         for (var ci = 0; ci < rule.IntentList.length; ci++) {
             var intentIds = rule.IntentList[ci];
             if (!intentIds) {
-                console.log('[多技法分析] 位置', ci, '无意图ID');
                 continue;
             }
-            
-            console.log('[多技法分析] 位置', ci, '意图ID列表:', intentIds);
             
             for (var ii = 0; ii < intentIds.length; ii++) {
                 for (var jj = 0; jj < _gameData.intents.length; jj++) {
                     if (_gameData.intents[jj].intentId !== intentIds[ii]) continue;
                     var intent = _gameData.intents[jj];
                     
-                    console.log('[多技法分析] 检查意图:', intent.intentId, 'effectType:', intent.effectType, 'desc:', intent.desc);
-                    
                     // 检查是否是CreateBuff类型且desc包含"三道"
                     if (intent.effectType === 'CreateBuff' && intent.desc && intent.desc.indexOf('三道') >= 0) {
-                        console.log('[多技法分析] 发现三道意图:', intent.desc);
                         // 从desc中提取技法名称
                         for (var sk = 0; sk < skillKeys.length; sk++) {
                             var skillKey = skillKeys[sk];
                             var skillName = skillNameMap[skillKey];
                             if (intent.desc.indexOf('三道' + skillName) >= 0) {
-                                console.log('[多技法分析] 匹配技法:', skillName, '(' + skillKey + ')');
                                 // 计算权重：根据buff效果估算
                                 var weight = 1;
                                 if (_gameData.buffs) {
                                     for (var bk = 0; bk < _gameData.buffs.length; bk++) {
                                         if (_gameData.buffs[bk].buffId === intent.effectValue) {
                                             var buff = _gameData.buffs[bk];
-                                            console.log('[多技法分析] 找到buff:', buff.buffId, 'effectType:', buff.effectType, 'effectValue:', buff.effectValue);
                                             // 售价加成权重高
                                             if (buff.effectType === 'PriceChangePercent' || buff.effectType === 'BasicPriceChangePercent') {
                                                 weight = Math.abs(buff.effectValue || 50);
@@ -1371,7 +1263,6 @@ var BanquetOptimizer = (function() {
                                         intentDesc: intent.desc,
                                         weight: weight
                                     });
-                                    console.log('[多技法分析] 添加技法:', skillName, '权重:', weight);
                                 }
                                 break;
                             }
@@ -1384,9 +1275,6 @@ var BanquetOptimizer = (function() {
         
         // 按权重降序排序
         results.sort(function(a, b) { return b.weight - a.weight; });
-        
-        console.log('[多技法分析] 分析结果:', results.length, '个技法意图:', results.map(function(r) { return r.skillName + '(' + r.weight + ')'; }).join(', '));
-        
         _threeSkillIntentCache[ruleIndex] = results;
         return results;
     }
@@ -2656,15 +2544,11 @@ var BanquetOptimizer = (function() {
                 rankList.push((rankNames[rnk] || rnk) + ':' + rarityRankBonus.rankBonus[rnk]);
             }
             if (condimentList.length > 0 || rarityList.length > 0 || rankList.length > 0) {
-                console.log('[意图分析] 贵客:', gName);
                 if (condimentList.length > 0) {
-                    console.log('[意图分析]   调料加成:', condimentList.join(', '));
                 }
                 if (rarityList.length > 0) {
-                    console.log('[意图分析]   稀有度加成:', rarityList.join(', '));
                 }
                 if (rankList.length > 0) {
-                    console.log('[意图分析]   品阶加成:', rankList.join(', '));
                 }
             }
             
@@ -2677,8 +2561,6 @@ var BanquetOptimizer = (function() {
                 skillList.push(skName + ':' + cookSkillBonus[sk]);
             }
             if (skillList.length > 0) {
-                console.log('[意图分析] 贵客:', gName);
-                console.log('[意图分析]   技法加成:', skillList.join(', '));
             }
             
             // 输出IntentAdd叠加信息
@@ -2688,8 +2570,6 @@ var BanquetOptimizer = (function() {
                 for (var addPos in intentAddInfo.positionWeights) {
                     addPosList.push('位置' + (Number(addPos)+1) + '(价值' + intentAddInfo.positionWeights[addPos] + ')');
                 }
-                console.log('[意图分析] 贵客:', gName);
-                console.log('[意图分析]   IntentAdd位置:', addPosList.join(', '));
             }
             
             // 输出售价光环厨师信息
@@ -2699,8 +2579,6 @@ var BanquetOptimizer = (function() {
                     var types = a.auraEffects.map(function(e) { return e.type + '(' + e.value + ')'; });
                     return a.chefName + '[' + types.join(',') + ']分' + a.auraScore;
                 });
-                console.log('[意图分析] 贵客:', gName);
-                console.log('[意图分析]   售价光环厨师:', auraList.join(', '));
             }
             
             // 输出品阶偏好信息
@@ -2711,8 +2589,6 @@ var BanquetOptimizer = (function() {
                 for (var pr in rankPref.preferredRanks) {
                     prefList.push((rankNames[pr] || pr) + ':' + rankPref.preferredRanks[pr]);
                 }
-                console.log('[意图分析] 贵客:', gName);
-                console.log('[意图分析]   品阶偏好:', prefList.join(', '));
             }
             
             var phase2Info = [];
@@ -2948,8 +2824,6 @@ var BanquetOptimizer = (function() {
                     return;
                 }
                 
-                console.log('[光环种子] 开始处理贵客:', gName, '售价光环厨师数:', auraChefs.length);
-                
                 // 最多尝试top3光环厨师
                 var maxAuraSeeds = Math.min(3, auraChefs.length);
                 var auraTried = {};
@@ -2995,7 +2869,6 @@ var BanquetOptimizer = (function() {
                         _quickRefineFast(activeRules, true);
                         
                         var auraScore = _fastCalcScore();
-                        console.log('[光环种子] 生成候选:', auraChef.chefName, 'pos' + (auraPos+1), '分数:', auraScore);
                         candidates.push({
                             state: _cloneSimState(_simState),
                             score: auraScore,
@@ -3019,14 +2892,10 @@ var BanquetOptimizer = (function() {
             
             // ==================== 多技法组合种子生成 ====================
             function _processMultiSkillSeeds() {
-                console.log('[多技法种子] 开始处理贵客:', gName);
                 var threeSkillIntents = _analyzeThreeSkillIntents(mainRule);
-                
-                console.log('[多技法种子] 三道技法意图数量:', threeSkillIntents.length);
                 
                 // 只有当存在2个以上"三道某技法"意图时才生成多技法组合种子
                 if (threeSkillIntents.length < 2) {
-                    console.log('[多技法种子] 技法意图不足2个，跳过');
                     // 没有多技法意图，直接进入下一个贵客
                     mainIdx++;
                     setTimeout(_processNextRule, 0);
@@ -3034,7 +2903,6 @@ var BanquetOptimizer = (function() {
                 }
                 
                 var skillCombinations = _generateMultiSkillCombinations(threeSkillIntents);
-                console.log('[多技法种子] 生成组合数:', skillCombinations.length);
                 
                 // 只处理双技法和三技法组合（单技法已在普通种子中覆盖）
                 var multiSkillCombos = [];
@@ -3054,10 +2922,7 @@ var BanquetOptimizer = (function() {
                     return b.totalWeight - a.totalWeight;
                 });
                 
-                console.log('[多技法种子] 多技法组合数:', multiSkillCombos.length, multiSkillCombos.map(function(c) { return c.skillNames.join('+'); }));
-                
                 if (multiSkillCombos.length === 0) {
-                    console.log('[多技法种子] 无多技法组合，跳过');
                     mainIdx++;
                     setTimeout(_processNextRule, 0);
                     return;
@@ -3071,7 +2936,6 @@ var BanquetOptimizer = (function() {
                 function _processNextCombo() {
                     if (comboIdx >= multiSkillCombos.length) {
                         // 所有组合处理完成，进入下一个贵客
-                        console.log('[多技法种子] 所有组合处理完成');
                         mainIdx++;
                         setTimeout(_processNextRule, 0);
                         return;
@@ -3079,8 +2943,6 @@ var BanquetOptimizer = (function() {
                     
                     var combo = multiSkillCombos[comboIdx];
                     var comboSkillNames = combo.skillNames.join('+');
-                    
-                    console.log('[多技法种子] 处理组合:', comboSkillNames, '技法:', combo.skills);
                     
                     // 筛选同时具有这些技法的菜谱（会考虑调料/稀有度/品阶加成）
                     var multiSkillRecipes = _filterRecipesByMultiSkills(mainRule, combo.skills);
@@ -3102,25 +2964,10 @@ var BanquetOptimizer = (function() {
                         for (var rnk in rarityRankBonus.rankBonus) {
                             rankList.push((rankNames[rnk] || rnk) + ':' + rarityRankBonus.rankBonus[rnk]);
                         }
-                        if (condimentList.length > 0) {
-                            console.log('[多技法种子] 调料加成意图:', condimentList.join(', '));
-                        }
-                        if (rarityList.length > 0) {
-                            console.log('[多技法种子] 稀有度加成意图:', rarityList.join(', '));
-                        }
-                        if (rankList.length > 0) {
-                            console.log('[多技法种子] 品阶加成意图:', rankList.join(', '));
-                        }
-                    }
-                    
-                    console.log('[多技法种子] 满足条件的菜谱数:', multiSkillRecipes.length);
-                    if (multiSkillRecipes.length > 0) {
-                        console.log('[多技法种子] 前5道菜谱:', multiSkillRecipes.slice(0, 5).map(function(r) { return r.name; }));
                     }
                     
                     if (multiSkillRecipes.length < 3) {
                         // 满足条件的菜谱不足3道，跳过此组合
-                        console.log('[多技法种子] 菜谱不足3道，跳过此组合');
                         comboIdx++;
                         setTimeout(_processNextCombo, 0);
                         return;
@@ -3169,22 +3016,15 @@ var BanquetOptimizer = (function() {
                                 bestChefId = chef.chefId;
                                 bestRecipeSet = canMakeRecipes.slice(0, 3);
                                 msChefSet = true;
-                                console.log('[多技法种子] 找到厨师:', chef.name, '能做菜谱:', bestRecipeSet.map(function(r) { return r.name; }));
                             }
                         }
                         
                         if (!msChefSet) {
-                            console.log('[多技法种子] pos' + (msPos+1) + ' 没有厨师能做3道多技法菜谱，跳过');
                             continue;
                         }
                         
                         // 分析"下道料理"和"下阶段"意图，用于优化菜谱位置分配
                         var nextDishIntents = _analyzeNextDishIntents(mainRule, msPos);
-                        if (nextDishIntents.length > 0) {
-                            console.log('[多技法种子] 检测到下道/下阶段意图:', nextDishIntents.map(function(n) { 
-                                return n.desc + '(' + n.intentType + ',权重' + n.weight.toFixed(0) + ')'; 
-                            }));
-                        }
                         
                         // 设置找到的厨师和菜谱
                         _simSetChef(mainRule, msPos, bestChefId);
@@ -3210,9 +3050,6 @@ var BanquetOptimizer = (function() {
                                 var assignRecipe = recipeWithWeight[reci].recipe;
                                 _simSetRecipe(mainRule, msPos, reci, assignRecipe.recipeId);
                                 usedRecipeIds[assignRecipe.recipeId] = true;
-                                if (recipeWithWeight[reci].triggerWeight > 0) {
-                                    console.log('[多技法种子] 位置', reci, '放置', assignRecipe.name, '(下道料理权重:', recipeWithWeight[reci].triggerWeight, ')');
-                                }
                             }
                         } else {
                             // 没有下道料理意图，按原顺序分配
@@ -3300,7 +3137,6 @@ var BanquetOptimizer = (function() {
                         _quickRefineFast(activeRules, true);
                         
                         var msScore = _fastCalcScore();
-                        console.log('[多技法种子] 生成候选:', comboSkillNames, 'pos' + (msPos+1), '分数:', msScore);
                         candidates.push({
                             state: _cloneSimState(_simState),
                             score: msScore,
@@ -3639,6 +3475,104 @@ var BanquetOptimizer = (function() {
             }
         }
         return total;
+    }
+
+    function _tryIncreaseOnePortionUntilTarget() {
+        var bestStep = null;
+        var bestGap = Infinity;
+        var bestScore = -1;
+        
+        for (var ri = 0; ri < _rules.length; ri++) {
+            if (!_shouldProcessRule(ri)) continue;
+            for (var ci = 0; ci < _simState[ri].length; ci++) {
+                for (var reci = 0; reci < 3; reci++) {
+                    var rec = _simState[ri][ci].recipes[reci];
+                    if (!rec.data || rec.quantity >= rec.max) continue;
+                    
+                    rec.quantity += 1;
+                    var score = _fastCalcScore();
+                    var gap = _targetScore ? Math.max(0, _targetScore - score) : 0;
+                    
+                    if (gap < bestGap || (gap === bestGap && score > bestScore)) {
+                        bestGap = gap;
+                        bestScore = score;
+                        bestStep = {ri: ri, ci: ci, reci: reci};
+                    }
+                    
+                    rec.quantity -= 1;
+                }
+            }
+        }
+        
+        if (!bestStep) return false;
+        _simState[bestStep.ri][bestStep.ci].recipes[bestStep.reci].quantity += 1;
+        return true;
+    }
+
+    function _compressQuantitiesForTarget() {
+        if (!_targetScore) return;
+        
+        var changed = true;
+        while (changed) {
+            changed = false;
+            for (var ri = 0; ri < _rules.length; ri++) {
+                if (!_shouldProcessRule(ri)) continue;
+                for (var ci = 0; ci < _simState[ri].length; ci++) {
+                    for (var reci = 0; reci < 3; reci++) {
+                        var rec = _simState[ri][ci].recipes[reci];
+                        if (!rec.data || rec.quantity <= 1) continue;
+                        
+                        rec.quantity -= 1;
+                        var score = _fastCalcScore();
+                        var satOk = _isAllSatietyOk();
+                        if (score >= _targetScore && satOk) {
+                            changed = true;
+                        } else {
+                            rec.quantity += 1;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    function _isCurrentStateTargetReachedWithSatiety() {
+        if (!_targetScore) return _isAllSatietyOk();
+        return _fastCalcScore() >= _targetScore && _isAllSatietyOk();
+    }
+
+    function _finalizeTargetQuantities() {
+        if (!_targetScore || !_bestSimState || _getActiveQuantityMode() !== 'single') return;
+        
+        var savedState = _cloneSimState(_bestSimState);
+        var savedScore = _bestScore;
+        var savedMode = _quantitySearchMode;
+        
+        _simState = _cloneSimState(_bestSimState);
+        _quantitySearchMode = 'full';
+        _fastCalcScore(); // 刷新每道菜的max
+        
+        var maxSteps = 999;
+        var steps = 0;
+        while (!_isCurrentStateTargetReachedWithSatiety() && steps < maxSteps) {
+            if (!_tryIncreaseOnePortionUntilTarget()) break;
+            steps++;
+        }
+        
+        if (_isCurrentStateTargetReachedWithSatiety()) {
+            _compressQuantitiesForTarget();
+            _bestSimState = _cloneSimState(_simState);
+            _bestScore = _fastCalcScore();
+        } else {
+            _bestSimState = savedState;
+            _bestScore = savedScore;
+            _simState = _cloneSimState(savedState);
+            _quantitySearchMode = savedMode;
+            return;
+        }
+        
+        _quantitySearchMode = savedMode;
+        _simState = _cloneSimState(_bestSimState);
     }
     
 
@@ -4193,6 +4127,7 @@ var BanquetOptimizer = (function() {
 
     function optimize(targetScore, onProgress, onComplete) {
         _targetScore = (targetScore && targetScore > 0) ? targetScore : null;
+        _quantitySearchMode = _targetScore ? 'single' : 'full';
         
         if (_isRunning) {
             if (typeof onComplete === 'function') {
@@ -4900,41 +4835,6 @@ var BanquetOptimizer = (function() {
         if (_bestSimState) {
             // 先恢复到最佳状态
             _simState = _bestSimState;
-
-            function _isRecipeSkillQualified(chefObj, recipeData) {
-                if (!recipeData) return false;
-                if (!chefObj) return false;
-                if (recipeData.stirfry > 0 && (!chefObj.stirfryVal || chefObj.stirfryVal < recipeData.stirfry)) return false;
-                if (recipeData.boil > 0 && (!chefObj.boilVal || chefObj.boilVal < recipeData.boil)) return false;
-                if (recipeData.knife > 0 && (!chefObj.knifeVal || chefObj.knifeVal < recipeData.knife)) return false;
-                if (recipeData.fry > 0 && (!chefObj.fryVal || chefObj.fryVal < recipeData.fry)) return false;
-                if (recipeData.bake > 0 && (!chefObj.bakeVal || chefObj.bakeVal < recipeData.bake)) return false;
-                if (recipeData.steam > 0 && (!chefObj.steamVal || chefObj.steamVal < recipeData.steam)) return false;
-                return true;
-            }
-
-            function _repairFinalInvalidRecipesSequentially() {
-                for (var ri = 0; ri < _rules.length; ri++) {
-                    if (!_shouldProcessRule(ri)) continue;
-                    var rule = _rules[ri];
-                    var numChefs = rule.IntentList ? rule.IntentList.length : 3;
-                    for (var ci = 0; ci < numChefs; ci++) {
-                        var chefObj = _simState[ri][ci].chefObj;
-                        if (!chefObj || !_simState[ri][ci].chefId) continue;
-                        for (var reci = 0; reci < 3; reci++) {
-                            var currentRecipe = _simState[ri][ci].recipes[reci];
-                            if (!currentRecipe || !currentRecipe.data) continue;
-                            if (_isRecipeSkillQualified(chefObj, currentRecipe.data)) continue;
-
-                            _simSetRecipe(ri, ci, reci, null);
-                            var recipeRanking = _fastGetRecipeRanking(ri, ci, reci, 1, true);
-                            if (recipeRanking.length > 0) {
-                                _simSetRecipe(ri, ci, reci, recipeRanking[0].recipeId);
-                            }
-                        }
-                    }
-                }
-            }
             
             // 补充缺失的厨师：如果有位置没有厨师，用未使用的厨师补上并重选菜谱
             var usedChefIds = {};
@@ -5106,11 +5006,10 @@ var BanquetOptimizer = (function() {
                 _simState = _cloneSimState(_bestSimState);
                 _climbRecipeSwap();
             }
-
-            _repairFinalInvalidRecipesSequentially();
             
             // 更新最佳状态
             _bestSimState = _cloneSimState(_simState);
+            _finalizeTargetQuantities();
             
             // 计算内存分数明细
             var memScores = [];
@@ -5135,8 +5034,6 @@ var BanquetOptimizer = (function() {
         }
         if (_targetScore) {
         }
-        
-        _logFinalCombination();
         
         _bestResult = { score: finalScore };
         _isRunning = false;
@@ -5180,30 +5077,11 @@ var BanquetOptimizer = (function() {
                 for (var reci = 0; reci < slot.recipes.length; reci++) {
                     if (slot.recipes[reci].data && typeof setCustomRecipe === 'function') {
                         setCustomRecipe(ri, ci, reci, slot.recipes[reci].data.recipeId);
+                        if (typeof setCustomRecipeQuantity === 'function') {
+                            setCustomRecipeQuantity(ri, ci, reci, slot.recipes[reci].quantity || 0);
+                        }
                     }
                 }
-            }
-        }
-    }
-
-    function _logFinalCombination() {
-        for (var ruleIndex = 0; ruleIndex < _rules.length; ruleIndex++) {
-            if (!_shouldProcessRule(ruleIndex)) continue;
-            
-            var rule = _rules[ruleIndex];
-            var guestName = rule.Title || rule.Name || ('贵客' + (ruleIndex + 1));
-            if (!_bestSimState || !_bestSimState[ruleIndex]) continue;
-            
-            for (var chefIndex = 0; chefIndex < _bestSimState[ruleIndex].length; chefIndex++) {
-                var slot = _bestSimState[ruleIndex][chefIndex];
-                var chefName = slot.chefId ? _getChefNameById(slot.chefId) : '未选择';
-                var recipes = [];
-                
-                for (var reci = 0; reci < slot.recipes.length; reci++) {
-                    var rec = slot.recipes[reci];
-                    recipes.push(rec.data ? rec.data.name : '未选择');
-                }
-                
             }
         }
     }
@@ -5237,6 +5115,8 @@ var BanquetOptimizer = (function() {
         getGuestFilter: getGuestFilter,
         BANQUET_LEVELS: BANQUET_LEVELS,
         BANQUET_TIER_SCORES: BANQUET_TIER_SCORES,
+        JIANGHU_TIER_SCORES: JIANGHU_TIER_SCORES,
+        XIANKE_TIER_SCORES: XIANKE_TIER_SCORES,
         findTierScoreKey: _findTierScoreKey,
         getTierScore: _getTierScore
     };
