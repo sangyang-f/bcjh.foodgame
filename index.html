@@ -8,15 +8,17 @@
     <link rel="shortcut icon" href="favicon.ico?v=1" type="image/x-icon" />
     <link rel="stylesheet" type="text/css" href="css/style.min.css?v=1" />
     <script type="text/javascript" src="js/script.min.js?v=3"></script>
-    <script type="text/javascript" src="js/common.min.js?v=9"></script>
+    <script type="text/javascript" src="js/common.min.js?v=10"></script>
     <link rel="stylesheet" type="text/css" href="css/food.min.css?v=13" />
-    <script type="text/javascript" src="js/guest.calculator.js?v=8"></script>
-    <script type="text/javascript" src="js/query.guest.js?v=2"></script>
-    <script type="text/javascript" src="js/food.min.js?v=23"></script>
+    <script type="text/javascript" src="js/guest.calculator.js?v=9"></script>
+    <script type="text/javascript" src="js/query.guest.js?v=3"></script>
+    <script type="text/javascript" src="js/food.min.js?v=24"></script>
     <script type="text/javascript" src="js/query.cultivate.js?v=6"></script>
-    <script type="text/javascript" src="js/banquet.optimizer.js?v=4"></script>
-    <script type="text/javascript" src="js/jianghu.optimizer.js?v=1"></script>
-    <link rel="stylesheet" type="text/css" href="css/image.css?v=10" />
+    <script type="text/javascript" src="js/query.collection.js?v=1"></script>
+    <script type="text/javascript" src="js/banquet.optimizer.js?v=5"></script>
+    <script type="text/javascript" src="js/jianghu.optimizer.js?v=2"></script>
+    <link rel="stylesheet" type="text/css" href="css/image.css?v=11" />
+    <link rel="stylesheet" type="text/css" href="css/query.collection.css?v=1" />
     <script>
         $(function () {
             $.ajax({
@@ -24,7 +26,7 @@
                 xhr: function () {
                     var xhr = $.ajaxSettings.xhr();
                     xhr.addEventListener("progress", function (e) {
-                        var total = 1916278;
+                        var total = 1933039;
                         if (e.lengthComputable) {
                             total = e.total;
                         }
@@ -42,7 +44,7 @@
                 complete: function () {
                     $("#loading-progress").remove();
                 },
-                url: 'data/data.min.json?v=9'
+                url: 'data/data.min.json?v=10'
             });
         });
     </script>
@@ -643,6 +645,28 @@
                                     </label>
                                 </span>
                             </div>
+                            <div class="inline-wrapper select-wrapper" data-toggle="tooltip" title="选择心法盘等级,过滤厨师">
+                                <select id="chk-chef-disk-level" multiple class="selectpicker monitor-none"
+                                    data-width="110px" data-dropdown-align-right='auto' data-none-selected-text="心法盘等级"
+                                    data-selected-text-format="count>1" data-count-selected-text="{0} 等级"
+                                    data-actions-box="true" data-actions-box-only-clear="true"
+                                    data-deselect-all-text="清空">
+                                    <option value="1">1级</option>
+                                    <option value="2">2级</option>
+                                    <option value="3">3级</option>
+                                    <option value="4">4级</option>
+                                    <option value="5">5级</option>
+                                </select>
+                            </div>
+                            <div class="inline-wrapper select-wrapper" data-toggle="tooltip" title="选择遗玉,过滤厨师">
+                                <select id="chk-chef-amber" multiple class="monitor-none" data-width="100px"
+                                    data-live-search="true" data-live-search-placeholder="查找"
+                                    data-dropdown-align-right='auto' data-none-selected-text="选择遗玉"
+                                    data-selected-text-format="count>1" data-count-selected-text="{0} 遗玉"
+                                    data-none-results-text="没有找到" data-actions-box="true" data-select-all-text="全选"
+                                    data-deselect-all-text="清空">
+                                </select>
+                            </div>
                             <div class="inline-wrapper select-wrapper" data-toggle="tooltip" title="选择采集类型组合">
                                 <select id="chk-chef-material-combo" class="selectpicker monitor-none"
                                     data-width="130px" data-dropdown-align-right='auto' data-none-selected-text="选择采集组合"
@@ -655,15 +679,6 @@
                                     <option value="creation_veg">面+菜（咸）</option>
                                     <option value="creation_fish">面+鱼（鲜）</option>
                                     <option value="veg_fish">菜+鱼（辣）</option>
-                                </select>
-                            </div>
-                            <div class="inline-wrapper select-wrapper" data-toggle="tooltip" title="选择遗玉,过滤厨师">
-                                <select id="chk-chef-amber" multiple class="monitor-none" data-width="100px"
-                                    data-live-search="true" data-live-search-placeholder="查找"
-                                    data-dropdown-align-right='auto' data-none-selected-text="选择遗玉"
-                                    data-selected-text-format="count>1" data-count-selected-text="{0} 遗玉"
-                                    data-none-results-text="没有找到" data-actions-box="true" data-select-all-text="全选"
-                                    data-deselect-all-text="清空">
                                 </select>
                             </div>
                             <div class="inline-wrapper select-wrapper" data-toggle="tooltip" title="选择厨具,过滤厨师">
@@ -1038,6 +1053,7 @@
                                         <option value='0'>正常营业</option>
                                         <option value='cultivate'>修炼/神级方案查询</option>
                                         <option value='guest-rate'>贵客率计算/碰瓷查询</option>
+                                        <option value='collection-team'>采集配置查询</option>
                                     </optgroup>
                                     <optgroup label="风云宴"></optgroup>
                                     <optgroup label="年兽"></optgroup>
@@ -1113,9 +1129,6 @@
                             </div>
                             <div class="pane-cal-rules pane-cal-sub hidden">
                                 <div class="header-wrapper">
-                                    <button id="btn-cal-clear-custom" class="btn btn-default" type="button">
-                                        清空自选
-                                    </button>
                                     <div class="inline-wrapper select-wrapper" data-toggle="tooltip" title="菜单显示内容">
                                         <select id="chk-cal-dd-show" class="selectpicker" multiple data-width="fit"
                                             data-dropdown-align-right='auto' data-none-selected-text="菜单显示"
@@ -1277,8 +1290,8 @@
                                     <button id="btn-cal-reset-custom" class="btn btn-default" type="button">
                                         清空过滤
                                     </button>
-                                    <button id="btn-cal-clear-selected" class="btn btn-default" type="button">
-                                        清空场上已选
+                                    <button id="btn-cal-clear-custom" class="btn btn-default" type="button">
+                                        清空自选
                                     </button>
 
                                     <div id="cultivation-mode-switch-wrapper" class="inline-wrapper hidden"
