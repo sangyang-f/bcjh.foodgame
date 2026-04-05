@@ -1,0 +1,1731 @@
+:root {
+    --theme-accent: #4c78b8;
+}
+
+.setting-theme-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.setting-theme-row .toggle {
+    flex: 0 0 auto;
+}
+
+html[data-theme="dark"] {
+    color-scheme: dark;
+    --theme-bg: #202733;
+    --theme-bg-alt: #293243;
+    --theme-surface: #2c3547;
+    --theme-surface-strong: #344055;
+    --theme-surface-soft: #3b4659;
+    --theme-border: #556278;
+    --theme-border-soft: rgba(132, 148, 171, 0.32);
+    --theme-text: #eef3ff;
+    --theme-muted: #c3cfe0;
+    --theme-muted-soft: #93a2b8;
+    --theme-accent: #4c78b8;
+    --theme-accent-soft: #8ab4f8;
+    --theme-shadow: 0 14px 28px rgba(9, 14, 22, 0.24);
+}
+
+html[data-theme="dark"] body {
+    background:
+        radial-gradient(circle at top, #37445c 0%, #283244 36%, #202733 100%);
+    color: var(--theme-text);
+}
+
+html[data-theme="dark"] a {
+    color: #9fc4ff;
+}
+
+html[data-theme="dark"] a:hover,
+html[data-theme="dark"] a:focus {
+    color: #c7ddff;
+}
+
+html[data-theme="dark"] .nav-tabs,
+html[data-theme="dark"] .modal-header,
+html[data-theme="dark"] .modal-footer,
+html[data-theme="dark"] .panel-footer,
+html[data-theme="dark"] .list-group-item,
+html[data-theme="dark"] .dropdown-menu .divider,
+html[data-theme="dark"] .table>thead>tr>th,
+html[data-theme="dark"] .table>tbody>tr>th,
+html[data-theme="dark"] .table>tfoot>tr>th,
+html[data-theme="dark"] .table>thead>tr>td,
+html[data-theme="dark"] .table>tbody>tr>td,
+html[data-theme="dark"] .table>tfoot>tr>td {
+    border-color: var(--theme-border);
+}
+
+html[data-theme="dark"] .nav-tabs>li>a {
+    color: var(--theme-muted);
+    border-color: transparent;
+}
+
+html[data-theme="dark"] .nav-tabs>li>a:hover,
+html[data-theme="dark"] .nav-tabs>li>a:focus {
+    background-color: var(--theme-bg-alt);
+    border-color: var(--theme-border) var(--theme-border) var(--theme-border);
+    color: var(--theme-text);
+}
+
+html[data-theme="dark"] .nav-tabs>li.active>a,
+html[data-theme="dark"] .nav-tabs>li.active>a:focus,
+html[data-theme="dark"] .nav-tabs>li.active>a:hover {
+    background-color: var(--theme-surface);
+    border-color: var(--theme-border) var(--theme-border) transparent;
+    color: var(--theme-text);
+}
+
+html[data-theme="dark"] .btn-default,
+html[data-theme="dark"] .input-group-addon,
+html[data-theme="dark"] .form-control,
+html[data-theme="dark"] .dropdown-menu,
+html[data-theme="dark"] .panel,
+html[data-theme="dark"] .panel-footer,
+html[data-theme="dark"] .well,
+html[data-theme="dark"] .modal-content,
+html[data-theme="dark"] .popover,
+html[data-theme="dark"] .selected-box,
+html[data-theme="dark"] .chef-box .chef-placeholder,
+html[data-theme="dark"] .recipe-box .recipe-placeholder,
+html[data-theme="dark"] .box,
+html[data-theme="dark"] .collection-settings-panel,
+html[data-theme="dark"] .collection-preview-panel,
+html[data-theme="dark"] .collection-data-query-table-wrap,
+html[data-theme="dark"] .config-item,
+html[data-theme="dark"] .pengci-query-area,
+html[data-theme="dark"] .common-alert-box,
+html[data-theme="dark"] .guest-portion-table-container,
+html[data-theme="dark"] #oneclick-settings-modal .oneclick-equip-dropdown,
+html[data-theme="dark"] #unultimated-dropdown-menu,
+html[data-theme="dark"] #recipe-god-dropdown-menu {
+    background-color: var(--theme-surface);
+    border-color: var(--theme-border);
+    color: var(--theme-text);
+    box-shadow: var(--theme-shadow);
+}
+
+html[data-theme="dark"] .btn-default:hover,
+html[data-theme="dark"] .btn-default:focus,
+html[data-theme="dark"] .btn-default:active,
+html[data-theme="dark"] .btn-default.active,
+html[data-theme="dark"] .open>.dropdown-toggle.btn-default,
+html[data-theme="dark"] .dropdown-menu>li>a:hover,
+html[data-theme="dark"] .dropdown-menu>li>a:focus,
+html[data-theme="dark"] .bootstrap-select .dropdown-menu li a.selected,
+html[data-theme="dark"] #oneclick-settings-modal .oneclick-equip-list li:hover,
+html[data-theme="dark"] #unultimated-dropdown-menu .unultimated-chef-item:hover,
+html[data-theme="dark"] #recipe-god-dropdown-menu .recipe-god-recipe-item:hover {
+    background-color: var(--theme-surface-strong);
+    border-color: var(--theme-border);
+    color: var(--theme-text);
+}
+
+html[data-theme="dark"] .form-control,
+html[data-theme="dark"] .dropdown-menu,
+html[data-theme="dark"] .dropdown-menu>li>a,
+html[data-theme="dark"] .input-group-addon,
+html[data-theme="dark"] .bootstrap-select .dropdown-menu li a,
+html[data-theme="dark"] .bootstrap-select .dropdown-toggle .filter-option,
+html[data-theme="dark"] .bootstrap-select .dropdown-toggle .filter-option-inner-inner,
+html[data-theme="dark"] .bs-searchbox .form-control,
+html[data-theme="dark"] .bs-actionsbox .btn-group button,
+html[data-theme="dark"] .close,
+html[data-theme="dark"] .popover-title,
+html[data-theme="dark"] .popover-content,
+html[data-theme="dark"] .panel-title,
+html[data-theme="dark"] .modal-title,
+html[data-theme="dark"] .modal-header .modal-title,
+html[data-theme="dark"] .list-group-item,
+html[data-theme="dark"] .table,
+html[data-theme="dark"] .collection-panel-title,
+html[data-theme="dark"] .collection-preview-title,
+html[data-theme="dark"] .collection-data-query-title,
+html[data-theme="dark"] .common-alert-title,
+html[data-theme="dark"] .common-alert-body,
+html[data-theme="dark"] .oneclick-equip-list .name,
+html[data-theme="dark"] .oneclick-equip-list .subtext,
+html[data-theme="dark"] #unultimated-dropdown-menu .unultimated-chef-name,
+html[data-theme="dark"] #unultimated-dropdown-menu .unultimated-chef-detail,
+html[data-theme="dark"] #recipe-god-dropdown-menu .recipe-god-recipe-name,
+html[data-theme="dark"] #recipe-god-dropdown-menu .recipe-god-recipe-skill {
+    color: var(--theme-text);
+}
+
+html[data-theme="dark"] .close {
+    opacity: .65;
+    text-shadow: none;
+}
+
+html[data-theme="dark"] .close:hover,
+html[data-theme="dark"] .close:focus {
+    color: #fff;
+    opacity: 1;
+}
+
+html[data-theme="dark"] .popover-title {
+    background-color: var(--theme-bg-alt);
+    border-bottom-color: var(--theme-border);
+}
+
+html[data-theme="dark"] .text-muted,
+html[data-theme="dark"] .paginationjs-pages li.disabled a,
+html[data-theme="dark"] .rank-done,
+html[data-theme="dark"] .collection-data-query-table thead tr.is-sub-header th,
+html[data-theme="dark"] .collection-data-query-table tbody tr.collection-data-query-pot-row td,
+html[data-theme="dark"] .collection-data-query-table tbody tr.collection-data-query-note-row td,
+html[data-theme="dark"] .common-alert-close,
+html[data-theme="dark"] .oneclick-equip-list .subtext,
+html[data-theme="dark"] #unultimated-dropdown-menu .unultimated-max-tip,
+html[data-theme="dark"] #recipe-god-dropdown-menu .recipe-god-recipe-rarity {
+    color: var(--theme-muted) !important;
+}
+
+html[data-theme="dark"] .form-control {
+    background-color: var(--theme-bg-alt);
+    border-color: var(--theme-border);
+    color: var(--theme-text);
+    box-shadow: none;
+}
+
+html[data-theme="dark"] .form-control::placeholder {
+    color: var(--theme-muted-soft);
+}
+
+html[data-theme="dark"] .form-control:focus,
+html[data-theme="dark"] .bootstrap-select>.dropdown-toggle:focus,
+html[data-theme="dark"] .btn-default:focus {
+    border-color: var(--theme-accent-soft);
+    box-shadow: 0 0 0 3px rgba(138, 180, 248, 0.22);
+}
+
+html[data-theme="dark"] .bootstrap-select>.dropdown-toggle.bs-placeholder,
+html[data-theme="dark"] .bootstrap-select>.dropdown-toggle.bs-placeholder:active,
+html[data-theme="dark"] .bootstrap-select>.dropdown-toggle.bs-placeholder:focus,
+html[data-theme="dark"] .bootstrap-select>.dropdown-toggle.bs-placeholder:hover {
+    color: var(--theme-muted-soft);
+}
+
+html[data-theme="dark"] .dropdown-menu>.active>a,
+html[data-theme="dark"] .dropdown-menu>.active>a:focus,
+html[data-theme="dark"] .dropdown-menu>.active>a:hover,
+html[data-theme="dark"] .btn-group .btn.active,
+html[data-theme="dark"] .collection-pill.is-active,
+html[data-theme="dark"] .collection-switch input:checked + .collection-switch-track,
+html[data-theme="dark"] .toggle.btn.btn-primary,
+html[data-theme="dark"] #chk-cultivation-mode + .toggle-group .btn-primary,
+html[data-theme="dark"] #chk-guest-query-mode + .toggle-group .btn-primary {
+    background-color: var(--theme-accent) !important;
+    border-color: #5b86c8 !important;
+    color: #f8fbff !important;
+}
+
+html[data-theme="dark"] .toggle.btn {
+    border-color: rgba(111, 127, 151, 0.52) !important;
+    background: linear-gradient(180deg, rgba(50, 60, 81, 0.98), rgba(39, 47, 64, 0.98)) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 6px 16px rgba(9, 14, 22, 0.2);
+}
+
+html[data-theme="dark"] .toggle-group .btn {
+    font-weight: 700 !important;
+    text-shadow: none !important;
+}
+
+html[data-theme="dark"] .toggle-group .btn.toggle-on,
+html[data-theme="dark"] .toggle-group .btn-primary.toggle-on,
+html[data-theme="dark"] .toggle.btn.btn-primary .toggle-on {
+    background: var(--theme-accent) !important;
+    border-color: #5b86c8 !important;
+    color: #f8fbff !important;
+}
+
+html[data-theme="dark"] .toggle-group .btn.toggle-off,
+html[data-theme="dark"] .toggle-group .btn-default.toggle-off {
+    background: linear-gradient(180deg, rgba(69, 76, 92, 0.98), rgba(50, 56, 70, 0.98)) !important;
+    border-color: rgba(126, 136, 156, 0.62) !important;
+    color: #d5deeb !important;
+}
+
+html[data-theme="dark"] .toggle.off .toggle-group .btn.toggle-off,
+html[data-theme="dark"] .toggle.off .toggle-group .btn-default.toggle-off {
+    background: linear-gradient(180deg, #7a5a63, #62474f) !important;
+    border-color: #a87883 !important;
+    color: #fff2f4 !important;
+}
+
+html[data-theme="dark"] #chk-cultivation-mode + .toggle.off,
+html[data-theme="dark"] #chk-guest-query-mode + .toggle.off {
+    background: linear-gradient(180deg, rgba(57, 65, 81, 0.98), rgba(44, 50, 63, 0.98)) !important;
+    border-color: rgba(120, 131, 152, 0.64) !important;
+}
+
+html[data-theme="dark"] #chk-cultivation-mode + .toggle.off .toggle-group .btn.toggle-off,
+html[data-theme="dark"] #chk-cultivation-mode + .toggle.off .toggle-group .btn-default.toggle-off,
+html[data-theme="dark"] #chk-guest-query-mode + .toggle.off .toggle-group .btn.toggle-off,
+html[data-theme="dark"] #chk-guest-query-mode + .toggle.off .toggle-group .btn-default.toggle-off {
+    background: linear-gradient(180deg, rgba(69, 76, 92, 0.98), rgba(50, 56, 70, 0.98)) !important;
+    border-color: rgba(126, 136, 156, 0.62) !important;
+    color: #dfe7f3 !important;
+}
+
+html[data-theme="dark"] .toggle:not(.off) .toggle-group .btn.toggle-on,
+html[data-theme="dark"] .toggle:not(.off) .toggle-group .btn-primary.toggle-on {
+    background: var(--theme-accent) !important;
+    border-color: #5b86c8 !important;
+    color: #f8fbff !important;
+}
+
+html[data-theme="dark"] .toggle-handle.btn,
+html[data-theme="dark"] .toggle-group .toggle-handle {
+    background: linear-gradient(180deg, #f3f7ff, #dbe5f6) !important;
+    border-color: rgba(122, 135, 156, 0.68) !important;
+    box-shadow: 0 2px 10px rgba(9, 14, 22, 0.26);
+}
+
+html[data-theme="dark"] .dropdown-menu {
+    box-shadow: 0 14px 28px rgba(9, 14, 22, 0.4);
+}
+
+html[data-theme="dark"] .dropdown-menu .divider,
+html[data-theme="dark"] .list-group-item,
+html[data-theme="dark"] #oneclick-settings-modal .oneclick-equip-list li,
+html[data-theme="dark"] #unultimated-dropdown-menu .unultimated-chef-item,
+html[data-theme="dark"] #recipe-god-dropdown-menu .recipe-god-recipe-item {
+    border-color: var(--theme-border-soft);
+}
+
+html[data-theme="dark"] .table,
+html[data-theme="dark"] table.dataTable,
+html[data-theme="dark"] .guest-portion-table,
+html[data-theme="dark"] .collection-data-query-table {
+    background-color: transparent;
+    color: var(--theme-text);
+}
+
+html[data-theme="dark"] .table>thead>tr>th,
+html[data-theme="dark"] .table>tbody>tr>th,
+html[data-theme="dark"] .table>tfoot>tr>th,
+html[data-theme="dark"] .table>thead>tr>td,
+html[data-theme="dark"] .table>tbody>tr>td,
+html[data-theme="dark"] .table>tfoot>tr>td,
+html[data-theme="dark"] table.dataTable thead th,
+html[data-theme="dark"] table.dataTable thead td,
+html[data-theme="dark"] table.dataTable tbody th,
+html[data-theme="dark"] table.dataTable tbody td,
+html[data-theme="dark"] table.dataTable tfoot th,
+html[data-theme="dark"] table.dataTable tfoot td,
+html[data-theme="dark"] tr.odd td,
+html[data-theme="dark"] tr.even td,
+html[data-theme="dark"] tr.selected td,
+html[data-theme="dark"] thead th,
+html[data-theme="dark"] tfoot th {
+    background-color: var(--theme-surface) !important;
+    color: var(--theme-text) !important;
+}
+
+html[data-theme="dark"] table.dataTable.display tbody tr.odd,
+html[data-theme="dark"] table.dataTable.stripe tbody tr.odd,
+html[data-theme="dark"] table.dataTable.display tbody tr.even,
+html[data-theme="dark"] table.dataTable.stripe tbody tr.even,
+html[data-theme="dark"] table.dataTable.display tbody tr.odd > .sorting_1,
+html[data-theme="dark"] table.dataTable.display tbody tr.odd > .sorting_2,
+html[data-theme="dark"] table.dataTable.display tbody tr.odd > .sorting_3,
+html[data-theme="dark"] table.dataTable.display tbody tr.even > .sorting_1,
+html[data-theme="dark"] table.dataTable.display tbody tr.even > .sorting_2,
+html[data-theme="dark"] table.dataTable.display tbody tr.even > .sorting_3,
+html[data-theme="dark"] table.dataTable.order-column tbody tr > .sorting_1,
+html[data-theme="dark"] table.dataTable.order-column tbody tr > .sorting_2,
+html[data-theme="dark"] table.dataTable.order-column tbody tr > .sorting_3,
+html[data-theme="dark"] table.dataTable.fixedHeader-floating,
+html[data-theme="dark"] table.dataTable.fixedHeader-locked,
+html[data-theme="dark"] .dataTables_scrollHeadInner,
+html[data-theme="dark"] .dataTables_scrollHeadInner table.table-bordered,
+html[data-theme="dark"] div.dataTables_scrollBody {
+    background-color: var(--theme-surface) !important;
+    color: var(--theme-text) !important;
+}
+
+html[data-theme="dark"] .table-hover tbody tr:hover td,
+html[data-theme="dark"] .table-hover tbody tr:hover th,
+html[data-theme="dark"] .guest-portion-table tbody tr:hover,
+html[data-theme="dark"] table.dataTable tbody tr:hover {
+    background-color: var(--theme-surface-soft);
+}
+
+html[data-theme="dark"] table.dataTable tbody td.selected,
+html[data-theme="dark"] table.dataTable tbody th.selected,
+html[data-theme="dark"] table.dataTable tbody tr.selected,
+html[data-theme="dark"] table.dataTable tbody>tr.selected,
+html[data-theme="dark"] table.dataTable tbody>tr>.selected {
+    background-color: rgba(76, 120, 184, 0.34);
+    color: #f8fbff;
+}
+
+html[data-theme="dark"] table.dataTable.display tbody>tr.selected,
+html[data-theme="dark"] table.dataTable.display tbody>tr.selected>.sorting_1,
+html[data-theme="dark"] table.dataTable.display tbody>tr.selected>.sorting_2,
+html[data-theme="dark"] table.dataTable.display tbody>tr.selected>.sorting_3,
+html[data-theme="dark"] table.dataTable.order-column tbody>tr.selected>.sorting_1,
+html[data-theme="dark"] table.dataTable.order-column tbody>tr.selected>.sorting_2,
+html[data-theme="dark"] table.dataTable.order-column tbody>tr.selected>.sorting_3,
+html[data-theme="dark"] table.dataTable.display tbody>tr.odd.selected>.sorting_1,
+html[data-theme="dark"] table.dataTable.display tbody>tr.odd.selected>.sorting_2,
+html[data-theme="dark"] table.dataTable.display tbody>tr.odd.selected>.sorting_3,
+html[data-theme="dark"] table.dataTable.display tbody>tr.even.selected>.sorting_1,
+html[data-theme="dark"] table.dataTable.display tbody>tr.even.selected>.sorting_2,
+html[data-theme="dark"] table.dataTable.display tbody>tr.even.selected>.sorting_3,
+html[data-theme="dark"] table.dataTable.display tbody>tr:hover>.selected,
+html[data-theme="dark"] table.dataTable.order-column.hover tbody>tr:hover>.selected {
+    background-color: rgba(76, 120, 184, 0.46) !important;
+    color: #f8fbff !important;
+}
+
+html[data-theme="dark"] div.dataTables_scroll.dtfc-has-left table.table-bordered,
+html[data-theme="dark"] table.dataTable.table-bordered.dtfc-has-left {
+    border-left-color: var(--theme-border);
+}
+
+html[data-theme="dark"] .chef-box .content .name,
+html[data-theme="dark"] .condiment-box .content .name,
+html[data-theme="dark"] .equip-box .content .name,
+html[data-theme="dark"] .recipe-box .content .name,
+html[data-theme="dark"] .recipe-box .recipe-quantity .form-control,
+html[data-theme="dark"] .collection-pill,
+html[data-theme="dark"] .paginationjs-pages li a,
+html[data-theme="dark"] .dropdown-item .text .available,
+html[data-theme="dark"] .dropdown-item .text .name,
+html[data-theme="dark"] .dropdown-item .text .score,
+html[data-theme="dark"] .dropdown-item .text .skill,
+html[data-theme="dark"] .dropdown-item .text .skilltext,
+html[data-theme="dark"] .dropdown-item .text .subtext,
+html[data-theme="dark"] .dropdown-item .text .total {
+    color: var(--theme-accent-soft);
+}
+
+html[data-theme="dark"] .dropdown-item .text .name,
+html[data-theme="dark"] #unultimated-dropdown-menu .unultimated-chef-item .chef-name,
+html[data-theme="dark"] #recipe-god-dropdown-menu .recipe-god-recipe-item .recipe-name {
+    color: var(--theme-text) !important;
+}
+
+html[data-theme="dark"] .dropdown-item .text .available {
+    color: #8ab4f8 !important;
+}
+
+html[data-theme="dark"] .dropdown-item .text .combo,
+html[data-theme="dark"] .dropdown-item .text .score,
+html[data-theme="dark"] .dropdown-item .text .skill,
+html[data-theme="dark"] .dropdown-item .text .skilltext,
+html[data-theme="dark"] .dropdown-item .text .subtext,
+html[data-theme="dark"] .dropdown-item .text .total,
+html[data-theme="dark"] #unultimated-dropdown-menu .unultimated-chef-item .chef-detail,
+html[data-theme="dark"] #unultimated-dropdown-menu .unultimated-chef-item .chef-rarity,
+html[data-theme="dark"] #recipe-god-dropdown-menu .recipe-god-recipe-item .recipe-rarity,
+html[data-theme="dark"] #recipe-god-dropdown-menu .recipe-god-recipe-item .recipe-skill {
+    color: var(--theme-muted) !important;
+}
+
+html[data-theme="dark"] .dropdown-menu>.active>a.dropdown-item .text .available,
+html[data-theme="dark"] .dropdown-menu>.active>a.dropdown-item .text .name,
+html[data-theme="dark"] .dropdown-menu>.active>a.dropdown-item .text .score,
+html[data-theme="dark"] .dropdown-menu>.active>a.dropdown-item .text .skill,
+html[data-theme="dark"] .dropdown-menu>.active>a.dropdown-item .text .skilltext,
+html[data-theme="dark"] .dropdown-menu>.active>a.dropdown-item .text .subtext,
+html[data-theme="dark"] .dropdown-menu>.active>a.dropdown-item .text .total,
+html[data-theme="dark"] #unultimated-dropdown-menu .unultimated-chef-item.selected .chef-name,
+html[data-theme="dark"] #unultimated-dropdown-menu .unultimated-chef-item.selected .chef-detail,
+html[data-theme="dark"] #unultimated-dropdown-menu .unultimated-chef-item.selected .chef-rarity,
+html[data-theme="dark"] #recipe-god-dropdown-menu .recipe-god-recipe-item.selected .recipe-name,
+html[data-theme="dark"] #recipe-god-dropdown-menu .recipe-god-recipe-item.selected .recipe-rarity,
+html[data-theme="dark"] #recipe-god-dropdown-menu .recipe-god-recipe-item.selected .recipe-skill {
+    color: #f8fbff !important;
+}
+
+html[data-theme="dark"] li.disabled .dropdown-item .text span {
+    color: #7c889c !important;
+}
+
+html[data-theme="dark"] #unultimated-dropdown-menu .unultimated-search-wrapper input,
+html[data-theme="dark"] #recipe-god-dropdown-menu .recipe-god-search-wrapper input,
+html[data-theme="dark"] .bs-searchbox input.form-control,
+html[data-theme="dark"] .search-box input.form-control {
+    background-color: var(--theme-bg-alt) !important;
+    color: var(--theme-text) !important;
+    border-color: var(--theme-accent-soft) !important;
+}
+
+html[data-theme="dark"] #unultimated-dropdown-menu .unultimated-chef-item.selected,
+html[data-theme="dark"] #recipe-god-dropdown-menu .recipe-god-recipe-item.selected {
+    background-color: rgba(76, 120, 184, 0.52) !important;
+}
+
+html[data-theme="dark"] #unultimated-dropdown-menu .unultimated-chef-item .chef-check {
+    border-color: #7c8ca5;
+}
+
+html[data-theme="dark"] .chef-box .content .name.disk-1 {
+    color: #ff9a94;
+}
+
+html[data-theme="dark"] .chef-box .content .name.disk-2 {
+    color: #8be1a2;
+}
+
+html[data-theme="dark"] .chef-box .content .name.disk-3 {
+    color: #8ab4f8;
+}
+
+html[data-theme="dark"] .chef-box .disk-level-box .content .name {
+    color: var(--theme-text) !important;
+}
+
+html[data-theme="dark"] .chef-box .disk-box .content:has(.name.disk-1) small {
+    color: #ffc0ba !important;
+}
+
+html[data-theme="dark"] .chef-box .disk-box .content:has(.name.disk-2) small {
+    color: #b2f0c1 !important;
+}
+
+html[data-theme="dark"] .chef-box .disk-box .content:has(.name.disk-3) small {
+    color: #b8d5ff !important;
+}
+
+html[data-theme="dark"] .recipe-box .recipe-ric .rank.rank-ke {
+    color: var(--theme-text);
+}
+
+html[data-theme="dark"] .recipe-box .recipe-ric .rank.rank-you {
+    color: #7ce295;
+}
+
+html[data-theme="dark"] .recipe-box .recipe-ric .rank.rank-te {
+    color: #ffb067;
+}
+
+html[data-theme="dark"] .recipe-box .recipe-ric .rank.rank-shen {
+    color: #ff8f95;
+}
+
+html[data-theme="dark"] .recipe-box .recipe-ric .rank.rank-chuan {
+    color: #c7a7ff;
+}
+
+html[data-theme="dark"] .recipe-box .red,
+html[data-theme="dark"] .recipe-box .recipe-quantity .available {
+    color: #ff8f95;
+}
+
+html[data-theme="dark"] .recipe-box .recipe-box-2:not(.no-rarity.no-skill) .material,
+html[data-theme="dark"] .recipe-box .recipe-box-2:not(.no-rarity.no-skill.no-material) .add {
+    border-top-color: var(--theme-border);
+}
+
+html[data-theme="dark"] label.chk-label input[type=checkbox]+span {
+    color: var(--theme-muted);
+    border-color: #7a8ba4;
+    background: linear-gradient(to right top, transparent 47.75%, #d3e0f3 49.5%, #d3e0f3 50.5%, transparent 52.25%);
+}
+
+html[data-theme="dark"] label.chk-label input[type=checkbox]:checked+span {
+    color: var(--theme-muted-soft);
+    border-color: #c8d3e4;
+    background: transparent;
+}
+
+html[data-theme="dark"] .alert {
+    color: var(--theme-text);
+}
+
+html[data-theme="dark"] .alert-info {
+    background-color: #23445c;
+    border-color: #386b8f;
+    color: #e7f6ff;
+}
+
+html[data-theme="dark"] .alert-warning {
+    background-color: #5a4727;
+    border-color: #8f7343;
+    color: #fff0cf;
+}
+
+html[data-theme="dark"] .alert-danger {
+    background-color: #5d3438;
+    border-color: #92565d;
+    color: #ffe8eb;
+}
+
+html[data-theme="dark"] .alert-success {
+    background-color: #284b3c;
+    border-color: #41775f;
+    color: #e8fff4;
+}
+
+html[data-theme="dark"] .collection-panel-toggle:hover,
+html[data-theme="dark"] .collection-pill,
+html[data-theme="dark"] .collection-preview-loading,
+html[data-theme="dark"] .collection-preview-empty,
+html[data-theme="dark"] .collection-switch-track,
+html[data-theme="dark"] .collection-data-query-table thead tr.is-main-header th,
+html[data-theme="dark"] .collection-data-query-table tbody tr.collection-data-query-pot-row td,
+html[data-theme="dark"] .guest-portion-table thead tr.table-header,
+html[data-theme="dark"] .guest-portion-table thead th,
+html[data-theme="dark"] .guest-portion-table tbody tr.guaranteed-row td {
+    background-color: var(--theme-bg-alt);
+    color: var(--theme-text);
+}
+
+html[data-theme="dark"] .collection-preview-loading,
+html[data-theme="dark"] .collection-preview-empty,
+html[data-theme="dark"] .collection-data-query-table-wrap,
+html[data-theme="dark"] .guest-portion-table,
+html[data-theme="dark"] .guest-portion-table td,
+html[data-theme="dark"] .guest-portion-table th,
+html[data-theme="dark"] .collection-data-query-table th,
+html[data-theme="dark"] .collection-data-query-table td {
+    border-color: var(--theme-border);
+}
+
+html[data-theme="dark"] .collection-area-card,
+html[data-theme="dark"] .collection-data-query-table tbody tr.collection-data-query-value-row td:nth-child(1),
+html[data-theme="dark"] .collection-data-query-table tbody tr.collection-data-query-value-row td:nth-child(2) {
+    color: var(--theme-text);
+}
+
+html[data-theme="dark"] .collection-tone-veg {
+    background: #315043;
+    border-color: #466f5e;
+}
+
+html[data-theme="dark"] .collection-tone-jade {
+    background: #5c4734;
+    border-color: #7e644b;
+}
+
+html[data-theme="dark"] .collection-tone-lab {
+    background: #2d4e63;
+    border-color: #42708d;
+}
+
+html[data-theme="dark"] .collection-tone-cond {
+    background: #4b395d;
+    border-color: #6d5389;
+}
+
+html[data-theme="dark"] .collection-result-card,
+html[data-theme="dark"] .collection-area-summary-section,
+html[data-theme="dark"] .collection-area-summary-overview-item,
+html[data-theme="dark"] .collection-area-summary-item,
+html[data-theme="dark"] .collection-result-chef-card,
+html[data-theme="dark"] .replace-chef-dialog,
+html[data-theme="dark"] .replace-chef-pagination,
+html[data-theme="dark"] .replace-chef-item,
+html[data-theme="dark"] .collection-sort-item,
+html[data-theme="dark"] .collection-sort-empty,
+html[data-theme="dark"] .collection-team-saved-modal .modal-body,
+html[data-theme="dark"] .collection-team-detail-modal .modal-body,
+html[data-theme="dark"] .collection-team-scheme-modal .modal-body,
+html[data-theme="dark"] .collection-team-item,
+html[data-theme="dark"] .collection-team-chef-card,
+html[data-theme="dark"] .collection-team-empty,
+html[data-theme="dark"] .collection-team-detail-empty,
+html[data-theme="dark"] .collection-team-scheme-item,
+html[data-theme="dark"] .collection-team-tabs-shell,
+html[data-theme="dark"] .collection-bootbox-center .modal-content,
+html[data-theme="dark"] #area-config-modal .config-cond-picker > .dropdown-toggle,
+html[data-theme="dark"] .collection-result-equip-static,
+html[data-theme="dark"] .collection-result-equip-select-wrap .bootstrap-select > .dropdown-toggle,
+html[data-theme="dark"] .collection-result-equip-menu .bs-searchbox,
+html[data-theme="dark"] .collection-result-equip-menu .bs-donebutton,
+html[data-theme="dark"] .collection-result-equip-menu-actions {
+    background: var(--theme-surface) !important;
+    color: var(--theme-text) !important;
+    border-color: var(--theme-border) !important;
+}
+
+html[data-theme="dark"] .collection-result-card-head,
+html[data-theme="dark"] .collection-area-summary-section-title,
+html[data-theme="dark"] .replace-chef-dialog-header,
+html[data-theme="dark"] .replace-chef-tab-nav,
+html[data-theme="dark"] .collection-result-equip-menu .bs-donebutton {
+    border-color: var(--theme-border) !important;
+}
+
+html[data-theme="dark"] .collection-result-card,
+html[data-theme="dark"] .collection-result-chef-card,
+html[data-theme="dark"] .replace-chef-item,
+html[data-theme="dark"] .collection-team-item,
+html[data-theme="dark"] .collection-team-chef-card,
+html[data-theme="dark"] .collection-team-scheme-item {
+    box-shadow: 0 8px 22px rgba(9, 14, 22, 0.18);
+}
+
+html[data-theme="dark"] .collection-result-card-title,
+html[data-theme="dark"] .collection-result-area-name,
+html[data-theme="dark"] .collection-area-summary-overview-value,
+html[data-theme="dark"] .collection-area-summary-section-title,
+html[data-theme="dark"] .collection-area-summary-chef,
+html[data-theme="dark"] .collection-result-chef-name,
+html[data-theme="dark"] .replace-chef-dialog-header h3,
+html[data-theme="dark"] .replace-chef-item-name,
+html[data-theme="dark"] .replace-chef-group-title,
+html[data-theme="dark"] .collection-team-item-title,
+html[data-theme="dark"] .collection-team-detail-title,
+html[data-theme="dark"] .collection-team-chef-name,
+html[data-theme="dark"] .collection-team-scheme-title,
+html[data-theme="dark"] .config-title,
+html[data-theme="dark"] #area-config-modal .config-cond-name,
+html[data-theme="dark"] .collection-result-equip-option-name {
+    color: var(--theme-text) !important;
+}
+
+html[data-theme="dark"] .collection-result-card-target,
+html[data-theme="dark"] .collection-result-summary-pill,
+html[data-theme="dark"] .collection-area-summary-overview-label,
+html[data-theme="dark"] .collection-area-summary-text,
+html[data-theme="dark"] .collection-area-summary-empty,
+html[data-theme="dark"] .collection-result-chef-detail,
+html[data-theme="dark"] .replace-chef-current,
+html[data-theme="dark"] .replace-chef-pagination-ellipsis,
+html[data-theme="dark"] .replace-chef-empty,
+html[data-theme="dark"] .collection-sort-title-hint,
+html[data-theme="dark"] .collection-sort-note,
+html[data-theme="dark"] .collection-sort-divider,
+html[data-theme="dark"] .collection-sort-label,
+html[data-theme="dark"] .collection-sort-drag-handle,
+html[data-theme="dark"] .collection-sort-empty,
+html[data-theme="dark"] .collection-sort-loading,
+html[data-theme="dark"] .collection-team-toolbar-count,
+html[data-theme="dark"] .collection-team-item-time,
+html[data-theme="dark"] .collection-team-detail-time,
+html[data-theme="dark"] .collection-team-chef-origin,
+html[data-theme="dark"] .collection-team-chef-muted,
+html[data-theme="dark"] .collection-team-chef-details,
+html[data-theme="dark"] .collection-team-chef-detail-muted,
+html[data-theme="dark"] .collection-team-scheme-meta,
+html[data-theme="dark"] .collection-team-scheme-areas,
+html[data-theme="dark"] .config-item-desc,
+html[data-theme="dark"] .config-cond-option-text.is-empty,
+html[data-theme="dark"] .collection-result-equip-option-skill,
+html[data-theme="dark"] .collection-result-equip-option-origin {
+    color: var(--theme-muted) !important;
+}
+
+html[data-theme="dark"] .collection-result-chef-card,
+html[data-theme="dark"] .collection-area-summary-item,
+html[data-theme="dark"] .replace-chef-item,
+html[data-theme="dark"] .collection-sort-item,
+html[data-theme="dark"] .collection-team-tabs-shell {
+    background: var(--theme-bg-alt) !important;
+}
+
+html[data-theme="dark"] .collection-result-chef-card.is-empty,
+html[data-theme="dark"] .collection-team-empty,
+html[data-theme="dark"] .collection-team-detail-empty,
+html[data-theme="dark"] .collection-sort-empty {
+    background: var(--theme-bg-alt) !important;
+    border-color: var(--theme-border) !important;
+}
+
+html[data-theme="dark"] .collection-result-chef-card.is-locked,
+html[data-theme="dark"] .replace-chef-item.is-locked {
+    background: #4f4330 !important;
+    border-color: #8d7756 !important;
+}
+
+html[data-theme="dark"] .replace-chef-item.is-assigned-other-area {
+    background: #4a3833 !important;
+    border-color: #8a6258 !important;
+}
+
+html[data-theme="dark"] .collection-result-summary-pill.is-warning {
+    background: #5a3b39 !important;
+    color: #ffd6d2 !important;
+}
+
+html[data-theme="dark"] .collection-result-summary-pill.is-locked {
+    background: #5f4c2e !important;
+    color: #ffe7b3 !important;
+}
+
+html[data-theme="dark"] .collection-result-summary-btn,
+html[data-theme="dark"] .collection-result-save-btn,
+html[data-theme="dark"] .collection-result-toggle-btn,
+html[data-theme="dark"] .replace-chef-pagination-btn,
+html[data-theme="dark"] .collection-team-item-detail-btn,
+html[data-theme="dark"] .collection-sort-floating-option,
+html[data-theme="dark"] .collection-sort-static-value {
+    background: var(--theme-surface) !important;
+    color: var(--theme-text) !important;
+    border-color: var(--theme-border) !important;
+}
+
+html[data-theme="dark"] .collection-result-summary-btn:hover,
+html[data-theme="dark"] .collection-result-summary-btn:focus,
+html[data-theme="dark"] .collection-result-save-btn:hover,
+html[data-theme="dark"] .collection-result-toggle-btn:hover,
+html[data-theme="dark"] .replace-chef-pagination-btn:hover,
+html[data-theme="dark"] .collection-team-item-detail-btn:hover,
+html[data-theme="dark"] .collection-sort-floating-option:hover,
+html[data-theme="dark"] .collection-sort-floating-option:focus {
+    background: var(--theme-surface-strong) !important;
+    color: var(--theme-text) !important;
+    border-color: var(--theme-accent-soft) !important;
+}
+
+html[data-theme="dark"] .collection-result-lock-btn {
+    background: #5f4c2e !important;
+    border-color: #8f7343 !important;
+    color: #ffe7b3 !important;
+}
+
+html[data-theme="dark"] .collection-result-lock-btn.is-locked,
+html[data-theme="dark"] .collection-result-lock-btn:hover,
+html[data-theme="dark"] .collection-result-lock-btn.is-locked:hover {
+    background: #c8862e !important;
+    border-color: #d79947 !important;
+    color: #fff7e6 !important;
+}
+
+html[data-theme="dark"] .collection-result-chef-ult,
+html[data-theme="dark"] .replace-chef-item-ult,
+html[data-theme="dark"] .collection-team-chef-badge,
+html[data-theme="dark"] .replace-chef-item-inline-tag.is-expectation,
+html[data-theme="dark"] .replace-chef-item-value-chip.is-aura,
+html[data-theme="dark"] .replace-chef-item-value-chip.is-expectation,
+html[data-theme="dark"] .replace-chef-item-meta-chip.is-green-amber,
+html[data-theme="dark"] .collection-result-chef-meta-item.is-expectation,
+html[data-theme="dark"] .collection-result-chef-meta-item.is-green-amber {
+    background: #365645 !important;
+    color: #dff7e7 !important;
+}
+
+html[data-theme="dark"] .replace-chef-item-inline-tag.is-red-amber,
+html[data-theme="dark"] .replace-chef-item-assigned,
+html[data-theme="dark"] .replace-chef-item-meta-chip.is-red-amber,
+html[data-theme="dark"] .collection-result-chef-meta-item.is-red-amber {
+    background: #5a3b39 !important;
+    color: #ffd6d2 !important;
+    border-color: #8e5d5a !important;
+}
+
+html[data-theme="dark"] .replace-chef-item-assigned.is-locked {
+    background: #5f4c2e !important;
+    color: #ffe7b3 !important;
+}
+
+html[data-theme="dark"] .replace-chef-item-value-chip,
+html[data-theme="dark"] .replace-chef-item-meta-chip.is-equip,
+html[data-theme="dark"] .collection-result-chef-meta-item,
+html[data-theme="dark"] .collection-result-card-target,
+html[data-theme="dark"] .collection-result-summary-pill,
+html[data-theme="dark"] .collection-result-equip-static {
+    background: var(--theme-surface-soft) !important;
+    color: var(--theme-muted) !important;
+    border-color: var(--theme-border) !important;
+}
+
+html[data-theme="dark"] .replace-chef-item-value-chip.is-highlight,
+html[data-theme="dark"] .replace-chef-item-skill-chip.is-material,
+html[data-theme="dark"] .replace-chef-item-meta-chip.is-blue-amber,
+html[data-theme="dark"] .collection-result-chef-meta-item.is-material,
+html[data-theme="dark"] .collection-result-chef-meta-item.is-collection-highlight,
+html[data-theme="dark"] .collection-result-chef-meta-item.is-lab-value,
+html[data-theme="dark"] .collection-result-chef-meta-item.is-jade-value,
+html[data-theme="dark"] .collection-result-chef-meta-item.is-cond-value {
+    background: #2f4e68 !important;
+    color: #d8ebff !important;
+}
+
+html[data-theme="dark"] .replace-chef-item-skill-chip.is-crit-material,
+html[data-theme="dark"] .collection-result-chef-meta-item.is-crit-material {
+    background: #503d67 !important;
+    color: #eddcff !important;
+}
+
+html[data-theme="dark"] .replace-chef-item-skill-chip.is-crit-chance,
+html[data-theme="dark"] .collection-result-chef-meta-item.is-crit-chance {
+    background: #654931 !important;
+    color: #ffe4c6 !important;
+}
+
+html[data-theme="dark"] .collection-result-chef-value,
+html[data-theme="dark"] .collection-result-chef-value-number,
+html[data-theme="dark"] .replace-chef-item-value,
+html[data-theme="dark"] .replace-chef-item-value-number,
+html[data-theme="dark"] .collection-team-chef-stat-material,
+html[data-theme="dark"] .collection-team-chef-name,
+html[data-theme="dark"] .collection-team-chef-star,
+html[data-theme="dark"] .collection-sort-name,
+html[data-theme="dark"] .config-cond-option-text,
+html[data-theme="dark"] .collection-result-equip-select-wrap .bootstrap-select > .dropdown-toggle .filter-option-inner-inner {
+    color: var(--theme-accent-soft) !important;
+}
+
+html[data-theme="dark"] .collection-team-chef-stat-crit-material {
+    color: #d5b2ff !important;
+}
+
+html[data-theme="dark"] .collection-team-chef-stat-crit {
+    color: #ffb47e !important;
+}
+
+html[data-theme="dark"] .replace-chef-tab-nav > li > a,
+html[data-theme="dark"] .collection-team-tab {
+    color: var(--theme-muted) !important;
+}
+
+html[data-theme="dark"] .replace-chef-tab-nav > li.active > a,
+html[data-theme="dark"] .replace-chef-tab-nav > li.active > a:hover,
+html[data-theme="dark"] .replace-chef-tab-nav > li.active > a:focus,
+html[data-theme="dark"] .collection-team-tab.is-active,
+html[data-theme="dark"] .replace-chef-pagination-btn.is-active {
+    background: var(--theme-accent) !important;
+    color: #f8fbff !important;
+    border-color: #5b86c8 !important;
+}
+
+html[data-theme="dark"] .collection-team-tab-count {
+    background: rgba(238, 243, 255, 0.14) !important;
+    color: #e9f0ff !important;
+}
+
+html[data-theme="dark"] .collection-result-equip-select-wrap .bootstrap-select.open > .dropdown-toggle,
+html[data-theme="dark"] .collection-result-equip-select-wrap .bootstrap-select > .dropdown-toggle:focus,
+html[data-theme="dark"] .collection-result-equip-select-wrap .bootstrap-select > .dropdown-toggle:hover,
+html[data-theme="dark"] #area-config-modal .config-cond-picker.open > .dropdown-toggle,
+html[data-theme="dark"] #area-config-modal .config-cond-picker > .dropdown-toggle:focus,
+html[data-theme="dark"] #area-config-modal .config-cond-picker > .dropdown-toggle:hover {
+    background: var(--theme-surface-strong) !important;
+    color: var(--theme-text) !important;
+    border-color: var(--theme-accent-soft) !important;
+}
+
+html[data-theme="dark"] .collection-result-equip-menu,
+html[data-theme="dark"] #area-config-modal .config-cond-menu,
+html[data-theme="dark"] .collection-sort-floating-menu {
+    background: var(--theme-surface) !important;
+    border-color: var(--theme-border) !important;
+    box-shadow: 0 14px 28px rgba(9, 14, 22, 0.4) !important;
+}
+
+html[data-theme="dark"] .collection-result-equip-menu li a,
+html[data-theme="dark"] .collection-result-equip-menu li a .text,
+html[data-theme="dark"] #area-config-modal .config-cond-menu li > a,
+html[data-theme="dark"] #area-config-modal .config-cond-menu li a .text {
+    color: var(--theme-text) !important;
+}
+
+html[data-theme="dark"] .collection-result-equip-menu li.active:not(.selected) > a,
+html[data-theme="dark"] .collection-result-equip-menu li.active:not(.selected) > a:hover,
+html[data-theme="dark"] .collection-result-equip-menu li.active:not(.selected) > a:focus,
+html[data-theme="dark"] #area-config-modal .config-cond-menu li.active:not(.selected) > a,
+html[data-theme="dark"] #area-config-modal .config-cond-menu li.active:not(.selected) > a:hover,
+html[data-theme="dark"] #area-config-modal .config-cond-menu li.active:not(.selected) > a:focus {
+    background: var(--theme-surface) !important;
+    color: var(--theme-text) !important;
+}
+
+html[data-theme="dark"] #area-config-modal .config-cond-menu li > a::after {
+    background: rgba(195, 207, 224, 0.28) !important;
+}
+
+html[data-theme="dark"] .collection-sort-item-veg {
+    background: #315043 !important;
+}
+
+html[data-theme="dark"] .collection-sort-item-jade {
+    background: #5c4734 !important;
+}
+
+html[data-theme="dark"] .collection-sort-item-lab {
+    background: #2d4e63 !important;
+}
+
+html[data-theme="dark"] .collection-sort-item-cond {
+    background: #4b395d !important;
+}
+
+html[data-theme="dark"] .collection-sort-static-value,
+html[data-theme="dark"] .replace-chef-pagination {
+    border-color: var(--theme-border) !important;
+}
+
+html[data-theme="dark"] .collection-team-toolbar-delete,
+html[data-theme="dark"] .collection-team-scheme-delete {
+    color: #ff8f95 !important;
+    border-color: #b87178 !important;
+}
+
+html[data-theme="dark"] .collection-result-chef-replace-btn {
+    background: var(--theme-accent) !important;
+}
+
+html[data-theme="dark"] .collection-result-chef-replace-btn:hover {
+    background: #5b86c8 !important;
+}
+
+html[data-theme="dark"] .collection-result-chef-remove-btn {
+    background: #c96b64 !important;
+}
+
+html[data-theme="dark"] .collection-result-chef-remove-btn:hover {
+    background: #d67b74 !important;
+}
+
+html[data-theme="dark"] .guest-rate-calculator,
+html[data-theme="dark"] .pengci-query-area,
+html[data-theme="dark"] #oneclick-settings-modal .modal-content,
+html[data-theme="dark"] #oneclick-settings-modal .setting-card,
+html[data-theme="dark"] #oneclick-settings-modal .rune-section,
+html[data-theme="dark"] #oneclick-settings-modal .rune-item,
+html[data-theme="dark"] #oneclick-settings-modal .oneclick-equip-custom-btn,
+html[data-theme="dark"] #oneclick-settings-modal .oneclick-equip-dropdown,
+html[data-theme="dark"] .pengci-dropdown-menu,
+html[data-theme="dark"] .pengci-rune-dropdown,
+html[data-theme="dark"] .pengci-chef-assignment,
+html[data-theme="dark"] .pengci-recipe-group,
+html[data-theme="dark"] .pengci-recipe-item,
+html[data-theme="dark"] .pengci-guest-header,
+html[data-theme="dark"] .pengci-rune-header,
+html[data-theme="dark"] .pengci-rune-recipes,
+html[data-theme="dark"] .pengci-rune-recipe-inline,
+html[data-theme="dark"] .pengci-rune-dropdown .pengci-search-wrapper,
+html[data-theme="dark"] .pengci-rune-dropdown .pengci-selected-recipes-display,
+html[data-theme="dark"] .pengci-rune-dropdown .pengci-clear-wrapper,
+html[data-theme="dark"] .pengci-rune-dropdown .pengci-rune-category-tabs {
+    background: var(--theme-surface) !important;
+    color: var(--theme-text) !important;
+    border-color: var(--theme-border) !important;
+}
+
+html[data-theme="dark"] .guest-rate-calculator .calc-result-header,
+html[data-theme="dark"] .pengci-query-header,
+html[data-theme="dark"] #oneclick-settings-modal .rune-header,
+html[data-theme="dark"] #oneclick-settings-modal .oneclick-equip-category-tabs,
+html[data-theme="dark"] #oneclick-settings-modal .oneclick-equip-search,
+html[data-theme="dark"] #oneclick-settings-modal .oneclick-equip-clear-btn,
+html[data-theme="dark"] .pengci-rune-dropdown .pengci-search-wrapper,
+html[data-theme="dark"] .pengci-rune-dropdown .pengci-selected-recipes-display,
+html[data-theme="dark"] .pengci-rune-dropdown .pengci-clear-wrapper,
+html[data-theme="dark"] .pengci-rune-dropdown .pengci-rune-category-tabs,
+html[data-theme="dark"] .pengci-chef-assignment .chef-name,
+html[data-theme="dark"] .pengci-guest-header,
+html[data-theme="dark"] .pengci-rune-header {
+    border-color: var(--theme-border) !important;
+}
+
+html[data-theme="dark"] .guest-rate-calculator .calc-result-header,
+html[data-theme="dark"] .pengci-query-header,
+html[data-theme="dark"] #oneclick-settings-modal .rune-header,
+html[data-theme="dark"] .pengci-guest-header,
+html[data-theme="dark"] .pengci-rune-header {
+    background: var(--theme-bg-alt) !important;
+}
+
+html[data-theme="dark"] .guest-rate-calculator .calc-result-content,
+html[data-theme="dark"] .pengci-query-content,
+html[data-theme="dark"] .pengci-query-result,
+html[data-theme="dark"] #oneclick-settings-modal .modal-body {
+    background: var(--theme-surface) !important;
+    color: var(--theme-text) !important;
+}
+
+html[data-theme="dark"] .guest-rate-calculator .calc-result-header h4,
+html[data-theme="dark"] .calc-result-item label,
+html[data-theme="dark"] .calc-control-group label,
+html[data-theme="dark"] .calc-summary-item span:first-child,
+html[data-theme="dark"] .calc-section-title,
+html[data-theme="dark"] .pengci-query-result h4,
+html[data-theme="dark"] .pengci-chef-assignment .chef-name,
+html[data-theme="dark"] .pengci-chef-assignment .recipe-item .recipe-name,
+html[data-theme="dark"] .pengci-recipe-item .recipe-name,
+html[data-theme="dark"] .pengci-guest-header .guest-name,
+html[data-theme="dark"] .pengci-dropdown-toggle .pengci-dropdown-text.has-selection,
+html[data-theme="dark"] .pengci-rune-dropdown-wrapper .pengci-dropdown-text.has-selection,
+html[data-theme="dark"] .pengci-rune-header .rune-name,
+html[data-theme="dark"] .pengci-rune-recipe-inline .recipe-name,
+html[data-theme="dark"] #oneclick-settings-modal .settings-modal-header .modal-title,
+html[data-theme="dark"] #oneclick-settings-modal .setting-card label,
+html[data-theme="dark"] #oneclick-settings-modal .rune-title,
+html[data-theme="dark"] #oneclick-settings-modal .oneclick-equip-list li .name {
+    color: var(--theme-text) !important;
+}
+
+html[data-theme="dark"] .calc-result-item .value,
+html[data-theme="dark"] .calc-summary-item .value,
+html[data-theme="dark"] .calc-result-item .value.highlight,
+html[data-theme="dark"] .calc-section-title,
+html[data-theme="dark"] .pengci-chef-assignment .chef-name .highlight,
+html[data-theme="dark"] .pengci-recipe-item .rank-guest-tag.current,
+html[data-theme="dark"] .pengci-dropdown-toggle .pengci-dropdown-text,
+html[data-theme="dark"] .pengci-rune-dropdown-wrapper .pengci-dropdown-text,
+html[data-theme="dark"] .pengci-rune-header .pengci-count,
+html[data-theme="dark"] #oneclick-settings-modal .oneclick-selected-equip-tag {
+    color: var(--theme-accent-soft) !important;
+}
+
+html[data-theme="dark"] .calc-result-header .btn-collapse,
+html[data-theme="dark"] .calc-result-header .btn-collapse:hover,
+html[data-theme="dark"] .calc-control-group .form-control,
+html[data-theme="dark"] .pengci-control-group label,
+html[data-theme="dark"] .pengci-recipe-item .recipe-rank-guests,
+html[data-theme="dark"] .pengci-no-recipe,
+html[data-theme="dark"] .pengci-empty,
+html[data-theme="dark"] .pengci-dropdown-empty,
+html[data-theme="dark"] .pengci-chef-assignment .recipe-item .recipe-guest,
+html[data-theme="dark"] .pengci-guest-header .expand-arrow,
+html[data-theme="dark"] .pengci-rune-header .expand-arrow,
+html[data-theme="dark"] .pengci-rune-recipe-inline .recipe-skills,
+html[data-theme="dark"] .pengci-rune-recipe-inline .guest-name-tag,
+html[data-theme="dark"] #oneclick-settings-modal .rune-count,
+html[data-theme="dark"] #oneclick-settings-modal .rune-header .glyphicon,
+html[data-theme="dark"] #oneclick-settings-modal .oneclick-equip-btn-content,
+html[data-theme="dark"] #oneclick-settings-modal .oneclick-equip-count,
+html[data-theme="dark"] #oneclick-settings-modal .oneclick-equip-list li .subtext,
+html[data-theme="dark"] #oneclick-settings-modal .settings-modal-header .close {
+    color: var(--theme-muted) !important;
+}
+
+html[data-theme="dark"] .calc-controls,
+html[data-theme="dark"] .double-recipe-section,
+html[data-theme="dark"] .pengci-query-header .pengci-tabs > li.active > a,
+html[data-theme="dark"] .pengci-query-header .nav-tabs > li.active > a,
+html[data-theme="dark"] .pengci-rune-dropdown .pengci-selected-tag,
+html[data-theme="dark"] #oneclick-settings-modal .rune-item.selected,
+html[data-theme="dark"] #oneclick-settings-modal .oneclick-selected-equip-tag {
+    background: var(--theme-bg-alt) !important;
+    border-color: var(--theme-border) !important;
+}
+
+html[data-theme="dark"] .calc-controls {
+    color: var(--theme-text) !important;
+}
+
+html[data-theme="dark"] .calc-divider {
+    background: var(--theme-border) !important;
+}
+
+html[data-theme="dark"] .guest-rate-calculator .btn-primary,
+html[data-theme="dark"] #sync-guest-double,
+html[data-theme="dark"] #btn-oneclick-query,
+html[data-theme="dark"] #btn-pengci-rune-query,
+html[data-theme="dark"] #btn-guest-portion-table {
+    background: var(--theme-accent) !important;
+    border-color: #5b86c8 !important;
+    color: #f8fbff !important;
+}
+
+html[data-theme="dark"] .guest-rate-calculator .btn-default,
+html[data-theme="dark"] .pengci-dropdown-toggle,
+html[data-theme="dark"] .pengci-rune-dropdown-wrapper .pengci-dropdown-btn,
+html[data-theme="dark"] .pengci-rune-dropdown .btn-pengci-clear,
+html[data-theme="dark"] #oneclick-settings-modal .oneclick-equip-clear-btn .btn,
+html[data-theme="dark"] #oneclick-settings-modal .settings-modal-header #btn-guest-portion-table {
+    background: var(--theme-surface) !important;
+    color: var(--theme-text) !important;
+    border-color: var(--theme-border) !important;
+}
+
+html[data-theme="dark"] .pengci-dropdown-toggle:hover,
+html[data-theme="dark"] .pengci-dropdown-toggle:focus,
+html[data-theme="dark"] .pengci-guest-dropdown-wrapper.open .pengci-dropdown-toggle,
+html[data-theme="dark"] .pengci-rune-dropdown-wrapper .pengci-dropdown-btn:hover,
+html[data-theme="dark"] .pengci-rune-dropdown-wrapper.open .pengci-dropdown-btn,
+html[data-theme="dark"] #oneclick-settings-modal .oneclick-equip-custom-btn:hover,
+html[data-theme="dark"] #oneclick-settings-modal .rune-header:hover,
+html[data-theme="dark"] #oneclick-settings-modal .rune-item:hover,
+html[data-theme="dark"] #oneclick-settings-modal .oneclick-equip-list li:hover,
+html[data-theme="dark"] .pengci-query-header .pengci-tabs > li > a:hover,
+html[data-theme="dark"] .pengci-guest-header:hover,
+html[data-theme="dark"] .pengci-recipe-item:hover,
+html[data-theme="dark"] .pengci-rune-header:hover,
+html[data-theme="dark"] .pengci-rune-recipe-inline:hover,
+html[data-theme="dark"] .pengci-rune-recipe-inline.selected {
+    background: var(--theme-surface-strong) !important;
+    border-color: var(--theme-accent-soft) !important;
+    color: var(--theme-text) !important;
+}
+
+html[data-theme="dark"] .pengci-query-header .pengci-tabs > li > a,
+html[data-theme="dark"] .pengci-query-header .nav-tabs > li > a,
+html[data-theme="dark"] .pengci-rune-dropdown .pengci-rune-category-tabs li a,
+html[data-theme="dark"] #oneclick-settings-modal .oneclick-equip-category-tabs li a {
+    color: var(--theme-muted) !important;
+}
+
+html[data-theme="dark"] .pengci-query-header .pengci-tabs > li.active > a,
+html[data-theme="dark"] .pengci-query-header .nav-tabs > li.active > a,
+html[data-theme="dark"] .pengci-rune-dropdown .pengci-rune-category-tabs li.active a,
+html[data-theme="dark"] #oneclick-settings-modal .oneclick-equip-category-tabs li.active a {
+    color: #f8fbff !important;
+    background: var(--theme-accent) !important;
+    border-bottom-color: var(--theme-accent-soft) !important;
+}
+
+html[data-theme="dark"] .pengci-rune-dropdown .pengci-rune-category-tabs li a:hover,
+html[data-theme="dark"] #oneclick-settings-modal .oneclick-equip-category-tabs li a:hover {
+    color: var(--theme-text) !important;
+    background: var(--theme-surface-strong) !important;
+}
+
+html[data-theme="dark"] #unultimated-dropdown-btn,
+html[data-theme="dark"] .unultimated-dropdown-wrapper.open #unultimated-dropdown-btn {
+    background: var(--theme-surface) !important;
+    border-color: var(--theme-border) !important;
+    color: var(--theme-text) !important;
+}
+
+html[data-theme="dark"] #unultimated-dropdown-btn:hover,
+html[data-theme="dark"] #unultimated-dropdown-btn:focus,
+html[data-theme="dark"] .unultimated-dropdown-wrapper.open #unultimated-dropdown-btn {
+    background: var(--theme-surface-strong) !important;
+    border-color: var(--theme-accent-soft) !important;
+    color: var(--theme-text) !important;
+}
+
+html[data-theme="dark"] #unultimated-dropdown-btn .pengci-dropdown-text {
+    color: #d4deee !important;
+}
+
+html[data-theme="dark"] #unultimated-dropdown-btn .pengci-dropdown-text.has-selection {
+    color: #f1f6ff !important;
+}
+
+html[data-theme="dark"] #unultimated-dropdown-btn .caret {
+    border-top-color: #d7e1f0 !important;
+}
+
+html[data-theme="dark"] .pengci-recipe-item,
+html[data-theme="dark"] .pengci-rune-recipe-inline,
+html[data-theme="dark"] .pengci-chef-assignment,
+html[data-theme="dark"] #oneclick-settings-modal .setting-card,
+html[data-theme="dark"] #oneclick-settings-modal .rune-item {
+    box-shadow: 0 8px 22px rgba(9, 14, 22, 0.18);
+}
+
+html[data-theme="dark"] .pengci-recipe-item .recipe-stars,
+html[data-theme="dark"] .pengci-rune-recipe-inline .recipe-stars {
+    color: #ffd27b !important;
+}
+
+html[data-theme="dark"] .pengci-chef-assignment .recipe-item .recipe-target,
+html[data-theme="dark"] .pengci-rune-header .pengci-count,
+html[data-theme="dark"] .pengci-recipe-item .rank-guest-tag.current,
+html[data-theme="dark"] .pengci-inline-guest.current,
+html[data-theme="dark"] .pengci-rank-guest.current {
+    color: #8be1a2 !important;
+}
+
+html[data-theme="dark"] .pengci-rune-recipe-inline .guest-name-tag,
+html[data-theme="dark"] .pengci-rune-dropdown .pengci-selected-tag {
+    background: var(--theme-surface-soft) !important;
+    border-color: var(--theme-border) !important;
+}
+
+html[data-theme="dark"] .pengci-rune-dropdown .pengci-selected-tag .tag-remove,
+html[data-theme="dark"] #oneclick-settings-modal .oneclick-selected-equip-tag .remove-equip-btn {
+    color: var(--theme-muted) !important;
+}
+
+html[data-theme="dark"] .pengci-rune-dropdown .pengci-selected-tag .tag-remove:hover,
+html[data-theme="dark"] #oneclick-settings-modal .oneclick-selected-equip-tag .remove-equip-btn:hover {
+    color: #ff8f95 !important;
+}
+
+html[data-theme="dark"] .pengci-rune-dropdown .pengci-search-input,
+html[data-theme="dark"] .pengci-mainline-group input,
+html[data-theme="dark"] #oneclick-settings-modal .oneclick-equip-search input,
+html[data-theme="dark"] .calc-control-group .form-control,
+html[data-theme="dark"] .quantity-control .form-control {
+    background: var(--theme-bg-alt) !important;
+    color: var(--theme-text) !important;
+    border-color: var(--theme-border) !important;
+}
+
+html[data-theme="dark"] #oneclick-settings-modal .switch-label {
+    background: #5f6c7f !important;
+}
+
+html[data-theme="dark"] #oneclick-settings-modal input[type="checkbox"]:checked + .switch-label,
+html[data-theme="dark"] #oneclick-settings-modal #setting-useExistingConfig:checked + .switch-label {
+    background: var(--theme-accent) !important;
+}
+
+html[data-theme="dark"] #oneclick-settings-modal .switch-label::after {
+    background: #eef3ff !important;
+}
+
+html[data-theme="dark"] #oneclick-settings-modal #setting-useExistingConfig + .switch-label {
+    background: #5f6c7f !important;
+}
+
+html[data-theme="dark"] #banquet-progress-wrapper,
+html[data-theme="dark"] #competition-progress-wrapper {
+    color: var(--theme-text) !important;
+}
+
+html[data-theme="dark"] #banquet-progress-wrapper > div,
+html[data-theme="dark"] #competition-progress-wrapper > div {
+    background: var(--theme-surface-soft) !important;
+    box-shadow: inset 0 0 0 1px rgba(132, 148, 171, 0.18);
+}
+
+html[data-theme="dark"] #banquet-progress-text,
+html[data-theme="dark"] #competition-progress-text,
+html[data-theme="dark"] .cal-results-progress .progress span {
+    color: var(--theme-text) !important;
+}
+
+html[data-theme="dark"] #banquet-progress-bar {
+    background: var(--theme-accent) !important;
+}
+
+html[data-theme="dark"] #competition-progress-bar {
+    background: #cf8a3f !important;
+}
+
+html[data-theme="dark"] .collection-preview-loading,
+html[data-theme="dark"] .collection-preview-empty {
+    border-style: dashed;
+}
+
+html[data-theme="dark"] .config-item,
+html[data-theme="dark"] .collection-data-query-table tbody tr.collection-data-query-separator-row td {
+    background-color: var(--theme-surface);
+}
+
+html[data-theme="dark"] .collection-data-query-table tbody tr.collection-data-query-note-row td {
+    background-color: var(--theme-surface);
+}
+
+html[data-theme="dark"] .modal-backdrop.in {
+    opacity: .64;
+}
+
+html[data-theme="dark"] .tooltip-inner {
+    background-color: rgba(17, 24, 39, 0.92);
+    color: #eef3ff;
+}
+
+html[data-theme="dark"] .tooltip.top .tooltip-arrow {
+    border-top-color: rgba(17, 24, 39, 0.92);
+}
+
+html[data-theme="dark"] .tooltip.bottom .tooltip-arrow {
+    border-bottom-color: rgba(17, 24, 39, 0.92);
+}
+
+html[data-theme="dark"] .tooltip.left .tooltip-arrow {
+    border-left-color: rgba(17, 24, 39, 0.92);
+}
+
+html[data-theme="dark"] .tooltip.right .tooltip-arrow {
+    border-right-color: rgba(17, 24, 39, 0.92);
+}
+
+html[data-theme="dark"] .bootstrap-select .dropdown-menu li a span[style*="color:#000000"],
+html[data-theme="dark"] .bootstrap-select .dropdown-menu li a span[style*="color: #000000"],
+html[data-theme="dark"] .bootstrap-select .dropdown-menu li a span[style*="color:#000;"],
+html[data-theme="dark"] .bootstrap-select .dropdown-menu li a span[style*="color: #000;"],
+html[data-theme="dark"] .bootstrap-select .dropdown-toggle .filter-option span[style*="color:#000000"],
+html[data-theme="dark"] .bootstrap-select .dropdown-toggle .filter-option span[style*="color: #000000"],
+html[data-theme="dark"] .bootstrap-select .dropdown-toggle .filter-option span[style*="color:#000;"],
+html[data-theme="dark"] .bootstrap-select .dropdown-toggle .filter-option span[style*="color: #000;"],
+html[data-theme="dark"] .bootstrap-select .dropdown-toggle .filter-option-inner-inner span[style*="color:#000000"],
+html[data-theme="dark"] .bootstrap-select .dropdown-toggle .filter-option-inner-inner span[style*="color: #000000"],
+html[data-theme="dark"] .bootstrap-select .dropdown-toggle .filter-option-inner-inner span[style*="color:#000;"],
+html[data-theme="dark"] .bootstrap-select .dropdown-toggle .filter-option-inner-inner span[style*="color: #000;"] {
+    color: var(--theme-text) !important;
+}
+
+html[data-theme="dark"] .bootstrap-select .dropdown-menu li a span[style*="color:#28a745"],
+html[data-theme="dark"] .bootstrap-select .dropdown-menu li a span[style*="color: #28a745"],
+html[data-theme="dark"] .bootstrap-select .dropdown-toggle .filter-option span[style*="color:#28a745"],
+html[data-theme="dark"] .bootstrap-select .dropdown-toggle .filter-option span[style*="color: #28a745"],
+html[data-theme="dark"] .bootstrap-select .dropdown-toggle .filter-option-inner-inner span[style*="color:#28a745"],
+html[data-theme="dark"] .bootstrap-select .dropdown-toggle .filter-option-inner-inner span[style*="color: #28a745"] {
+    color: #63d487 !important;
+}
+
+html[data-theme="dark"] .bootstrap-select .dropdown-menu li a span[style*="color:#fd7e14"],
+html[data-theme="dark"] .bootstrap-select .dropdown-menu li a span[style*="color: #fd7e14"],
+html[data-theme="dark"] .bootstrap-select .dropdown-toggle .filter-option span[style*="color:#fd7e14"],
+html[data-theme="dark"] .bootstrap-select .dropdown-toggle .filter-option span[style*="color: #fd7e14"],
+html[data-theme="dark"] .bootstrap-select .dropdown-toggle .filter-option-inner-inner span[style*="color:#fd7e14"],
+html[data-theme="dark"] .bootstrap-select .dropdown-toggle .filter-option-inner-inner span[style*="color: #fd7e14"] {
+    color: #ffb15c !important;
+}
+
+html[data-theme="dark"] .bootstrap-select .dropdown-menu li a span[style*="color:#dc3545"],
+html[data-theme="dark"] .bootstrap-select .dropdown-menu li a span[style*="color: #dc3545"],
+html[data-theme="dark"] .bootstrap-select .dropdown-toggle .filter-option span[style*="color:#dc3545"],
+html[data-theme="dark"] .bootstrap-select .dropdown-toggle .filter-option span[style*="color: #dc3545"],
+html[data-theme="dark"] .bootstrap-select .dropdown-toggle .filter-option-inner-inner span[style*="color:#dc3545"],
+html[data-theme="dark"] .bootstrap-select .dropdown-toggle .filter-option-inner-inner span[style*="color: #dc3545"] {
+    color: #ff7f8c !important;
+}
+
+html[data-theme="dark"] .bootstrap-select .dropdown-menu li a span[style*="color:#6f42c1"],
+html[data-theme="dark"] .bootstrap-select .dropdown-menu li a span[style*="color: #6f42c1"],
+html[data-theme="dark"] .bootstrap-select .dropdown-toggle .filter-option span[style*="color:#6f42c1"],
+html[data-theme="dark"] .bootstrap-select .dropdown-toggle .filter-option span[style*="color: #6f42c1"],
+html[data-theme="dark"] .bootstrap-select .dropdown-toggle .filter-option-inner-inner span[style*="color:#6f42c1"],
+html[data-theme="dark"] .bootstrap-select .dropdown-toggle .filter-option-inner-inner span[style*="color: #6f42c1"] {
+    color: #b78cff !important;
+}
+
+html[data-theme="dark"] .bootstrap-select .dropdown-menu .dropdown-header,
+html[data-theme="dark"] .bootstrap-select .dropdown-menu .dropdown-header.collapsible,
+html[data-theme="dark"] .recipe-box .bootstrap-select .dropdown-menu .dropdown-header.collapsible,
+html[data-theme="dark"] .dropdown-menu .dropdown-header.collapsible.recipe-rune-header {
+    color: var(--theme-text) !important;
+    background: var(--theme-surface) !important;
+    border-bottom-color: var(--theme-border) !important;
+}
+
+html[data-theme="dark"] .bootstrap-select .dropdown-menu .dropdown-header.collapsible:hover,
+html[data-theme="dark"] .recipe-box .bootstrap-select .dropdown-menu .dropdown-header.collapsible:hover,
+html[data-theme="dark"] .dropdown-menu .dropdown-header.collapsible.recipe-rune-header:hover {
+    background: var(--theme-surface-strong) !important;
+}
+
+html[data-theme="dark"] .bootstrap-select .dropdown-menu .dropdown-header .collapse-icon,
+html[data-theme="dark"] .dropdown-menu .dropdown-header .collapse-icon {
+    color: var(--theme-muted) !important;
+}
+
+html[data-theme="dark"] .dropdown-menu .chef-category-tabs,
+html[data-theme="dark"] .dropdown-menu .equip-category-tabs,
+html[data-theme="dark"] .dropdown-menu .recipe-category-tabs,
+html[data-theme="dark"] .dropdown-menu .cultivation-category-tabs,
+html[data-theme="dark"] .dropdown-menu .cultivation-equip-category-tabs,
+html[data-theme="dark"] .dropdown-menu .cultivation-recipe-category-tabs,
+html[data-theme="dark"] .unultimated-category-tabs {
+    border-bottom-color: var(--theme-border) !important;
+}
+
+html[data-theme="dark"] .dropdown-menu .chef-category-tabs li a,
+html[data-theme="dark"] .dropdown-menu .equip-category-tabs li a,
+html[data-theme="dark"] .dropdown-menu .recipe-category-tabs li a,
+html[data-theme="dark"] .dropdown-menu .cultivation-category-tabs li a,
+html[data-theme="dark"] .dropdown-menu .cultivation-equip-category-tabs li a,
+html[data-theme="dark"] .dropdown-menu .cultivation-recipe-category-tabs li a,
+html[data-theme="dark"] .unultimated-category-tabs li a {
+    color: var(--theme-muted) !important;
+}
+
+html[data-theme="dark"] .dropdown-menu .cultivation-category-tabs li a,
+html[data-theme="dark"] .dropdown-menu .cultivation-equip-category-tabs li a,
+html[data-theme="dark"] .dropdown-menu .cultivation-recipe-category-tabs li a,
+html[data-theme="dark"] .unultimated-category-tabs li a {
+    color: #d0dbeb !important;
+}
+
+html[data-theme="dark"] .unultimated-category-tabs li a {
+    font-weight: 600 !important;
+}
+
+html[data-theme="dark"] .dropdown-menu .chef-category-tabs li.active a,
+html[data-theme="dark"] .dropdown-menu .equip-category-tabs li.active a,
+html[data-theme="dark"] .dropdown-menu .recipe-category-tabs li.active a,
+html[data-theme="dark"] .dropdown-menu .cultivation-category-tabs li.active a,
+html[data-theme="dark"] .dropdown-menu .cultivation-equip-category-tabs li.active a,
+html[data-theme="dark"] .dropdown-menu .cultivation-recipe-category-tabs li.active a,
+html[data-theme="dark"] .unultimated-category-tabs li.active a {
+    color: #f8fbff !important;
+    background: var(--theme-accent) !important;
+}
+
+html[data-theme="dark"] .dropdown-menu .chef-category-tabs li a:hover,
+html[data-theme="dark"] .dropdown-menu .equip-category-tabs li a:hover,
+html[data-theme="dark"] .dropdown-menu .recipe-category-tabs li a:hover,
+html[data-theme="dark"] .dropdown-menu .cultivation-category-tabs li a:hover,
+html[data-theme="dark"] .dropdown-menu .cultivation-equip-category-tabs li a:hover,
+html[data-theme="dark"] .dropdown-menu .cultivation-recipe-category-tabs li a:hover,
+html[data-theme="dark"] .unultimated-category-tabs li a:hover {
+    color: var(--theme-text) !important;
+    background: var(--theme-surface-strong) !important;
+}
+
+html[data-theme="dark"] #exclude-schemes-modal-body .scheme-item,
+html[data-theme="dark"] #top10-modal-body .chef-position {
+    background: var(--theme-bg-alt) !important;
+    border: 1px solid var(--theme-border) !important;
+    color: var(--theme-text) !important;
+    box-shadow: 0 10px 24px rgba(9, 14, 22, 0.18);
+}
+
+html[data-theme="dark"] #exclude-schemes-modal-body .scheme-name,
+html[data-theme="dark"] #exclude-schemes-modal-body .scheme-materials,
+html[data-theme="dark"] #top10-modal-body .chef-position h5,
+html[data-theme="dark"] #pengci-completion-modal .modal-title,
+html[data-theme="dark"] #pengci-completion-modal .modal-body p,
+html[data-theme="dark"] #competition-settings-modal h4,
+html[data-theme="dark"] #competition-settings-modal label,
+html[data-theme="dark"] #competition-settings-modal [style*="font-weight: bold"],
+html[data-theme="dark"] #banquet-settings-modal h4,
+html[data-theme="dark"] #banquet-settings-modal [style*="font-weight: bold"] {
+    color: var(--theme-text) !important;
+}
+
+html[data-theme="dark"] #exclude-schemes-modal-body [style*="color: #999"],
+html[data-theme="dark"] #exclude-schemes-modal-body [style*="color: #bbb"],
+html[data-theme="dark"] #exclude-schemes-modal-body [style*="color: #888"],
+html[data-theme="dark"] #exclude-schemes-modal-body [style*="color: #666"],
+html[data-theme="dark"] #competition-settings-modal [style*="color: #999"],
+html[data-theme="dark"] #competition-settings-modal [style*="color: #888"],
+html[data-theme="dark"] #banquet-settings-modal [style*="color: #999"],
+html[data-theme="dark"] #banquet-settings-modal [style*="color: #888"],
+html[data-theme="dark"] #pengci-completion-modal [style*="color: #666"],
+html[data-theme="dark"] #top10-modal-body .chef-position > div:last-child,
+html[data-theme="dark"] .chef-empty-hint {
+    color: var(--theme-muted) !important;
+}
+
+html[data-theme="dark"] #exclude-schemes-modal-body [style*="color: #333"],
+html[data-theme="dark"] #top10-modal-body .chef-position li {
+    color: var(--theme-text) !important;
+}
+
+html[data-theme="dark"] #competition-settings-modal,
+html[data-theme="dark"] #banquet-settings-modal {
+    background: rgba(8, 12, 20, 0.58) !important;
+}
+
+html[data-theme="dark"] #competition-settings-modal > div,
+html[data-theme="dark"] #banquet-settings-modal > div {
+    background: var(--theme-surface) !important;
+    color: var(--theme-text) !important;
+    border: 1px solid var(--theme-border) !important;
+    box-shadow: 0 24px 44px rgba(9, 14, 22, 0.42) !important;
+}
+
+html[data-theme="dark"] #competition-settings-modal > div > div:first-child,
+html[data-theme="dark"] #banquet-settings-modal > div > div:first-child {
+    border-bottom-color: var(--theme-border) !important;
+}
+
+html[data-theme="dark"] #competition-default-settings > div,
+html[data-theme="dark"] #competition-advanced-settings > div,
+html[data-theme="dark"] #banquet-settings-modal > div > div:not(:first-child) {
+    background: rgba(41, 50, 67, 0.82) !important;
+    border: 1px solid rgba(101, 117, 140, 0.42) !important;
+    border-radius: 10px !important;
+    padding: 12px 14px !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+html[data-theme="dark"] #competition-default-settings,
+html[data-theme="dark"] #competition-advanced-settings {
+    background: transparent !important;
+}
+
+html[data-theme="dark"] #close-settings-modal,
+html[data-theme="dark"] #close-banquet-settings-modal {
+    color: var(--theme-muted) !important;
+}
+
+html[data-theme="dark"] #close-settings-modal:hover,
+html[data-theme="dark"] #close-banquet-settings-modal:hover {
+    color: var(--theme-text) !important;
+}
+
+html[data-theme="dark"] #algorithm-file-input {
+    background: var(--theme-bg-alt) !important;
+    color: var(--theme-text) !important;
+    border-color: var(--theme-border) !important;
+}
+
+html[data-theme="dark"] #algorithm-file-input::-webkit-file-upload-button {
+    background: var(--theme-surface-soft);
+    color: var(--theme-text);
+    border: 1px solid var(--theme-border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    margin-right: 10px;
+}
+
+html[data-theme="dark"] #algorithm-select,
+html[data-theme="dark"] #top10-import-textarea,
+html[data-theme="dark"] #top10-import-modal .form-control {
+    background: var(--theme-bg-alt) !important;
+    color: var(--theme-text) !important;
+    border-color: var(--theme-border) !important;
+}
+
+html[data-theme="dark"] #top10-import-textarea::placeholder {
+    color: var(--theme-muted-soft) !important;
+}
+
+html[data-theme="dark"] #top10-import-message:not(.alert-success):not(.alert-danger):not(.alert-warning) {
+    background: var(--theme-bg-alt) !important;
+    color: var(--theme-text) !important;
+    border-color: var(--theme-border) !important;
+}
+
+html[data-theme="dark"] #pengci-completion-modal .modal-content,
+html[data-theme="dark"] #top10-import-modal .modal-content {
+    background: var(--theme-surface) !important;
+    color: var(--theme-text) !important;
+}
+
+html[data-theme="dark"] .cal-custom-item .rule-desc {
+    margin-bottom: 12px;
+    color: var(--theme-muted) !important;
+}
+
+html[data-theme="dark"] .cal-custom-item .rule-desc .item {
+    margin-bottom: 8px;
+    line-height: 1.85;
+}
+
+html[data-theme="dark"] .cal-custom-item .rule-desc .label {
+    margin: 0 4px 6px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    font-weight: 600;
+    letter-spacing: .1px;
+    box-shadow: none;
+}
+
+html[data-theme="dark"] .cal-custom-item .rule-desc .label-default {
+    background: rgba(108, 122, 145, 0.36) !important;
+    border-color: rgba(162, 176, 198, 0.28) !important;
+    color: #edf3ff !important;
+}
+
+html[data-theme="dark"] .cal-custom-item .rule-desc .label-info {
+    background: rgba(93, 179, 212, 0.24) !important;
+    border-color: rgba(116, 207, 237, 0.42) !important;
+    color: #dff7ff !important;
+}
+
+html[data-theme="dark"] .selected-sum-wrapper {
+    margin: 4px auto 12px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    box-shadow: none;
+    color: var(--theme-accent-soft) !important;
+}
+
+html[data-theme="dark"] .selected-sum {
+    color: var(--theme-accent-soft) !important;
+    text-shadow: none;
+}
+
+html[data-theme="dark"] .selected-sum .total-score {
+    color: #9fd4ff !important;
+}
+
+html[data-theme="dark"] .recipe-box .recipe-placeholder:not(.hidden) ~ .recipe-box-1 .content,
+html[data-theme="dark"] .recipe-box .recipe-placeholder:not(.hidden) ~ .recipe-box-1 .recipe-qec,
+html[data-theme="dark"] .recipe-box .recipe-placeholder:not(.hidden) ~ .recipe-box-1 .recipe-result,
+html[data-theme="dark"] .recipe-box .recipe-placeholder:not(.hidden) ~ .recipe-box-2 {
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
+html[data-theme="dark"] .recipe-box .recipe-placeholder:not(.hidden) {
+    color: var(--theme-text) !important;
+}
+
+html[data-theme="dark"] .selected-item-wrapper {
+    gap: 8px;
+}
+
+html[data-theme="dark"] .selected-item {
+    margin: 0;
+    padding: 6px;
+    border-radius: 18px;
+    background: linear-gradient(180deg, rgba(43, 54, 74, 0.86), rgba(34, 43, 58, 0.92));
+    border: 1px solid rgba(101, 117, 140, 0.34);
+    box-shadow: 0 12px 24px rgba(9, 14, 22, 0.18);
+}
+
+html[data-theme="dark"] .selected-box {
+    background: linear-gradient(180deg, rgba(51, 63, 84, 0.96), rgba(40, 49, 66, 0.98)) !important;
+    border-color: rgba(110, 126, 149, 0.42) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03), 0 6px 16px rgba(9, 14, 22, 0.14);
+}
+
+html[data-theme="dark"] .chef-box.selected-box,
+html[data-theme="dark"] .equip-box.selected-box,
+html[data-theme="dark"] .condiment-box.selected-box {
+    background: linear-gradient(180deg, rgba(49, 60, 82, 0.98), rgba(38, 47, 64, 0.98)) !important;
+}
+
+html[data-theme="dark"] .recipe-box.selected-box {
+    background: linear-gradient(180deg, rgba(47, 59, 81, 0.98), rgba(35, 45, 61, 0.98)) !important;
+}
+
+html[data-theme="dark"] .chef-box .chef-placeholder,
+html[data-theme="dark"] .recipe-box .recipe-placeholder {
+    background: rgba(40, 49, 66, 0.96) !important;
+    color: var(--theme-muted) !important;
+}
+
+html[data-theme="dark"] .chef-box .content .name,
+html[data-theme="dark"] .condiment-box .content .name,
+html[data-theme="dark"] .equip-box .content .name,
+html[data-theme="dark"] .recipe-box .content .name {
+    color: #9fc4ff !important;
+}
+
+html[data-theme="dark"] .chef-box .disk-box .content .name.disk-1 {
+    color: #ff9a94 !important;
+}
+
+html[data-theme="dark"] .chef-box .disk-box .content .name.disk-2 {
+    color: #8be1a2 !important;
+}
+
+html[data-theme="dark"] .chef-box .disk-box .content .name.disk-3 {
+    color: #8ab4f8 !important;
+}
+
+html[data-theme="dark"] .chef-box .chef-box-1 .content span,
+html[data-theme="dark"] .chef-box .chef-box-2 .content small,
+html[data-theme="dark"] .recipe-box .recipe-box-2,
+html[data-theme="dark"] .recipe-box .recipe-box-2 .content,
+html[data-theme="dark"] .recipe-box .recipe-result,
+html[data-theme="dark"] .recipe-box .recipe-quantity .max,
+html[data-theme="dark"] .selected-item .content small {
+    color: var(--theme-muted) !important;
+}
+
+html[data-theme="dark"] .recipe-box .recipe-result .score,
+html[data-theme="dark"] .recipe-box .recipe-quantity .form-control,
+html[data-theme="dark"] .equip-box .content,
+html[data-theme="dark"] .condiment-box .content {
+    color: #e7f0ff !important;
+}
+
+html[data-theme="dark"] .warning-skill.dropdown-item .text .name,
+html[data-theme="dark"] .warning-skill.dropdown-item .text .skill,
+html[data-theme="dark"] .warning-skill.dropdown-item .text .subtext,
+html[data-theme="dark"] .warning-skill.dropdown-item .text .score {
+    color: #ff8f95 !important;
+}
+
+html[data-theme="dark"] .dropdown-menu > .active > a.warning-skill.dropdown-item .text .name,
+html[data-theme="dark"] .dropdown-menu > .active > a.warning-skill.dropdown-item .text .skill,
+html[data-theme="dark"] .dropdown-menu > .active > a.warning-skill.dropdown-item .text .subtext,
+html[data-theme="dark"] .dropdown-menu > .active > a.warning-skill.dropdown-item .text .score {
+    color: #ffd4d8 !important;
+}
+
+html[data-theme="dark"] .recipe-box .recipe-box-2:not(.no-rarity.no-skill) .material,
+html[data-theme="dark"] .recipe-box .recipe-box-2:not(.no-rarity.no-skill.no-material) .add {
+    border-top-color: rgba(132, 148, 171, 0.22) !important;
+}
+
+html[data-theme="dark"] .btn-resize {
+    color: var(--theme-muted) !important;
+}

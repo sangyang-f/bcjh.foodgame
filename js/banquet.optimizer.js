@@ -97,6 +97,11 @@ var BanquetOptimizer = (function() {
     var _disableFullGuestRebuild = false;
     var _fullGuestRebuildAttempts = 0;
     var _fullGuestRebuildHits = 0;
+    var _newbieEquipEnabled = false;
+    var _intermediateEquipEnabled = false;
+    var _newbiePoolEquipsByRule = [];
+    var _intermediatePoolEquipsByRule = [];
+    var _cachedPartialAddsByRule = [];
 
     var CONFIG = {
         recipeSeedK: 6,       // 种子菜谱数
@@ -536,6 +541,9 @@ var BanquetOptimizer = (function() {
     }
 
     function _buildRecipeIntentFit(ruleIndex, chefIndex, recipeIndex, slotState, slotRecipes, ownIntents, nextDishIntents, slotIntentAdds) {
+        if (!slotState || !slotState.recipes || !slotState.chefObj) {
+            return null;
+        }
         var rec = slotState.recipes[recipeIndex];
         if (!rec || !rec.data) return null;
 
@@ -617,6 +625,9 @@ var BanquetOptimizer = (function() {
         var totalFit = 0;
         for (var ci = 0; ci < ruleState.length; ci++) {
             var slotState = ruleState[ci];
+            if (!slotState || !slotState.chefObj || !slotState.recipes) {
+                continue;
+            }
             var ownIntents = _getPositionIntents(ruleIndex, ci);
             var nextDishIntents = _analyzeNextDishIntents(ruleIndex, ci);
             for (var reci = 0; reci < 3; reci++) {
@@ -936,9 +947,9 @@ var BanquetOptimizer = (function() {
             }
         }
         var seedRecipeIdx = strategy.seedRecipeIndex;
-        var seedRanking = _fastGetRecipeRanking(ruleIndex, chefIndex, seedRecipeIdx, 1, true);
+        var seedRanking = _getSeedRecipeRanking(ruleIndex, chefIndex, seedRecipeIdx, 1, true);
         if (seedRanking.length > 0) {
-            _simSetRecipe(ruleIndex, chefIndex, seedRecipeIdx, seedRanking[0].recipeId);
+            _applyRecipeSelection(ruleIndex, chefIndex, seedRecipeIdx, seedRanking[0]);
         }
         _greedyFillRecipesOrdered(ruleIndex, chefIndex, strategy.fillOrder, seedRecipeIdx);
     }
@@ -1115,6 +1126,11 @@ var BanquetOptimizer = (function() {
         _bestSimState = null;
         _topCandidates = [];
         _topCandidateMeta = [];
+        _newbieEquipEnabled = false;
+        _intermediateEquipEnabled = false;
+        _newbiePoolEquipsByRule = [];
+        _intermediatePoolEquipsByRule = [];
+        _cachedPartialAddsByRule = [];
         
         if (typeof calCustomRule !== 'undefined' && calCustomRule && calCustomRule.rules) {
             _rules = calCustomRule.rules;
@@ -1138,8 +1154,17 @@ var BanquetOptimizer = (function() {
             recipeSkill: $("#chk-cal-recipe-skill").val() || [],
             multipleSkill: $("#chk-cal-recipe-multiple-skill").prop("checked"),
             recipeCondiment: $("#chk-cal-recipe-condiment").val() || [],
-            excludeMaterials: $("#chk-cal-recipe-material-exclude").val() || []
+            excludeMaterials: $("#chk-cal-recipe-material-exclude").val() || [],
+            useNewbieEquip: $("#chk-banquet-newbie-equip").length
+                ? $("#chk-banquet-newbie-equip").prop("checked")
+                : (typeof window.getBanquetNewbieEquipEnabled === 'function' && !!window.getBanquetNewbieEquipEnabled()),
+            useIntermediateEquip: $("#chk-banquet-intermediate-equip").length
+                ? $("#chk-banquet-intermediate-equip").prop("checked")
+                : (typeof window.getBanquetIntermediateEquipEnabled === 'function' && !!window.getBanquetIntermediateEquipEnabled())
         };
+
+        _newbieEquipEnabled = !!_cachedConfig.useNewbieEquip;
+        _intermediateEquipEnabled = !!_cachedConfig.useIntermediateEquip;
         
         // 构建快速查找表
         _chefMap = {};
@@ -1206,6 +1231,18 @@ var BanquetOptimizer = (function() {
                 }
             }
             _menusByRule.push(menus);
+            _newbiePoolEquipsByRule[ri] = _filterNewbiePoolEquips(rule.equips || []);
+            _intermediatePoolEquipsByRule[ri] = _filterIntermediatePoolEquips(rule.equips || []);
+        }
+
+        if (_isAnyAutoPoolEquipEnabled()) {
+            var totalAutoPoolEquips = 0;
+            for (var nri = 0; nri < _rules.length; nri++) {
+                totalAutoPoolEquips += _getAutoPoolEquipsForRule(nri).length;
+            }
+            console.log('[风云宴] 奖池厨具自动搭配(' + _getAutoPoolEquipLabel() + '): 开启 (' +
+                (_cachedConfig.useEquip ? '勾选已配厨具时仅补无厨具厨师' : '未勾选已配厨具时全员自动搭配') +
+                ', 奖池厨具' + totalAutoPoolEquips + '个)');
         }
 
         _debugLog('init', '初始化完成', {
@@ -1336,6 +1373,252 @@ var BanquetOptimizer = (function() {
             clone.push(ruleClone);
         }
         return clone;
+    }
+
+    function _filterPoolEquips(equips, originKeyword) {
+        var results = [];
+        for (var i = 0; i < equips.length; i++) {
+            var equip = equips[i];
+            if (!equip) continue;
+            var origin = equip.origin || '';
+            if (origin.indexOf(originKeyword) >= 0) results.push(equip);
+        }
+        return results;
+    }
+
+    function _filterNewbiePoolEquips(equips) {
+        return _filterPoolEquips(equips, '新手奖池');
+    }
+
+    function _filterIntermediatePoolEquips(equips) {
+        return _filterPoolEquips(equips, '中级奖池');
+    }
+
+    function _isAnyAutoPoolEquipEnabled() {
+        return _newbieEquipEnabled || _intermediateEquipEnabled;
+    }
+
+    function _getAutoPoolEquipsForRule(ruleIndex) {
+        var merged = [];
+        var seenEquipIds = {};
+
+        function addPool(poolEquips) {
+            for (var i = 0; i < poolEquips.length; i++) {
+                var equip = poolEquips[i];
+                if (!equip) continue;
+                var equipKey = equip.equipId || ('idx_' + merged.length + '_' + i);
+                if (seenEquipIds[equipKey]) continue;
+                seenEquipIds[equipKey] = true;
+                merged.push(equip);
+            }
+        }
+
+        if (_newbieEquipEnabled) addPool(_newbiePoolEquipsByRule[ruleIndex] || []);
+        if (_intermediateEquipEnabled) addPool(_intermediatePoolEquipsByRule[ruleIndex] || []);
+        return merged;
+    }
+
+    function _getAutoPoolEquipLabel() {
+        var labels = [];
+        if (_newbieEquipEnabled) labels.push('新手奖池');
+        if (_intermediateEquipEnabled) labels.push('中级奖池');
+        return labels.join('+');
+    }
+
+    function _getRecipeSkillMaxDeficit(chefObj, recipeData) {
+        if (!chefObj || !recipeData) return 0;
+        var skills = [
+            {req: recipeData.stirfry || 0, val: chefObj.stirfryVal || 0},
+            {req: recipeData.boil || 0, val: chefObj.boilVal || 0},
+            {req: recipeData.knife || 0, val: chefObj.knifeVal || 0},
+            {req: recipeData.fry || 0, val: chefObj.fryVal || 0},
+            {req: recipeData.bake || 0, val: chefObj.bakeVal || 0},
+            {req: recipeData.steam || 0, val: chefObj.steamVal || 0}
+        ];
+        var maxDeficit = 0;
+        for (var i = 0; i < skills.length; i++) {
+            if (skills[i].req <= 0) continue;
+            var deficit = skills[i].req - skills[i].val;
+            if (deficit > maxDeficit) maxDeficit = deficit;
+        }
+        return maxDeficit;
+    }
+
+    function _isRecipeSkillQualified(chefObj, recipeData) {
+        if (!chefObj || !chefObj.chefId || !recipeData) return true;
+        if (recipeData.stirfry > 0 && (!chefObj.stirfryVal || chefObj.stirfryVal < recipeData.stirfry)) return false;
+        if (recipeData.boil > 0 && (!chefObj.boilVal || chefObj.boilVal < recipeData.boil)) return false;
+        if (recipeData.knife > 0 && (!chefObj.knifeVal || chefObj.knifeVal < recipeData.knife)) return false;
+        if (recipeData.fry > 0 && (!chefObj.fryVal || chefObj.fryVal < recipeData.fry)) return false;
+        if (recipeData.bake > 0 && (!chefObj.bakeVal || chefObj.bakeVal < recipeData.bake)) return false;
+        if (recipeData.steam > 0 && (!chefObj.steamVal || chefObj.steamVal < recipeData.steam)) return false;
+        return true;
+    }
+
+    function _shouldUseAutoPoolEquipForRecipeSelection(ruleIndex, chefIndex) {
+        if (!_isAnyAutoPoolEquipEnabled()) return false;
+        var autoPool = _getAutoPoolEquipsForRule(ruleIndex);
+        if (!autoPool.length) return false;
+        var slot = _simState[ruleIndex][chefIndex];
+        if (!slot || !slot.chefObj || !slot.chefObj.chefId) return false;
+        if (_cachedConfig.useEquip) {
+            var rule = _rules[ruleIndex];
+            if (rule && rule.chefs) {
+                for (var i = 0; i < rule.chefs.length; i++) {
+                    if (rule.chefs[i].chefId === slot.chefId) {
+                        return !rule.chefs[i].equipId;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    function _hasRecipeSelectionEquip(selection) {
+        return !!(selection && Object.prototype.hasOwnProperty.call(selection, 'equipObj'));
+    }
+
+    function _getRecipeSelectionEquipId(selection) {
+        if (!_hasRecipeSelectionEquip(selection)) return undefined;
+        return selection && selection.equipObj && selection.equipObj.equipId ? selection.equipObj.equipId : null;
+    }
+
+    function _isSameRecipeSelection(ruleIndex, chefIndex, recipeIndex, selection) {
+        if (!selection) return false;
+        var slot = _simState[ruleIndex][chefIndex];
+        var currentRecipeId = slot && slot.recipes && slot.recipes[recipeIndex] && slot.recipes[recipeIndex].data
+            ? slot.recipes[recipeIndex].data.recipeId
+            : null;
+        if (currentRecipeId !== selection.recipeId) return false;
+        if (!_hasRecipeSelectionEquip(selection)) return true;
+        var currentEquipId = slot && slot.equipObj && slot.equipObj.equipId ? slot.equipObj.equipId : null;
+        return currentEquipId === _getRecipeSelectionEquipId(selection);
+    }
+
+    function _applyRecipeSelection(ruleIndex, chefIndex, recipeIndex, selection, preRemainMaterials) {
+        if (!selection || !selection.recipeId) return false;
+        var slot = _simState[ruleIndex][chefIndex];
+        if (!slot) return false;
+        if (_hasRecipeSelectionEquip(selection)) {
+            slot.equipObj = selection.equipObj || {};
+            _applyChefData(ruleIndex);
+            _refreshRecipeQuantitiesForSlot(ruleIndex, chefIndex);
+        }
+        _simSetRecipe(ruleIndex, chefIndex, recipeIndex, selection.recipeId, preRemainMaterials);
+        return true;
+    }
+
+    function _slotHasRecipes(ruleIndex, chefIndex) {
+        var slot = _simState[ruleIndex][chefIndex];
+        if (!slot || !slot.recipes) return false;
+        for (var reci = 0; reci < slot.recipes.length; reci++) {
+            if (slot.recipes[reci] && slot.recipes[reci].data) return true;
+        }
+        return false;
+    }
+
+    function _shouldAutoFitPoolEquipForSlot(ruleIndex, chefIndex) {
+        if (!_isAnyAutoPoolEquipEnabled()) return false;
+        var autoPool = _getAutoPoolEquipsForRule(ruleIndex);
+        if (!autoPool.length) return false;
+        var slot = _simState[ruleIndex][chefIndex];
+        if (!slot || !slot.chefObj || !slot.chefObj.chefId) return false;
+        if (!_slotHasRecipes(ruleIndex, chefIndex)) return false;
+        if (_cachedConfig.useEquip) {
+            return !(slot.equipObj && slot.equipObj.equipId);
+        }
+        return true;
+    }
+
+    function _refreshRecipeQuantitiesForSlot(ruleIndex, chefIndex) {
+        var slot = _simState[ruleIndex][chefIndex];
+        var rule = _rules[ruleIndex];
+        if (!slot || !slot.chefObj || !rule) return;
+        for (var reci = 0; reci < slot.recipes.length; reci++) {
+            var rec = slot.recipes[reci];
+            if (!rec || !rec.data) continue;
+            var remainMaterials = _calcRemainMaterials(ruleIndex, chefIndex, reci);
+            var newMax = getRecipeQuantity(rec.data, remainMaterials, rule, slot.chefObj);
+            if (rule.DisableMultiCookbook) newMax = Math.min(newMax, 1);
+            rec.max = newMax;
+            if (rec.quantity > newMax) rec.quantity = newMax;
+            if (newMax > rec.quantity) rec.quantity = newMax;
+        }
+    }
+
+    function _rankAutoPoolEquipsForSlot(ruleIndex, chefIndex) {
+        if (!_shouldAutoFitPoolEquipForSlot(ruleIndex, chefIndex)) return [];
+
+        var autoPool = _getAutoPoolEquipsForRule(ruleIndex);
+        var savedState = _cloneSimState(_simState);
+        var results = [];
+
+        for (var i = 0; i < autoPool.length; i++) {
+            _simState = _cloneSimState(savedState);
+            _simState[ruleIndex][chefIndex].equipObj = autoPool[i];
+            _applyChefData(ruleIndex);
+            _refreshRecipeQuantitiesForSlot(ruleIndex, chefIndex);
+            results.push({
+                equipObj: autoPool[i],
+                score: _calcRuleScore(ruleIndex, true)
+            });
+        }
+
+        _simState = _cloneSimState(savedState);
+        results.sort(function(a, b) { return b.score - a.score; });
+        return results;
+    }
+
+    function _fitAutoPoolEquipForSlot(ruleIndex, chefIndex) {
+        if (!_shouldAutoFitPoolEquipForSlot(ruleIndex, chefIndex)) return false;
+        var currentScore = _calcRuleScore(ruleIndex, true);
+        var ranked = _rankAutoPoolEquipsForSlot(ruleIndex, chefIndex);
+        if (!ranked.length || !ranked[0].equipObj) return false;
+
+        var slot = _simState[ruleIndex][chefIndex];
+        var currentEquipId = slot.equipObj && slot.equipObj.equipId ? slot.equipObj.equipId : null;
+        if (currentEquipId === ranked[0].equipObj.equipId) return false;
+        if (!(ranked[0].score > currentScore)) return false;
+
+        slot.equipObj = ranked[0].equipObj;
+        _applyChefData(ruleIndex);
+        _refreshRecipeQuantitiesForSlot(ruleIndex, chefIndex);
+        return true;
+    }
+
+    function _fitAutoPoolEquipsForCurrentState(activeRules) {
+        if (!_isAnyAutoPoolEquipEnabled()) return false;
+
+        var rulesToProcess = activeRules && activeRules.length ? activeRules.slice() : [];
+        if (!rulesToProcess.length) {
+            for (var ri = 0; ri < _rules.length; ri++) {
+                if (_shouldProcessRule(ri)) rulesToProcess.push(ri);
+            }
+        }
+
+        var improved = false;
+        var startScore = 0;
+        for (var sri = 0; sri < rulesToProcess.length; sri++) {
+            startScore += _calcRuleScore(rulesToProcess[sri], true);
+        }
+
+        for (var rpi = 0; rpi < rulesToProcess.length; rpi++) {
+            var ruleIndex = rulesToProcess[rpi];
+            var ruleState = _simState[ruleIndex] || [];
+            for (var ci = 0; ci < ruleState.length; ci++) {
+                if (_fitAutoPoolEquipForSlot(ruleIndex, ci)) improved = true;
+            }
+        }
+
+        if (improved) {
+            var fittedScore = 0;
+            for (var eri = 0; eri < rulesToProcess.length; eri++) {
+                fittedScore += _calcRuleScore(rulesToProcess[eri], true);
+            }
+            console.log('[风云宴] 奖池厨具自动搭配(' + _getAutoPoolEquipLabel() + '): ' + startScore + '→' + fittedScore + ' (+' + (fittedScore - startScore) + ')');
+        }
+
+        return improved;
     }
 
     /**
@@ -1469,6 +1752,7 @@ var BanquetOptimizer = (function() {
         }
         
         var partialAdds = getPartialChefAdds(customArr, rule);
+        _cachedPartialAddsByRule[ruleIndex] = partialAdds;
         
         for (var ci = 0; ci < ruleState.length; ci++) {
             if (ruleState[ci].chefObj && ruleState[ci].chefObj.chefId) {
@@ -1486,6 +1770,32 @@ var BanquetOptimizer = (function() {
                     rule.calQixiaData || null
                 );
             }
+        }
+    }
+
+    function _applyChefDataSingle(ruleIndex, chefIndex) {
+        var rule = _rules[ruleIndex];
+        var ruleState = _simState[ruleIndex];
+        var partialAdds = _cachedPartialAddsByRule[ruleIndex];
+        if (!rule || !ruleState || !ruleState[chefIndex]) return;
+        if (!partialAdds) {
+            _applyChefData(ruleIndex);
+            return;
+        }
+        if (ruleState[chefIndex].chefObj && ruleState[chefIndex].chefObj.chefId) {
+            setDataForChef(
+                ruleState[chefIndex].chefObj,
+                ruleState[chefIndex].equipObj,
+                true,
+                rule.calGlobalUltimateData,
+                partialAdds[chefIndex],
+                rule.calSelfUltimateData,
+                rule.calActivityUltimateData,
+                true,
+                rule,
+                true,
+                rule.calQixiaData || null
+            );
         }
     }
 
@@ -1776,7 +2086,212 @@ var BanquetOptimizer = (function() {
      * fastMode=true时只计算当前rule的分数
      * 返回: [{recipeId, score}] 按score降序
      */
+    function _getAutoPoolEquipAwareRecipeRanking(ruleIndex, chefIndex, recipeIndex, topK, fastMode) {
+        if (!_shouldUseAutoPoolEquipForRecipeSelection(ruleIndex, chefIndex)) {
+            return _fastGetRecipeRankingBase(ruleIndex, chefIndex, recipeIndex, topK, fastMode);
+        }
+
+        var rule = _rules[ruleIndex];
+        var menus = _menusByRule[ruleIndex];
+        var ruleState = _simState[ruleIndex];
+        var slot = ruleState[chefIndex];
+        var autoPool = _getAutoPoolEquipsForRule(ruleIndex);
+        if (!rule || !menus || !slot || !slot.chefObj || !slot.chefObj.chefId || !autoPool.length) {
+            return _fastGetRecipeRankingBase(ruleIndex, chefIndex, recipeIndex, topK, fastMode);
+        }
+
+        var usedRecipeIds = {};
+        for (var ri = 0; ri < _simState.length; ri++) {
+            for (var ci = 0; ci < _simState[ri].length; ci++) {
+                for (var reci = 0; reci < 3; reci++) {
+                    if (ri === ruleIndex && ci === chefIndex && reci === recipeIndex) continue;
+                    var usedRec = _simState[ri][ci].recipes[reci];
+                    if (usedRec && usedRec.data) usedRecipeIds[usedRec.data.recipeId] = true;
+                }
+            }
+        }
+
+        var savedRecipe = slot.recipes[recipeIndex];
+        var savedEquip = slot.equipObj;
+        var candidateN = fastMode ? Math.max((topK || 5) * 3, 12) : Math.max((topK || 5) * 5, 20);
+        var preciseTop = fastMode ? Math.max((topK || 5) * 3, 12) : Math.max((topK || 5) * 4, 16);
+        var skillTolerance = 200;
+        var preRemainMaterials = _calcRemainMaterials(ruleIndex, chefIndex, recipeIndex);
+        var bareChefForCandidates = slot.chefObj;
+
+        _applyChefData(ruleIndex);
+        ruleState[chefIndex].equipObj = {};
+        _applyChefDataSingle(ruleIndex, chefIndex);
+        if (ruleState[chefIndex].chefObj) {
+            bareChefForCandidates = JSON.parse(JSON.stringify(ruleState[chefIndex].chefObj));
+        }
+        ruleState[chefIndex].equipObj = savedEquip;
+        _applyChefDataSingle(ruleIndex, chefIndex);
+
+        var candidates = [];
+        for (var i = 0; i < menus.length; i++) {
+            var rd = menus[i];
+            if (usedRecipeIds[rd.recipeId]) continue;
+
+            var maxDeficit = _getRecipeSkillMaxDeficit(bareChefForCandidates, rd);
+            if (maxDeficit > skillTolerance) continue;
+
+            var qty = getRecipeQuantity(rd, preRemainMaterials, rule, bareChefForCandidates);
+            if (rule.DisableMultiCookbook) qty = Math.min(qty, 1);
+
+            var roughScore = 0;
+            if (maxDeficit <= 0 && qty > 0) {
+                var tempRecipes = [slot.recipes[0], slot.recipes[1], slot.recipes[2]];
+                tempRecipes[recipeIndex] = {data: rd, quantity: qty, max: qty};
+                var g = getRecipeResult(
+                    bareChefForCandidates,
+                    {},
+                    rd,
+                    qty,
+                    qty,
+                    rule.materials,
+                    rule,
+                    rule.decorationEffect,
+                    null,
+                    true,
+                    tempRecipes,
+                    null,
+                    null
+                );
+                var actAdd = (g.data && g.data.activityAddition) ? g.data.activityAddition : 0;
+                roughScore = Math.ceil(+(g.totalScore * (1 + actAdd / 100)).toFixed(2));
+            } else {
+                roughScore = (rd.price || 0) * Math.max(qty, 1) * 0.5;
+            }
+
+            candidates.push({rd: rd, roughScore: roughScore, qty: qty});
+        }
+
+        candidates.sort(function(a, b) { return b.roughScore - a.roughScore; });
+        if (candidates.length > candidateN) candidates.length = candidateN;
+
+        var baseCustomArr = [];
+        for (var bci = 0; bci < ruleState.length; bci++) {
+            baseCustomArr.push({
+                chef: ruleState[bci].chefObj || {},
+                equip: ruleState[bci].equipObj || {},
+                recipes: ruleState[bci].recipes,
+                condiment: {}
+            });
+        }
+        var basePartialAdds = getPartialRecipeAdds(baseCustomArr, rule);
+        var slotIdx = 3 * chefIndex + recipeIndex;
+        var slotPartialAdds = basePartialAdds[slotIdx];
+        var roughPairs = [];
+        var skillKeys = ['stirfry', 'boil', 'knife', 'fry', 'bake', 'steam'];
+        var skillValKeys = ['stirfryVal', 'boilVal', 'knifeVal', 'fryVal', 'bakeVal', 'steamVal'];
+
+        for (var ci2 = 0; ci2 < candidates.length; ci2++) {
+            var cand = candidates[ci2];
+            var recipeData = cand.rd;
+            var neededSkills = [];
+            for (var ski = 0; ski < skillKeys.length; ski++) {
+                if (recipeData[skillKeys[ski]] > 0) neededSkills.push(ski);
+            }
+
+            ruleState[chefIndex].equipObj = {};
+            _applyChefDataSingle(ruleIndex, chefIndex);
+            var bareChef = ruleState[chefIndex].chefObj;
+            var bareSkillOk = true;
+            for (var nsi = 0; nsi < neededSkills.length; nsi++) {
+                var si = neededSkills[nsi];
+                if (!bareChef[skillValKeys[si]] || bareChef[skillValKeys[si]] < recipeData[skillKeys[si]]) {
+                    bareSkillOk = false;
+                    break;
+                }
+            }
+            if (bareSkillOk && cand.qty > 0) {
+                var tempRecipes0 = [slot.recipes[0], slot.recipes[1], slot.recipes[2]];
+                tempRecipes0[recipeIndex] = {data: recipeData, quantity: cand.qty, max: cand.qty};
+                var g0 = getRecipeResult(bareChef, {}, recipeData, cand.qty, cand.qty, rule.materials, rule, rule.decorationEffect, null, true, tempRecipes0, slotPartialAdds, null);
+                var actAdd0 = (g0.data && g0.data.activityAddition) ? g0.data.activityAddition : 0;
+                var fastEst0 = Math.ceil(+(g0.totalScore * (1 + actAdd0 / 100)).toFixed(2));
+                roughPairs.push({recipeId: recipeData.recipeId, data: recipeData, equipObj: null, fastEst: fastEst0, qty: cand.qty});
+            }
+
+            for (var ei = 0; ei < autoPool.length; ei++) {
+                var equip = autoPool[ei];
+                ruleState[chefIndex].equipObj = equip;
+                _applyChefDataSingle(ruleIndex, chefIndex);
+                var equipChef = ruleState[chefIndex].chefObj;
+                var equipSkillOk = true;
+                for (var nsi2 = 0; nsi2 < neededSkills.length; nsi2++) {
+                    var si2 = neededSkills[nsi2];
+                    if (!equipChef[skillValKeys[si2]] || equipChef[skillValKeys[si2]] < recipeData[skillKeys[si2]]) {
+                        equipSkillOk = false;
+                        break;
+                    }
+                }
+                if (!equipSkillOk) continue;
+
+                var eqRemain = _calcRemainMaterials(ruleIndex, chefIndex, recipeIndex);
+                var eqQty = getRecipeQuantity(recipeData, eqRemain, rule, equipChef);
+                if (rule.DisableMultiCookbook) eqQty = Math.min(eqQty, 1);
+                if (eqQty <= 0) continue;
+
+                var tempRecipesE = [slot.recipes[0], slot.recipes[1], slot.recipes[2]];
+                tempRecipesE[recipeIndex] = {data: recipeData, quantity: eqQty, max: eqQty};
+                var gE = getRecipeResult(equipChef, equip, recipeData, eqQty, eqQty, rule.materials, rule, rule.decorationEffect, null, true, tempRecipesE, slotPartialAdds, null);
+                var actAddE = (gE.data && gE.data.activityAddition) ? gE.data.activityAddition : 0;
+                var fastEstE = Math.ceil(+(gE.totalScore * (1 + actAddE / 100)).toFixed(2));
+                roughPairs.push({recipeId: recipeData.recipeId, data: recipeData, equipObj: equip, fastEst: fastEstE, qty: eqQty});
+            }
+        }
+
+        roughPairs.sort(function(a, b) { return b.fastEst - a.fastEst; });
+        if (roughPairs.length > preciseTop) roughPairs.length = preciseTop;
+
+        var preciseResults = {};
+        for (var pi = 0; pi < roughPairs.length; pi++) {
+            var pair = roughPairs[pi];
+            ruleState[chefIndex].equipObj = pair.equipObj || {};
+            ruleState[chefIndex].recipes[recipeIndex] = {data: pair.data, quantity: pair.qty, max: pair.qty};
+            var preciseScore = fastMode === false ? _fastCalcScore() : _calcRuleScore(ruleIndex, true);
+            var recipeKey = pair.recipeId;
+            if (!preciseResults[recipeKey] || preciseScore > preciseResults[recipeKey].score) {
+                preciseResults[recipeKey] = {
+                    recipeId: pair.recipeId,
+                    equipId: pair.equipObj && pair.equipObj.equipId ? pair.equipObj.equipId : null,
+                    equipObj: pair.equipObj,
+                    score: preciseScore,
+                    data: pair.data
+                };
+            }
+        }
+
+        ruleState[chefIndex].recipes[recipeIndex] = savedRecipe;
+        ruleState[chefIndex].equipObj = savedEquip;
+        _applyChefData(ruleIndex);
+
+        var results = [];
+        for (var recipeKey2 in preciseResults) {
+            results.push(preciseResults[recipeKey2]);
+        }
+        results.sort(function(a, b) { return b.score - a.score; });
+        if (results.length > (topK || 5)) results.length = topK || 5;
+        if (!results.length) {
+            return _fastGetRecipeRankingBase(ruleIndex, chefIndex, recipeIndex, topK, fastMode);
+        }
+        return results;
+    }
+
+    function _getSeedRecipeRanking(ruleIndex, chefIndex, recipeIndex, topK, fastMode) {
+        if (_shouldUseAutoPoolEquipForRecipeSelection(ruleIndex, chefIndex)) {
+            return _getAutoPoolEquipAwareRecipeRanking(ruleIndex, chefIndex, recipeIndex, topK, fastMode);
+        }
+        return _fastGetRecipeRankingBase(ruleIndex, chefIndex, recipeIndex, topK, fastMode);
+    }
+
     function _fastGetRecipeRanking(ruleIndex, chefIndex, recipeIndex, topK, fastMode) {
+        return _fastGetRecipeRankingBase(ruleIndex, chefIndex, recipeIndex, topK, fastMode);
+    }
+
+    function _fastGetRecipeRankingBase(ruleIndex, chefIndex, recipeIndex, topK, fastMode) {
         var rule = _rules[ruleIndex];
         var menus = _menusByRule[ruleIndex];
         var ruleState = _simState[ruleIndex];
@@ -3553,7 +4068,7 @@ var BanquetOptimizer = (function() {
                         }
                     }
                     
-                    _simSetRecipe(mainRule, seedPos, seedRecipeIdx, topRecipes[rsi].recipeId);
+                    _applyRecipeSelection(mainRule, seedPos, seedRecipeIdx, topRecipes[rsi]);
                     var chefRanking = _fastGetChefRanking(mainRule, seedPos, true);
                     
                     var topChefNames = [];
@@ -3589,12 +4104,16 @@ var BanquetOptimizer = (function() {
                                 if (prePlaceRecipeId) {
                                     _simSetRecipe(mainRule, seedPos, prePlace.recipeIndex, prePlaceRecipeId);
                                 }
-                            }
                         }
-                        
-                        _simSetRecipe(mainRule, seedPos, seedRecipeIdx, topRecipes[rsi].recipeId);
-                        _simSetChef(mainRule, seedPos, chefRanking[j].chefId);
-                        _greedyFillRecipesOrdered(mainRule, seedPos, fillOrder, seedRecipeIdx);
+                    }
+                    
+                    _applyRecipeSelection(mainRule, seedPos, seedRecipeIdx, topRecipes[rsi]);
+                    _simSetChef(mainRule, seedPos, chefRanking[j].chefId);
+                    var lockedSeedRanking = _getSeedRecipeRanking(mainRule, seedPos, seedRecipeIdx, 1, true);
+                    if (lockedSeedRanking.length > 0) {
+                        _applyRecipeSelection(mainRule, seedPos, seedRecipeIdx, lockedSeedRanking[0]);
+                    }
+                    _greedyFillRecipesOrdered(mainRule, seedPos, fillOrder, seedRecipeIdx);
                         
                         for (var ci = 0; ci < numChefs; ci++) {
                             if (ci === seedPos) continue;
@@ -3764,7 +4283,7 @@ var BanquetOptimizer = (function() {
                             }
                         }
                         var auraRk = _fastGetRecipeRanking(mainRule, auraPos, auraStrategy.seedRecipeIndex, 1, true);
-                        if (auraRk.length > 0) _simSetRecipe(mainRule, auraPos, auraStrategy.seedRecipeIndex, auraRk[0].recipeId);
+                        if (auraRk.length > 0) _applyRecipeSelection(mainRule, auraPos, auraStrategy.seedRecipeIndex, auraRk[0]);
                         _greedyFillRecipesOrdered(mainRule, auraPos, auraStrategy.fillOrder, auraStrategy.seedRecipeIndex);
                         
                         // 填充其他位置
@@ -4010,7 +4529,7 @@ var BanquetOptimizer = (function() {
                                         var fallbackRanking = _fastGetRecipeRanking(mainRule, otherCi, oreci, 5, true);
                                         for (var fri = 0; fri < fallbackRanking.length; fri++) {
                                             if (!otherUsedIds[fallbackRanking[fri].recipeId]) {
-                                                _simSetRecipe(mainRule, otherCi, oreci, fallbackRanking[fri].recipeId);
+                                                _applyRecipeSelection(mainRule, otherCi, oreci, fallbackRanking[fri]);
                                                 otherUsedIds[fallbackRanking[fri].recipeId] = true;
                                                 break;
                                             }
@@ -4264,8 +4783,8 @@ var BanquetOptimizer = (function() {
                         var curId = _simState[ruleIndex][ci].recipes[reci].data 
                             ? _simState[ruleIndex][ci].recipes[reci].data.recipeId : null;
                         var rk = _fastGetRecipeRanking(ruleIndex, ci, reci, 1, true);
-                        if (rk.length > 0 && rk[0].recipeId !== curId) {
-                            _simSetRecipe(ruleIndex, ci, reci, rk[0].recipeId);
+                        if (rk.length > 0 && !_isSameRecipeSelection(ruleIndex, ci, reci, rk[0])) {
+                            _applyRecipeSelection(ruleIndex, ci, reci, rk[0]);
                             changed = true;
                         }
                     }
@@ -4288,8 +4807,8 @@ var BanquetOptimizer = (function() {
                         var curId2 = _simState[ruleIndex][ci].recipes[reci].data 
                             ? _simState[ruleIndex][ci].recipes[reci].data.recipeId : null;
                         var rk2 = _fastGetRecipeRanking(ruleIndex, ci, reci, 1, true);
-                        if (rk2.length > 0 && rk2[0].recipeId !== curId2) {
-                            _simSetRecipe(ruleIndex, ci, reci, rk2[0].recipeId);
+                        if (rk2.length > 0 && !_isSameRecipeSelection(ruleIndex, ci, reci, rk2[0])) {
+                            _applyRecipeSelection(ruleIndex, ci, reci, rk2[0]);
                             changed = true;
                         }
                     }
@@ -4351,8 +4870,8 @@ var BanquetOptimizer = (function() {
                         if (!candRd) continue;
                         
                         // 临时替换并评估
-                        var savedRecipe = ruleState[ci].recipes[reci];
-                        _simSetRecipe(ruleIndex, ci, reci, adjCandidates[candi].recipeId);
+                        var savedSlot = _cloneSlotState(ruleState[ci]);
+                        _applyRecipeSelection(ruleIndex, ci, reci, adjCandidates[candi]);
                         var adjScore = _fastCalcScore();
                         var newSat = _calcCurrentSatiety(ruleIndex);
                         var newSatDiff = Math.abs(newSat - targetSatiety);
@@ -4370,19 +4889,25 @@ var BanquetOptimizer = (function() {
                         
                         if (accept) {
                             bestAdjScore = adjScore;
-                            bestAdjState = {ri: ruleIndex, ci: ci, reci: reci, recipeId: adjCandidates[candi].recipeId};
+                            bestAdjState = {
+                                ri: ruleIndex,
+                                ci: ci,
+                                reci: reci,
+                                recipeId: adjCandidates[candi].recipeId,
+                                equipObj: adjCandidates[candi].equipObj || null
+                            };
                             bestAdjSatDiff = newSatDiff;
                         }
                         
                         // 恢复
-                        ruleState[ci].recipes[reci] = savedRecipe;
+                        _restoreSlotState(ruleIndex, ci, savedSlot);
                     }
                 }
             }
             
             // 应用最佳饱食度调整
             if (bestAdjState) {
-                _simSetRecipe(bestAdjState.ri, bestAdjState.ci, bestAdjState.reci, bestAdjState.recipeId);
+                _applyRecipeSelection(bestAdjState.ri, bestAdjState.ci, bestAdjState.reci, bestAdjState);
                 var newSatiety = _calcCurrentSatiety(ruleIndex);
             }
         }
@@ -4465,7 +4990,7 @@ var BanquetOptimizer = (function() {
             
             var ranking = _fastGetRecipeRanking(ruleIndex, chefIndex, recipeIndex, 1, true);
             if (ranking.length > 0) {
-                _simSetRecipe(ruleIndex, chefIndex, recipeIndex, ranking[0].recipeId);
+                _applyRecipeSelection(ruleIndex, chefIndex, recipeIndex, ranking[0]);
             }
         }
     }
@@ -4479,11 +5004,11 @@ var BanquetOptimizer = (function() {
         
         // 1. 预放置链式意图触发菜谱
         if (intentStrategy.prePlaceList.length > 0) {
-            for (var pp = 0; pp < intentStrategy.prePlaceList.length; pp++) {
-                var prePlace = intentStrategy.prePlaceList[pp];
-                var prePlaceRecipeId = _findBestFilteredRecipe(ruleIndex, chefIndex, prePlace.recipeIndex, prePlace.filterFn);
-                if (prePlaceRecipeId) {
-                    _simSetRecipe(ruleIndex, chefIndex, prePlace.recipeIndex, prePlaceRecipeId);
+        for (var pp = 0; pp < intentStrategy.prePlaceList.length; pp++) {
+            var prePlace = intentStrategy.prePlaceList[pp];
+            var prePlaceRecipeId = _findBestFilteredRecipe(ruleIndex, chefIndex, prePlace.recipeIndex, prePlace.filterFn);
+            if (prePlaceRecipeId) {
+                _simSetRecipe(ruleIndex, chefIndex, prePlace.recipeIndex, prePlaceRecipeId);
                 }
             }
         }
@@ -4491,7 +5016,7 @@ var BanquetOptimizer = (function() {
         // 2. 在种子位置选最佳菜谱
         var rr = _fastGetRecipeRanking(ruleIndex, chefIndex, seedRecipeIdx, 1, true);
         if (rr.length > 0) {
-            _simSetRecipe(ruleIndex, chefIndex, seedRecipeIdx, rr[0].recipeId);
+            _applyRecipeSelection(ruleIndex, chefIndex, seedRecipeIdx, rr[0]);
         }
         
         // 3. 选厨师
@@ -4502,6 +5027,11 @@ var BanquetOptimizer = (function() {
                 _simSetChef(ruleIndex, chefIndex, cr[k].chefId);
                 break;
             }
+        }
+
+        var seedRanking = _getSeedRecipeRanking(ruleIndex, chefIndex, seedRecipeIdx, 1, true);
+        if (seedRanking.length > 0) {
+            _applyRecipeSelection(ruleIndex, chefIndex, seedRecipeIdx, seedRanking[0]);
         }
         
         // 4. 填充剩余菜谱
@@ -4530,7 +5060,7 @@ var BanquetOptimizer = (function() {
             // 用快速排名选最佳菜谱（只取top1）
             var ranking = _fastGetRecipeRanking(ruleIndex, chefIndex, recipeIndex, 1, true);
             if (ranking.length > 0) {
-                _simSetRecipe(ruleIndex, chefIndex, recipeIndex, ranking[0].recipeId);
+                _applyRecipeSelection(ruleIndex, chefIndex, recipeIndex, ranking[0]);
             }
         }
     }
@@ -4549,7 +5079,7 @@ var BanquetOptimizer = (function() {
             // 1. 用评分选第一道菜谱
             var recipeRanking = _fastGetRecipeRanking(ruleIndex, ci, 0, 1, true);
             if (recipeRanking.length > 0) {
-                _simSetRecipe(ruleIndex, ci, 0, recipeRanking[0].recipeId);
+                _applyRecipeSelection(ruleIndex, ci, 0, recipeRanking[0]);
             }
             
             // 2. 再选厨师（菜谱已设，排名准确，快速模式）
@@ -4560,6 +5090,11 @@ var BanquetOptimizer = (function() {
                     usedChefIds[chefRanking[j].chefId] = true;
                     break;
                 }
+            }
+
+            var lockedSeedRanking = _getSeedRecipeRanking(ruleIndex, ci, 0, 1, true);
+            if (lockedSeedRanking.length > 0) {
+                _applyRecipeSelection(ruleIndex, ci, 0, lockedSeedRanking[0]);
             }
             
             // 3. 补充其他菜谱（用评分）
@@ -4579,7 +5114,7 @@ var BanquetOptimizer = (function() {
             // 1. 用评分选第一道菜谱
             var recipeRanking = _fastGetRecipeRanking(ruleIndex, ci, 0, 1, true);
             if (recipeRanking.length > 0) {
-                _simSetRecipe(ruleIndex, ci, 0, recipeRanking[0].recipeId);
+                _applyRecipeSelection(ruleIndex, ci, 0, recipeRanking[0]);
             }
             
             // 2. 再选厨师（快速模式）
@@ -4590,6 +5125,11 @@ var BanquetOptimizer = (function() {
                     usedChefIds[chefRanking[j].chefId] = true;
                     break;
                 }
+            }
+
+            var lockedFirstRecipeRanking = _getSeedRecipeRanking(ruleIndex, ci, 0, 1, true);
+            if (lockedFirstRecipeRanking.length > 0) {
+                _applyRecipeSelection(ruleIndex, ci, 0, lockedFirstRecipeRanking[0]);
             }
             
             // 3. 补充其他菜谱（用评分）
@@ -4716,19 +5256,19 @@ var BanquetOptimizer = (function() {
                     
                     // 扩大搜索宽度，评估一批候选后选择局部最优，不再命中第一个提升就停
                     var recipeRanking = _fastGetRecipeRanking(ruleIndex, chefIndex, recipeIndex, _getRuntimeConfigValue('recipeClimbTry'), true);
-                    var savedRecipe = _simState[ruleIndex][chefIndex].recipes[recipeIndex];
+                    var savedSlot = _cloneSlotState(_simState[ruleIndex][chefIndex]);
                     var bestLocalScore = _bestScore;
                     var bestLocalState = null;
                     for (var c = 0; c < recipeRanking.length; c++) {
-                        if (recipeRanking[c].recipeId === currentRecipeId) continue;
+                        if (_isSameRecipeSelection(ruleIndex, chefIndex, recipeIndex, recipeRanking[c])) continue;
                         
-                        _simSetRecipe(ruleIndex, chefIndex, recipeIndex, recipeRanking[c].recipeId);
+                        _applyRecipeSelection(ruleIndex, chefIndex, recipeIndex, recipeRanking[c]);
                         var newTotal = _fastCalcScore();
                         if (newTotal > bestLocalScore) {
                             bestLocalScore = newTotal;
                             bestLocalState = _cloneSimState(_simState);
                         }
-                        _simState[ruleIndex][chefIndex].recipes[recipeIndex] = savedRecipe;
+                        _restoreSlotState(ruleIndex, chefIndex, savedSlot);
                     }
 
                     if (bestLocalState) {
@@ -4926,7 +5466,7 @@ var BanquetOptimizer = (function() {
                 }
             }
 
-            var topRecipes = _fastGetRecipeRanking(ruleIndex, chefIndex, seedRecipeIdx, _getRuntimeConfigValue('fixedChefRecipeSeedTop'), true);
+            var topRecipes = _getSeedRecipeRanking(ruleIndex, chefIndex, seedRecipeIdx, _getRuntimeConfigValue('fixedChefRecipeSeedTop'), true);
             for (var ri = 0; ri < topRecipes.length; ri++) {
                 _simState = _cloneSimState(savedGlobalState);
                 _clearSlotRecipes(ruleIndex, chefIndex);
@@ -4941,7 +5481,7 @@ var BanquetOptimizer = (function() {
                     }
                 }
 
-                _simSetRecipe(ruleIndex, chefIndex, seedRecipeIdx, topRecipes[ri].recipeId);
+                _applyRecipeSelection(ruleIndex, chefIndex, seedRecipeIdx, topRecipes[ri]);
                 _greedyFillRecipesOrdered(ruleIndex, chefIndex, strategy.fillOrder, seedRecipeIdx);
                 captureCandidate('seed-' + (seedRecipeIdx + 1));
             }
@@ -5728,7 +6268,7 @@ var BanquetOptimizer = (function() {
             var rr = _fastGetRecipeRanking(slot.ri, slot.ci, slot.reci, skipCount + 1, true);
             var idx = Math.min(skipCount, rr.length - 1);
             if (idx >= 0 && rr.length > idx) {
-                _simSetRecipe(slot.ri, slot.ci, slot.reci, rr[idx].recipeId);
+                _applyRecipeSelection(slot.ri, slot.ci, slot.reci, rr[idx]);
             }
         }
         _quickRefineFast(activeRules, false);
@@ -5793,10 +6333,10 @@ var BanquetOptimizer = (function() {
                     var rk = _fastGetRecipeRanking(ruleIndex, ci, reci, CONFIG.recipeTopN, true);
                     
                     for (var ki = 0; ki < rk.length; ki++) {
-                        if (rk[ki].recipeId === curRecId) continue;
+                        if (_isSameRecipeSelection(ruleIndex, ci, reci, rk[ki])) continue;
                         
                         _simState = _cloneSimState(_bestSimState);
-                        _simSetRecipe(ruleIndex, ci, reci, rk[ki].recipeId);
+                        _applyRecipeSelection(ruleIndex, ci, reci, rk[ki]);
                         _quickRefineFast(activeRules, false);
                         
                         var newScore = _fastCalcScore();
@@ -5885,7 +6425,7 @@ var BanquetOptimizer = (function() {
                         }
                     }
                     
-                    _simSetRecipe(targetRule, seedPos, seedRecipeIdx, topRecipes[rsi].recipeId);
+                    _applyRecipeSelection(targetRule, seedPos, seedRecipeIdx, topRecipes[rsi]);
                     var cr = _fastGetChefRanking(targetRule, seedPos, true);
                     var usedIds = _getUsedChefIds(targetRule, seedPos);
                     for (var j = 0; j < cr.length; j++) {
@@ -5893,6 +6433,10 @@ var BanquetOptimizer = (function() {
                             _simSetChef(targetRule, seedPos, cr[j].chefId);
                             break;
                         }
+                    }
+                    var lockedTargetSeedRanking = _getSeedRecipeRanking(targetRule, seedPos, seedRecipeIdx, 1, true);
+                    if (lockedTargetSeedRanking.length > 0) {
+                        _applyRecipeSelection(targetRule, seedPos, seedRecipeIdx, lockedTargetSeedRanking[0]);
                     }
                     _greedyFillRecipesOrdered(targetRule, seedPos, strategy.fillOrder, seedRecipeIdx);
                     _quickRefineFast(activeRules, crossRefineMode);  // 自适应精调深度
@@ -5979,7 +6523,7 @@ var BanquetOptimizer = (function() {
                         }
                     }
                     var rk0 = _fastGetRecipeRanking(targetRule, startPos, strategy0.seedRecipeIndex, 1, true);
-                    if (rk0.length > 0) _simSetRecipe(targetRule, startPos, strategy0.seedRecipeIndex, rk0[0].recipeId);
+                    if (rk0.length > 0) _applyRecipeSelection(targetRule, startPos, strategy0.seedRecipeIndex, rk0[0]);
                     _greedyFillRecipesOrdered(targetRule, startPos, strategy0.fillOrder, strategy0.seedRecipeIndex);
                     
                     for (var ci = 0; ci < numChefs; ci++) {
@@ -6197,6 +6741,11 @@ var BanquetOptimizer = (function() {
             _chefMap = {};
             _recipeMap = {};
             _menusByRule = [];
+            _newbieEquipEnabled = false;
+            _intermediateEquipEnabled = false;
+            _newbiePoolEquipsByRule = [];
+            _intermediatePoolEquipsByRule = [];
+            _cachedPartialAddsByRule = [];
             _rules = [];
             _gameData = null;
             _cachedConfig = {};
@@ -6244,7 +6793,7 @@ var BanquetOptimizer = (function() {
                         _simSetRecipe(ri, ci, reci, null);
                         var recipeRanking = _fastGetRecipeRanking(ri, ci, reci, 1, true);
                         if (recipeRanking.length > 0) {
-                            _simSetRecipe(ri, ci, reci, recipeRanking[0].recipeId);
+                            _applyRecipeSelection(ri, ci, reci, recipeRanking[0]);
                         }
                     }
                 }
@@ -6272,7 +6821,7 @@ var BanquetOptimizer = (function() {
                         for (var rk = 0; rk < recipeRanking.length; rk++) {
                             var candidateId = recipeRanking[rk].recipeId;
                             if (seenRecipeIds[candidateId]) continue;
-                            _simSetRecipe(ri, ci, reci, candidateId);
+                            _applyRecipeSelection(ri, ci, reci, recipeRanking[rk]);
                             seenRecipeIds[candidateId] = true;
                             break;
                         }
@@ -6340,7 +6889,7 @@ var BanquetOptimizer = (function() {
                             }
                         }
                         if (canMake) {
-                            _simSetRecipe(ri, ci, reci, rd.recipeId);
+                            _applyRecipeSelection(ri, ci, reci, rd);
                             usedRecipeIds[rd.recipeId] = true;
                             break;
                         }
@@ -6514,8 +7063,29 @@ var BanquetOptimizer = (function() {
             _setProgressTarget(93);
             setTimeout(function() {
                 var fixedCount = _runMissingChefRepair();
+                var autoPoolEquipImproved = false;
+                var baselineState = _cloneSimState(_simState);
+                var baselineScore = _fastCalcScore();
+                if (_isAnyAutoPoolEquipEnabled()) {
+                    _simState = _cloneSimState(baselineState);
+                    autoPoolEquipImproved = _fitAutoPoolEquipsForCurrentState();
+                    var autoPoolScore = autoPoolEquipImproved ? _fastCalcScore() : baselineScore;
+                    if (autoPoolEquipImproved && autoPoolScore > baselineScore) {
+                        _bestSimState = _cloneSimState(_simState);
+                        _bestScore = autoPoolScore;
+                    } else {
+                        _simState = _cloneSimState(baselineState);
+                        _bestSimState = _cloneSimState(baselineState);
+                        _bestScore = baselineScore;
+                        autoPoolEquipImproved = false;
+                    }
+                } else {
+                    _bestSimState = _cloneSimState(baselineState);
+                    _bestScore = baselineScore;
+                }
                 _logFinishStage('缺失厨师修复完成', {
-                    fixedPositions: fixedCount
+                    fixedPositions: fixedCount,
+                    autoPoolEquipImproved: autoPoolEquipImproved
                 });
                 _runSatietyRepairAsync();
             }, 0);
@@ -6539,13 +7109,19 @@ var BanquetOptimizer = (function() {
         for (var ri = 0; ri < simState.length; ri++) {
             for (var ci = 0; ci < simState[ri].length; ci++) {
                 var slot = simState[ri][ci];
-                if (slot.chefId && typeof setCustomChef === 'function') {
-                    setCustomChef(ri, ci, slot.chefId);
+                if (typeof setCustomChef === 'function') {
+                    setCustomChef(ri, ci, slot.chefId || null);
                 }
                 for (var reci = 0; reci < slot.recipes.length; reci++) {
-                    if (slot.recipes[reci].data && typeof setCustomRecipe === 'function') {
-                        setCustomRecipe(ri, ci, reci, slot.recipes[reci].data.recipeId);
+                    if (typeof setCustomRecipe === 'function') {
+                        setCustomRecipe(ri, ci, reci, slot.recipes[reci].data ? slot.recipes[reci].data.recipeId : null);
                     }
+                    if (slot.recipes[reci].data && typeof setCustomRecipeQuantity === 'function') {
+                        setCustomRecipeQuantity(ri, ci, reci, slot.recipes[reci].quantity || 0);
+                    }
+                }
+                if (typeof setCustomEquip === 'function') {
+                    setCustomEquip(ri, ci, slot.equipObj && slot.equipObj.equipId ? slot.equipObj.equipId : null);
                 }
             }
         }
