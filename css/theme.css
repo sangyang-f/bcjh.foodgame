@@ -218,7 +218,8 @@ html[data-theme="dark"] .collection-pill.is-active,
 html[data-theme="dark"] .collection-switch input:checked + .collection-switch-track,
 html[data-theme="dark"] .toggle.btn.btn-primary,
 html[data-theme="dark"] #chk-cultivation-mode + .toggle-group .btn-primary,
-html[data-theme="dark"] #chk-guest-query-mode + .toggle-group .btn-primary {
+html[data-theme="dark"] #chk-guest-query-mode + .toggle-group .btn-primary,
+html[data-theme="dark"] #chk-guest-rate-submode + .toggle-group .btn-primary {
     background-color: var(--theme-accent) !important;
     border-color: #5b86c8 !important;
     color: #f8fbff !important;
@@ -258,7 +259,8 @@ html[data-theme="dark"] .toggle.off .toggle-group .btn-default.toggle-off {
 }
 
 html[data-theme="dark"] #chk-cultivation-mode + .toggle.off,
-html[data-theme="dark"] #chk-guest-query-mode + .toggle.off {
+html[data-theme="dark"] #chk-guest-query-mode + .toggle.off,
+html[data-theme="dark"] #chk-guest-rate-submode + .toggle.off {
     background: linear-gradient(180deg, rgba(57, 65, 81, 0.98), rgba(44, 50, 63, 0.98)) !important;
     border-color: rgba(120, 131, 152, 0.64) !important;
 }
@@ -266,7 +268,9 @@ html[data-theme="dark"] #chk-guest-query-mode + .toggle.off {
 html[data-theme="dark"] #chk-cultivation-mode + .toggle.off .toggle-group .btn.toggle-off,
 html[data-theme="dark"] #chk-cultivation-mode + .toggle.off .toggle-group .btn-default.toggle-off,
 html[data-theme="dark"] #chk-guest-query-mode + .toggle.off .toggle-group .btn.toggle-off,
-html[data-theme="dark"] #chk-guest-query-mode + .toggle.off .toggle-group .btn-default.toggle-off {
+html[data-theme="dark"] #chk-guest-query-mode + .toggle.off .toggle-group .btn-default.toggle-off,
+html[data-theme="dark"] #chk-guest-rate-submode + .toggle.off .toggle-group .btn.toggle-off,
+html[data-theme="dark"] #chk-guest-rate-submode + .toggle.off .toggle-group .btn-default.toggle-off {
     background: linear-gradient(180deg, rgba(69, 76, 92, 0.98), rgba(50, 56, 70, 0.98)) !important;
     border-color: rgba(126, 136, 156, 0.62) !important;
     color: #dfe7f3 !important;
@@ -277,6 +281,34 @@ html[data-theme="dark"] .toggle:not(.off) .toggle-group .btn-primary.toggle-on {
     background: var(--theme-accent) !important;
     border-color: #5b86c8 !important;
     color: #f8fbff !important;
+}
+
+html[data-theme="dark"] #cultivation-mode-switch-wrapper .toggle,
+html[data-theme="dark"] #guest-query-mode-switch-wrapper .toggle,
+html[data-theme="dark"] #guest-rate-submode-switch-wrapper .toggle,
+html[data-theme="dark"] #cultivation-mode-switch-wrapper .toggle.off,
+html[data-theme="dark"] #guest-query-mode-switch-wrapper .toggle.off,
+html[data-theme="dark"] #guest-rate-submode-switch-wrapper .toggle.off {
+    background: var(--theme-accent) !important;
+    border-color: #5b86c8 !important;
+}
+
+html[data-theme="dark"] #cultivation-mode-switch-wrapper .toggle .toggle-group .btn.toggle-on,
+html[data-theme="dark"] #cultivation-mode-switch-wrapper .toggle .toggle-group .btn.toggle-off,
+html[data-theme="dark"] #cultivation-mode-switch-wrapper .toggle .toggle-group .btn-primary.toggle-on,
+html[data-theme="dark"] #cultivation-mode-switch-wrapper .toggle .toggle-group .btn-default.toggle-off,
+html[data-theme="dark"] #guest-query-mode-switch-wrapper .toggle .toggle-group .btn.toggle-on,
+html[data-theme="dark"] #guest-query-mode-switch-wrapper .toggle .toggle-group .btn.toggle-off,
+html[data-theme="dark"] #guest-query-mode-switch-wrapper .toggle .toggle-group .btn-primary.toggle-on,
+html[data-theme="dark"] #guest-query-mode-switch-wrapper .toggle .toggle-group .btn-default.toggle-off,
+html[data-theme="dark"] #guest-rate-submode-switch-wrapper .toggle .toggle-group .btn.toggle-on,
+html[data-theme="dark"] #guest-rate-submode-switch-wrapper .toggle .toggle-group .btn.toggle-off,
+html[data-theme="dark"] #guest-rate-submode-switch-wrapper .toggle .toggle-group .btn-primary.toggle-on,
+html[data-theme="dark"] #guest-rate-submode-switch-wrapper .toggle .toggle-group .btn-default.toggle-off {
+    background: var(--theme-accent) !important;
+    border-color: #5b86c8 !important;
+    color: #f8fbff !important;
+    text-shadow: none !important;
 }
 
 html[data-theme="dark"] .toggle-handle.btn,
@@ -1110,11 +1142,101 @@ html[data-theme="dark"] .calc-divider {
     background: var(--theme-border) !important;
 }
 
+html[data-theme="dark"] #jade-material-detail-modal .modal-content,
+html[data-theme="dark"] #jade-ranking-table-modal .modal-content,
+html[data-theme="dark"] .jade-material-recipe-card {
+    background: var(--theme-bg-alt) !important;
+    border-color: var(--theme-border) !important;
+}
+
+html[data-theme="dark"] .jade-material-recipe-title,
+html[data-theme="dark"] .jade-material-detail-list li,
+html[data-theme="dark"] #daily-material-select-jade {
+    color: var(--theme-text) !important;
+}
+
+html[data-theme="dark"] .jade-material-recipe-subtitle,
+html[data-theme="dark"] .jade-material-detail-empty,
+html[data-theme="dark"] .jade-ranking-loading {
+    color: var(--theme-muted) !important;
+}
+
+html[data-theme="dark"] #daily-material-select-jade {
+    background: rgba(30, 37, 49, 0.98) !important;
+    border-color: rgba(116, 128, 150, 0.45) !important;
+}
+
+html[data-theme="dark"] #jade-ranking-table-modal .modal-header,
+html[data-theme="dark"] #jade-ranking-table-modal .modal-footer {
+    background: var(--theme-bg-alt) !important;
+    border-color: var(--theme-border) !important;
+}
+
+html[data-theme="dark"] #jade-ranking-table-modal .modal-title,
+html[data-theme="dark"] #jade-ranking-table-modal .close {
+    color: var(--theme-text) !important;
+}
+
+html[data-theme="dark"] #jade-ranking-table-modal .jade-ranking-filter-wrapper .btn-default,
+html[data-theme="dark"] #jade-ranking-table-modal .jade-ranking-filter-wrapper .dropdown-toggle,
+html[data-theme="dark"] #jade-ranking-table-modal .jade-ranking-filter-wrapper .dropdown-menu,
+html[data-theme="dark"] #jade-ranking-table-modal .jade-ranking-filter-wrapper .dropdown-menu > li > a,
+html[data-theme="dark"] #jade-ranking-table-modal .jade-ranking-filter-wrapper .filter-option,
+html[data-theme="dark"] #jade-ranking-table-modal .jade-ranking-filter-wrapper .filter-option-inner,
+html[data-theme="dark"] #jade-ranking-table-modal .jade-ranking-filter-wrapper .filter-option-inner-inner {
+    background: var(--theme-surface) !important;
+    color: var(--theme-text) !important;
+    border-color: var(--theme-border) !important;
+}
+
+html[data-theme="dark"] #jade-ranking-table-modal .jade-ranking-filter-wrapper .dropdown-menu > li > a:hover,
+html[data-theme="dark"] #jade-ranking-table-modal .jade-ranking-filter-wrapper .dropdown-menu > li > a:focus,
+html[data-theme="dark"] #jade-ranking-table-modal .jade-ranking-filter-wrapper .dropdown-menu > .selected > a,
+html[data-theme="dark"] #jade-ranking-table-modal .jade-ranking-filter-wrapper .dropdown-menu > .selected > a:hover,
+html[data-theme="dark"] #jade-ranking-table-modal .jade-ranking-filter-wrapper .dropdown-menu > .selected > a:focus {
+    background: var(--theme-surface-strong) !important;
+    color: var(--theme-text) !important;
+}
+
+html[data-theme="dark"] #jade-ranking-table-modal .modal-body {
+    background: var(--theme-surface) !important;
+    border-color: var(--theme-border) !important;
+}
+
+html[data-theme="dark"] #jade-ranking-table-modal .jade-ranking-sheet {
+    background: var(--theme-surface) !important;
+}
+
+html[data-theme="dark"] #jade-ranking-table-modal .jade-ranking-sheet table {
+    background: var(--theme-surface) !important;
+}
+
+html[data-theme="dark"] #jade-ranking-table-modal .jade-ranking-table .jade-ranking-title-row th {
+    background: var(--theme-surface) !important;
+    color: var(--theme-accent-soft) !important;
+}
+
+html[data-theme="dark"] #jade-ranking-table-modal .jade-ranking-table .jade-ranking-header-row th {
+    background: var(--theme-accent) !important;
+    color: #f8fbff !important;
+    border-color: var(--theme-border) !important;
+}
+
+html[data-theme="dark"] #jade-ranking-table-modal .jade-ranking-table td {
+    background: var(--theme-bg-alt) !important;
+    color: var(--theme-text) !important;
+    border-color: var(--theme-border) !important;
+}
+
+html[data-theme="dark"] #jade-ranking-table-modal .jade-ranking-table .jade-ranking-empty-cell {
+    color: var(--theme-muted) !important;
+}
+
 html[data-theme="dark"] .guest-rate-calculator .btn-primary,
 html[data-theme="dark"] #sync-guest-double,
 html[data-theme="dark"] #btn-oneclick-query,
 html[data-theme="dark"] #btn-pengci-rune-query,
-html[data-theme="dark"] #btn-guest-portion-table {
+html[data-theme="dark"] #btn-query-reference-table {
     background: var(--theme-accent) !important;
     border-color: #5b86c8 !important;
     color: #f8fbff !important;
@@ -1125,7 +1247,7 @@ html[data-theme="dark"] .pengci-dropdown-toggle,
 html[data-theme="dark"] .pengci-rune-dropdown-wrapper .pengci-dropdown-btn,
 html[data-theme="dark"] .pengci-rune-dropdown .btn-pengci-clear,
 html[data-theme="dark"] #oneclick-settings-modal .oneclick-equip-clear-btn .btn,
-html[data-theme="dark"] #oneclick-settings-modal .settings-modal-header #btn-guest-portion-table {
+html[data-theme="dark"] #oneclick-settings-modal .settings-modal-header #btn-query-reference-table {
     background: var(--theme-surface) !important;
     color: var(--theme-text) !important;
     border-color: var(--theme-border) !important;
@@ -1676,6 +1798,11 @@ html[data-theme="dark"] .condiment-box .content .name,
 html[data-theme="dark"] .equip-box .content .name,
 html[data-theme="dark"] .recipe-box .content .name {
     color: #9fc4ff !important;
+}
+
+html[data-theme="dark"] .recipe-box .recipe-box-1 .name.guest-conflict-highlight {
+    color: #ff5b5b !important;
+    font-weight: 700 !important;
 }
 
 html[data-theme="dark"] .chef-box .disk-box .content .name.disk-1 {

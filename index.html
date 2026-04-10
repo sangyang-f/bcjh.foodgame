@@ -20,19 +20,19 @@
     <link rel="stylesheet" type="text/css" href="css/style.min.css?v=1" />
     <script type="text/javascript" src="js/script.min.js?v=3"></script>
     <script type="text/javascript" src="js/common.min.js?v=10"></script>
-    <link rel="stylesheet" type="text/css" href="css/food.min.css?v=13" />
-    <script type="text/javascript" src="js/guest.calculator.js?v=9"></script>
-    <script type="text/javascript" src="js/query.guest.js?v=3"></script>
-    <script type="text/javascript" src="js/food.min.js?v=25"></script>
+    <link rel="stylesheet" type="text/css" href="css/food.min.css?v=14" />
+    <script type="text/javascript" src="js/guest.calculator.js?v=10"></script>
+    <script type="text/javascript" src="js/query.guest.js?v=4"></script>
+    <script type="text/javascript" src="js/food.min.js?v=26"></script>
     <script type="text/javascript" src="js/query.cultivate.js?v=6"></script>
-    <script type="text/javascript" src="js/query.collection.js?v=2"></script>
-    <script type="text/javascript" src="js/banquet.optimizer.js?v=6"></script>
+    <script type="text/javascript" src="js/query.collection.js?v=3"></script>
+    <script type="text/javascript" src="js/banquet.optimizer.js?v=7"></script>
     <script type="text/javascript" src="js/jianghu.optimizer.js?v=2"></script>
-    <script type="text/javascript" src="js/competition.optimizer.simple.js?v=1"></script>
+    <script type="text/javascript" src="js/competition.optimizer.simple.js?v=2"></script>
     <link rel="stylesheet" type="text/css" href="css/image.css?v=11" />
     <link rel="stylesheet" type="text/css" href="css/query.collection.css?v=2" />
-    <link rel="stylesheet" type="text/css" href="css/theme.css?v=1" />
-    <script type="text/javascript" src="js/theme.js?v=1"></script>
+    <link rel="stylesheet" type="text/css" href="css/theme.css?v=2" />
+    <script type="text/javascript" src="js/theme.js?v=2"></script>
     <script>
         $(function () {
             $.ajax({
@@ -1322,6 +1322,13 @@
                                             data-offstyle="primary" data-width="90px">
                                     </div>
 
+                                    <div id="guest-rate-submode-switch-wrapper" class="inline-wrapper hidden"
+                                        style="margin-left: 10px;">
+                                        <input type="checkbox" id="chk-guest-rate-submode" data-toggle="toggle"
+                                            data-on="刷玉模式" data-off="符文模式" data-onstyle="primary"
+                                            data-offstyle="primary" data-width="90px">
+                                    </div>
+
                                     <div id="unultimated-chef-wrapper" class="inline-wrapper hidden">
                                         <div class="unultimated-dropdown-wrapper" id="unultimated-dropdown-wrapper">
                                             <button type="button" class="btn btn-default pengci-dropdown-toggle"
@@ -2218,7 +2225,7 @@
                                 停止计算
                             </button>
                             <button id="btn-banquet-settings" class="btn btn-default btn-sm" type="button"
-                                style="display: inline-block; margin-left: 3px; vertical-align: top; margin-top: 1px;"
+                                style="display: none; margin-left: 3px; vertical-align: top; margin-top: 1px;"
                                 title="风云宴设置">
                                 <span class="glyphicon glyphicon-cog"></span>
                             </button>
@@ -2492,6 +2499,236 @@
                                                 <span>总实际贵客率:</span>
                                                 <span class="value highlight" id="total-guest-rate">20.1%</span>
                                             </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="guest-rate-calculator hidden" id="guest-jade-result">
+                                <div class="calc-result-header">
+                                    <h4>刷玉结果</h4>
+                                    <div class="calc-header-buttons">
+                                        <button class="btn btn-primary btn-sm" id="btn-oneclick-query-jade"
+                                            type="button">一键查询</button>
+                                        <button class="btn btn-default btn-sm" id="btn-query-settings-jade"
+                                            type="button">
+                                            <span class="glyphicon glyphicon-cog"></span> 查询设置
+                                        </button>
+                                    </div>
+                                    <button class="btn-collapse" type="button">
+                                        <span class="glyphicon glyphicon-chevron-up"></span>
+                                    </button>
+                                </div>
+                                <div class="calc-result-content">
+                                    <div class="calc-result-row calc-data-row">
+                                        <div class="calc-result-item">
+                                            <label>贵客率:</label>
+                                            <span class="value" id="guest-rate-value-jade">0%</span>
+                                        </div>
+                                        <div class="calc-result-item">
+                                            <label>暴击率:</label>
+                                            <span class="value" id="total-crit-rate-jade">100%</span>
+                                        </div>
+                                        <div class="calc-result-item">
+                                            <label>时间:</label>
+                                            <span class="value" id="time-percentage-jade">100%</span>
+                                        </div>
+                                    </div>
+                                    <div class="calc-result-row calc-data-row">
+                                        <div class="calc-result-item">
+                                            <label>实际贵客率:</label>
+                                            <span class="value" id="actual-guest-rate-jade">10.05%</span>
+                                        </div>
+                                        <div class="calc-result-item">
+                                            <label>撒币率:</label>
+                                            <span class="value" id="rune-rate-jade">50%</span>
+                                        </div>
+                                        <div class="calc-result-item">
+                                            <label>日均玉璧:</label>
+                                            <span class="value" id="hundred-pot-output-jade">5.02</span>
+                                        </div>
+                                    </div>
+                                    <div class="calc-result-row calc-material-row">
+                                        <div class="calc-result-item calc-material-label">
+                                            <label>日均耗材:</label>
+                                        </div>
+                                        <div class="calc-material-actions">
+                                            <select class="selectpicker material-daily-select"
+                                                id="daily-material-select-jade" data-width="140px" data-container="body"
+                                                data-none-selected-text="无耗材">
+                                                <option value="">无耗材</option>
+                                            </select>
+                                            <button class="btn btn-default btn-sm" id="btn-material-detail-jade"
+                                                type="button">耗材详情</button>
+                                        </div>
+                                    </div>
+                                    <div class="calc-result-row calc-controls">
+                                        <div class="calc-control-group">
+                                            <label>星级</label>
+                                            <select class="selectpicker" id="star-level-jade" data-width="70px"
+                                                data-container="body">
+                                                <option value="1">1星</option>
+                                                <option value="2">2星</option>
+                                                <option value="3">3星</option>
+                                                <option value="4">4星</option>
+                                                <option value="5" selected>5星</option>
+                                            </select>
+                                        </div>
+                                        <div class="calc-control-group">
+                                            <label>品级</label>
+                                            <select class="selectpicker" id="quality-level-jade" data-width="70px"
+                                                data-container="body">
+                                                <option value="1"
+                                                    data-content="<span style='color:#000000;font-weight:bold'>可</span>"
+                                                    selected>可</option>
+                                                <option value="2"
+                                                    data-content="<span style='color:#28a745;font-weight:bold'>优</span>">
+                                                    优</option>
+                                                <option value="3"
+                                                    data-content="<span style='color:#fd7e14;font-weight:bold'>特</span>">
+                                                    特</option>
+                                                <option value="4"
+                                                    data-content="<span style='color:#dc3545;font-weight:bold'>神</span>">
+                                                    神</option>
+                                                <option value="5"
+                                                    data-content="<span style='color:#6f42c1;font-weight:bold'>传</span>">
+                                                    传</option>
+                                            </select>
+                                        </div>
+                                        <div class="calc-control-group">
+                                            <label>份数</label>
+                                            <div class="input-group input-group-sm quantity-control">
+                                                <span class="input-group-btn">
+                                                    <button class="btn btn-default" type="button"
+                                                        id="quantity-minus-jade">-</button>
+                                                </span>
+                                                <input type="number" class="form-control" id="quantity-value-jade"
+                                                    value="7" min="1" max="999">
+                                                <span class="input-group-btn">
+                                                    <button class="btn btn-default" type="button"
+                                                        id="quantity-plus-jade">+</button>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="calc-result-row calc-data-row">
+                                        <div class="calc-result-item">
+                                            <button class="btn btn-primary btn-sm" id="sync-guest-double-jade"
+                                                type="button">同贵客双菜谱</button>
+                                        </div>
+                                    </div>
+
+                                    <div class="double-recipe-section" style="display: none;">
+                                        <div class="calc-section-title">同贵客双菜谱实现贵客必来 品级默认可</div>
+
+                                        <div class="calc-result-row">
+                                            <div class="calc-control-group">
+                                                <label>贵客率</label>
+                                                <div class="input-group input-group-sm">
+                                                    <input type="number" class="form-control" id="guest-rate-input-jade"
+                                                        value="0" min="0" max="999">
+                                                    <span class="input-group-addon">%</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="calc-result-row calc-controls">
+                                            <div class="calc-control-group">
+                                                <label>星级</label>
+                                                <select class="selectpicker" id="star-level-2-jade" data-width="70px">
+                                                    <option value="1">1星</option>
+                                                    <option value="2">2星</option>
+                                                    <option value="3">3星</option>
+                                                    <option value="4">4星</option>
+                                                    <option value="5" selected>5星</option>
+                                                </select>
+                                            </div>
+                                            <div class="calc-control-group">
+                                                <label>份数</label>
+                                                <div class="input-group input-group-sm quantity-control">
+                                                    <span class="input-group-btn">
+                                                        <button class="btn btn-default" type="button"
+                                                            id="quantity-minus-2-jade">-</button>
+                                                    </span>
+                                                    <input type="number" class="form-control" id="quantity-value-2-jade"
+                                                        value="7" min="1" max="999">
+                                                    <span class="input-group-btn">
+                                                        <button class="btn btn-default" type="button"
+                                                            id="quantity-plus-2-jade">+</button>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div class="calc-result-item">
+                                                <label>实际贵客率:</label>
+                                                <span class="value" id="actual-guest-rate-2-jade">10.05%</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="calc-result-row calc-controls">
+                                            <div class="calc-control-group">
+                                                <label>星级</label>
+                                                <select class="selectpicker" id="star-level-3-jade" data-width="70px">
+                                                    <option value="1">1星</option>
+                                                    <option value="2">2星</option>
+                                                    <option value="3">3星</option>
+                                                    <option value="4">4星</option>
+                                                    <option value="5" selected>5星</option>
+                                                </select>
+                                            </div>
+                                            <div class="calc-control-group">
+                                                <label>份数</label>
+                                                <div class="input-group input-group-sm quantity-control">
+                                                    <span class="input-group-btn">
+                                                        <button class="btn btn-default" type="button"
+                                                            id="quantity-minus-3-jade">-</button>
+                                                    </span>
+                                                    <input type="number" class="form-control" id="quantity-value-3-jade"
+                                                        value="7" min="1" max="999">
+                                                    <span class="input-group-btn">
+                                                        <button class="btn btn-default" type="button"
+                                                            id="quantity-plus-3-jade">+</button>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div class="calc-result-item">
+                                                <label>实际贵客率:</label>
+                                                <span class="value" id="actual-guest-rate-3-jade">10.05%</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="calc-result-row calc-summary">
+                                            <div class="calc-summary-item">
+                                                <span>符文A</span>
+                                                <span class="value" id="rune-a-probability-jade">5.02%</span>
+                                            </div>
+                                            <div class="calc-summary-item">
+                                                <span>符文B</span>
+                                                <span class="value" id="rune-b-probability-jade">5.02%</span>
+                                            </div>
+                                            <div class="calc-summary-item">
+                                                <span>撒币</span>
+                                                <span class="value" id="scatter-probability-jade">10.05%</span>
+                                            </div>
+                                            <div class="calc-summary-item">
+                                                <span>总实际贵客率:</span>
+                                                <span class="value highlight" id="total-guest-rate-jade">20.1%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="modal fade" id="jade-material-detail-modal" tabindex="-1" role="dialog"
+                                aria-labelledby="jade-material-detail-title">
+                                <div class="modal-dialog" role="document">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <button type="button" class="close" data-dismiss="modal"
+                                                aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                                            <h4 class="modal-title" id="jade-material-detail-title">刷玉耗材详情</h4>
+                                        </div>
+                                        <div class="modal-body" id="jade-material-detail-body">
+                                            暂无耗材数据
                                         </div>
                                     </div>
                                 </div>
@@ -3538,6 +3775,23 @@
         window.getBanquetIntermediateEquipEnabled = getBanquetIntermediateEquipEnabled;
         window.isDefaultCompetitionMode = isDefaultCompetitionMode;
 
+        function isJianghuOrXiankeRule() {
+            var currentRule = calCustomRule && calCustomRule.rules && calCustomRule.rules[0];
+            var ruleTitle = currentRule ? currentRule.Title : '';
+            return ruleTitle.indexOf('江湖帖') >= 0 || ruleTitle.indexOf('贤客楼') >= 0;
+        }
+
+        function syncBanquetSettingsVisibility() {
+            var shouldHide = isJianghuOrXiankeRule();
+            var $settingsBtn = $('#btn-banquet-settings');
+            if ($settingsBtn.length) {
+                $settingsBtn.toggle(!shouldHide).prop('disabled', shouldHide);
+            }
+            if (shouldHide) {
+                $('#banquet-settings-modal').hide();
+            }
+        }
+
         function executeAlgorithm(code) {
             try {
                 // 使用间接eval调用，确保在全局作用域执行
@@ -3694,6 +3948,11 @@
 
         function initEventListeners() {
             $(document).on('click', '#btn-banquet-settings', function () {
+                syncBanquetSettingsVisibility();
+                if (isJianghuOrXiankeRule()) {
+                    $('#banquet-settings-modal').hide();
+                    return;
+                }
                 syncBanquetNewbieEquipToggle();
                 syncBanquetIntermediateEquipToggle();
                 $('#banquet-settings-modal').css('display', 'flex');

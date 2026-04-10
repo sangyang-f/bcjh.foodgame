@@ -1358,6 +1358,302 @@ var DefaultCompetitionOptimizer = (function() {
     }
 
 
+    function _finalizeTargetReachedState() {
+        if (!_targetScore) return false;
+
+        var bestCandidate = null;
+
+        if (_progressFeasibleState && _progressFeasibleBest >= _targetScore) {
+            bestCandidate = _buildTargetCandidate(_progressFeasibleState, _progressFeasibleBest);
+        }
+
+        if (_bestScore >= _targetScore && _bestSimState) {
+            var normalizedBest = _buildTargetCandidate(_bestSimState, _bestScore);
+            if (_isBetterTargetCandidate(normalizedBest, bestCandidate)) {
+                bestCandidate = normalizedBest;
+            }
+        }
+
+        if (!bestCandidate || !bestCandidate.state) return false;
+
+        _bestScore = bestCandidate.score;
+        _bestSimState = _cloneSimState(bestCandidate.state);
+        _simState = _cloneSimState(bestCandidate.state);
+        return true;
+    }
+
+
+    function _trackCandidateState(score, simState) {
+        if (!simState) return false;
+
+        if (score > _progressDisplayScore) {
+            _progressDisplayScore = score;
+        }
+
+        if (!_bestSimState || score > _bestScore) {
+            _bestScore = score;
+            _bestSimState = _cloneSimState(simState);
+            _simState = _cloneSimState(_bestSimState);
+        }
+
+        if (_targetScore && score >= _targetScore) {
+            var candidate = _buildTargetCandidate(simState, score);
+            if (candidate && candidate.score >= _targetScore) {
+                _bestScore = candidate.score;
+                _bestSimState = _cloneSimState(candidate.state);
+                _simState = _cloneSimState(_bestSimState);
+                var progressCandidate = null;
+                if (_progressFeasibleState && _progressFeasibleBest >= _targetScore) {
+                    progressCandidate = _buildTargetCandidate(_progressFeasibleState, _progressFeasibleBest);
+                }
+                if (_isBetterTargetCandidate(candidate, progressCandidate)) {
+                    _progressFeasibleBest = candidate.score;
+                    _progressFeasibleState = _cloneSimState(candidate.state);
+                }
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+
+    function _countStateUsage(simState) {
+        var recipeCount = 0;
+        var chefCount = 0;
+        if (!simState || !simState[0]) {
+            return { recipeCount: 0, chefCount: 0 };
+        }
+
+        for (var ci = 0; ci < simState[0].length; ci++) {
+            var slot = simState[0][ci];
+            var slotRecipeCount = 0;
+            for (var ri = 0; ri < 3; ri++) {
+                var rec = slot && slot.recipes ? slot.recipes[ri] : null;
+                if (rec && rec.data) {
+                    recipeCount++;
+                    slotRecipeCount++;
+                }
+            }
+            if (slotRecipeCount > 0) {
+                chefCount++;
+            }
+        }
+
+        return {
+            recipeCount: recipeCount,
+            chefCount: chefCount
+        };
+    }
+
+
+    function _isBetterTargetCandidate(candidate, baseline) {
+        if (!candidate) return false;
+        if (!baseline) return true;
+        if (candidate.recipeCount !== baseline.recipeCount) {
+            return candidate.recipeCount < baseline.recipeCount;
+        }
+        if (candidate.chefCount !== baseline.chefCount) {
+            return candidate.chefCount < baseline.chefCount;
+        }
+        return candidate.score > baseline.score;
+    }
+
+
+    function _clearEmptyChefSlots() {
+        if (!_simState || !_simState[0]) return;
+        for (var ci = 0; ci < _simState[0].length; ci++) {
+            var slot = _simState[0][ci];
+            var hasRecipe = false;
+            for (var ri = 0; ri < 3; ri++) {
+                if (slot.recipes[ri] && slot.recipes[ri].data) {
+                    hasRecipe = true;
+                    break;
+                }
+            }
+            if (!hasRecipe) {
+                slot.chefId = null;
+                slot.chefObj = null;
+                slot.equipObj = {};
+                slot.condiment = {};
+                for (var clearRi = 0; clearRi < 3; clearRi++) {
+                    slot.recipes[clearRi] = {data: null, quantity: 0, max: 0};
+                }
+            }
+        }
+    }
+
+
+    function _normalizeTargetCandidate(simState) {
+        var normalized = _normalizeFeasibleState(simState);
+        if (!normalized || normalized.score < _targetScore) return null;
+
+        var savedState = _simState;
+        try {
+            _simState = _cloneSimState(normalized.state);
+            _clearEmptyChefSlots();
+            var normalizedAgain = _normalizeFeasibleState(_simState);
+            var finalNormalized = (normalizedAgain && normalizedAgain.score >= _targetScore) ? normalizedAgain : normalized;
+            var usage = _countStateUsage(finalNormalized.state);
+            return {
+                score: finalNormalized.score,
+                state: _cloneSimState(finalNormalized.state),
+                recipeCount: usage.recipeCount,
+                chefCount: usage.chefCount
+            };
+        } finally {
+            _simState = savedState;
+            _applyChefData();
+        }
+    }
+
+
+    function _tryRemoveChefForTarget(simState, chefIndex) {
+        var savedState = _simState;
+        try {
+            _simState = _cloneSimState(simState);
+            var removedRecipeIds = [];
+            for (var ri = 0; ri < 3; ri++) {
+                var rec = _simState[0][chefIndex].recipes[ri];
+                if (rec && rec.data) {
+                    removedRecipeIds.push(rec.data.recipeId);
+                }
+                _simState[0][chefIndex].recipes[ri] = {data: null, quantity: 0, max: 0};
+            }
+            _simSetChef(chefIndex, null);
+
+            if (removedRecipeIds.length === 0) {
+                return _normalizeTargetCandidate(_simState);
+            }
+
+            var emptySlots = [];
+            for (var ci = 0; ci < _simState[0].length; ci++) {
+                if (ci === chefIndex) continue;
+                if (!_simState[0][ci].chefObj || !_simState[0][ci].chefId) continue;
+                for (var eri = 0; eri < 3; eri++) {
+                    if (!_simState[0][ci].recipes[eri].data) {
+                        emptySlots.push({ ci: ci, ri: eri });
+                    }
+                }
+            }
+
+            if (emptySlots.length < removedRecipeIds.length) return null;
+
+            var bestCandidate = null;
+
+            function dfs(idx) {
+                if (idx >= removedRecipeIds.length) {
+                    var candidate = _normalizeTargetCandidate(_simState);
+                    if (_isBetterTargetCandidate(candidate, bestCandidate)) {
+                        bestCandidate = candidate;
+                    }
+                    return;
+                }
+
+                for (var si = 0; si < emptySlots.length; si++) {
+                    var slotRef = emptySlots[si];
+                    if (_simState[0][slotRef.ci].recipes[slotRef.ri].data) continue;
+                    _simSetRecipe(slotRef.ci, slotRef.ri, removedRecipeIds[idx]);
+                    var appliedRec = _simState[0][slotRef.ci].recipes[slotRef.ri];
+                    if (appliedRec && appliedRec.data && appliedRec.data.recipeId === removedRecipeIds[idx]) {
+                        dfs(idx + 1);
+                    }
+                    _simState[0][slotRef.ci].recipes[slotRef.ri] = {data: null, quantity: 0, max: 0};
+                }
+            }
+
+            dfs(0);
+            return bestCandidate;
+        } finally {
+            _simState = savedState;
+            _applyChefData();
+        }
+    }
+
+
+    function _minimizeTargetState(simState) {
+        var current = _normalizeTargetCandidate(simState);
+        if (!current) return null;
+
+        var changed = true;
+        while (changed) {
+            changed = false;
+            var bestRecipeCandidate = null;
+
+            for (var ci = 0; ci < current.state[0].length; ci++) {
+                for (var ri = 0; ri < 3; ri++) {
+                    var rec = current.state[0][ci].recipes[ri];
+                    if (!rec || !rec.data) continue;
+
+                    var candidateState = _cloneSimState(current.state);
+                    candidateState[0][ci].recipes[ri] = {data: null, quantity: 0, max: 0};
+                    var slotHasRecipe = false;
+                    for (var sri = 0; sri < 3; sri++) {
+                        if (candidateState[0][ci].recipes[sri] && candidateState[0][ci].recipes[sri].data) {
+                            slotHasRecipe = true;
+                            break;
+                        }
+                    }
+                    if (!slotHasRecipe) {
+                        candidateState[0][ci].chefId = null;
+                        candidateState[0][ci].chefObj = null;
+                        candidateState[0][ci].equipObj = {};
+                        candidateState[0][ci].condiment = {};
+                    }
+
+                    var candidate = _normalizeTargetCandidate(candidateState);
+                    if (_isBetterTargetCandidate(candidate, bestRecipeCandidate)) {
+                        bestRecipeCandidate = candidate;
+                    }
+                }
+            }
+
+            if (bestRecipeCandidate && _isBetterTargetCandidate(bestRecipeCandidate, current)) {
+                current = bestRecipeCandidate;
+                changed = true;
+            }
+        }
+
+        var chefChanged = true;
+        while (chefChanged) {
+            chefChanged = false;
+            var bestChefCandidate = null;
+
+            for (var chefIndex = 0; chefIndex < current.state[0].length; chefIndex++) {
+                var usageCount = 0;
+                for (var crr = 0; crr < 3; crr++) {
+                    if (current.state[0][chefIndex].recipes[crr] && current.state[0][chefIndex].recipes[crr].data) {
+                        usageCount++;
+                    }
+                }
+                if (usageCount === 0) continue;
+
+                var removedChefCandidate = _tryRemoveChefForTarget(current.state, chefIndex);
+                if (_isBetterTargetCandidate(removedChefCandidate, bestChefCandidate)) {
+                    bestChefCandidate = removedChefCandidate;
+                }
+            }
+
+            if (bestChefCandidate && _isBetterTargetCandidate(bestChefCandidate, current)) {
+                current = bestChefCandidate;
+                chefChanged = true;
+            }
+        }
+
+        return current;
+    }
+
+
+    function _buildTargetCandidate(simState, scoreHint) {
+        var candidate = _minimizeTargetState(simState);
+        if (!candidate) return null;
+        if (typeof scoreHint === 'number' && scoreHint > _progressDisplayScore) {
+            _progressDisplayScore = scoreHint;
+        }
+        return candidate;
+    }
+
+
     function _getChefNameById(chefId) {
         if (!chefId) return '?';
         var chef = _chefMap[chefId];
@@ -2207,6 +2503,11 @@ var DefaultCompetitionOptimizer = (function() {
     function _generateChefTripleSeeds(rankedChefs, onDone) {
         var seeds = [];
         var topN = Math.min((_simpleMode ? 10 : 10), rankedChefs.length);
+        var stopEarly = false;
+
+        function finishSeedGeneration(result) {
+            if (typeof onDone === 'function') onDone(result || []);
+        }
 
         // 预生成所有组合
         var combos = [];
@@ -2222,9 +2523,13 @@ var DefaultCompetitionOptimizer = (function() {
         var batchSize = 5;
 
         function _processBatch() {
+            if (stopEarly || _finalizeTargetReachedState()) {
+                finishSeedGeneration([]);
+                return;
+            }
             var batchEnd = Math.min(comboIdx + batchSize, combos.length);
 
-            for (; comboIdx < batchEnd; comboIdx++) {
+            for (; comboIdx < batchEnd && !stopEarly; comboIdx++) {
                 var ci = combos[comboIdx][0], cj = combos[comboIdx][1], ck = combos[comboIdx][2];
                 var trio = [rankedChefs[ci], rankedChefs[cj], rankedChefs[ck]];
 
@@ -2254,10 +2559,16 @@ var DefaultCompetitionOptimizer = (function() {
 
                 if (bestPermState) {
                     seeds.push({ state: bestPermState, score: bestPermScore, source: bestPermSource });
+                    if (_trackCandidateState(bestPermScore, bestPermState)) {
+                        stopEarly = true;
+                        break;
+                    }
                 }
             }
 
-            if (comboIdx < combos.length) {
+            if (stopEarly) {
+                finishSeedGeneration([]);
+            } else if (comboIdx < combos.length) {
                 setTimeout(_processBatch, 2);
             } else {
                 // 第二轮：对top20种子，用全6种排列精搜
@@ -2275,8 +2586,12 @@ var DefaultCompetitionOptimizer = (function() {
                 // 对高分种子做全排列精搜
                 var expandIdx = 0;
                 function _expandBatch() {
+                    if (stopEarly || _finalizeTargetReachedState()) {
+                        finishSeedGeneration([]);
+                        return;
+                    }
                     var eBatchEnd = Math.min(expandIdx + 3, expandSeeds.length);
-                    for (; expandIdx < eBatchEnd; expandIdx++) {
+                    for (; expandIdx < eBatchEnd && !stopEarly; expandIdx++) {
                         var seedState = expandSeeds[expandIdx].state;
                         // 提取厨师ID
                         var chefIds = [];
@@ -2311,11 +2626,17 @@ var DefaultCompetitionOptimizer = (function() {
                                 expandSeeds[expandIdx].score = score;
                                 expandSeeds[expandIdx].state = _cloneSimState(_simState);
                                 expandSeeds[expandIdx].source = '三元组-' + trioObjs[perm[0]].chefName + '+' + trioObjs[perm[1]].chefName + '+' + trioObjs[perm[2]].chefName;
+                                if (_trackCandidateState(score, expandSeeds[expandIdx].state)) {
+                                    stopEarly = true;
+                                    break;
+                                }
                             }
                         }
                     }
 
-                    if (expandIdx < expandSeeds.length) {
+                    if (stopEarly) {
+                        finishSeedGeneration([]);
+                    } else if (expandIdx < expandSeeds.length) {
                         setTimeout(_expandBatch, 2);
                     } else {
                         // 合并结果
@@ -2331,7 +2652,7 @@ var DefaultCompetitionOptimizer = (function() {
                                 if (deduped.length >= (_simpleMode ? 12 : 20)) break;
                             }
                         }
-                        if (typeof onDone === 'function') onDone(deduped);
+                        finishSeedGeneration(deduped);
                     }
                 }
 
@@ -2349,7 +2670,7 @@ var DefaultCompetitionOptimizer = (function() {
                             if (deduped.length >= (_simpleMode ? 12 : 20)) break;
                         }
                     }
-                    if (typeof onDone === 'function') onDone(deduped);
+                    finishSeedGeneration(deduped);
                 }
             }
         }
@@ -3747,6 +4068,7 @@ var DefaultCompetitionOptimizer = (function() {
         var rePermTryCap = 240;
         var materialSeedCap1 = 5;
         var materialSeedCap2 = 10;
+        var seedEarlyExit = false;
 
         var auraChefs = _analyzePriceAuraChefs();
         var recipeEffects = _analyzeRecipeEffects();
@@ -3770,15 +4092,21 @@ var DefaultCompetitionOptimizer = (function() {
                 _fitAutoPoolEquipsForCurrentState(1, 1);
             }
             var score = _calcScore();
-            _topCandidates.push({ state: _cloneSimState(_simState), score: score, source: source });
+            var candidateState = _cloneSimState(_simState);
+            _topCandidates.push({ state: candidateState, score: score, source: source });
+            if (_trackCandidateState(score, candidateState)) {
+                seedEarlyExit = true;
+                return true;
+            }
+            return false;
         }
 
         function fillOtherPositions() {
             for (var ci = 0; ci < 3; ci++) _greedyFillPosition(ci);
         }
 
-        for (var ai = 0; ai < Math.min(3, auraChefs.length); ai++) {
-            for (var pos = 0; pos < 3; pos++) {
+        for (var ai = 0; ai < Math.min(3, auraChefs.length) && !seedEarlyExit; ai++) {
+            for (var pos = 0; pos < 3 && !seedEarlyExit; pos++) {
                 _initSimState();
                 _simSetChef(pos, auraChefs[ai].chefId);
                 _fillChefRecipesGreedy(pos, true);
@@ -3788,9 +4116,15 @@ var DefaultCompetitionOptimizer = (function() {
         }
         console.log('[厨神大赛] 种子1(光环)完成: ' + _topCandidates.length + '个候选');
 
+        if (seedEarlyExit) {
+            console.log('[厨神大赛-简化版] 种子生成阶段命中目标分数，提前结束');
+            if (typeof onDone === 'function') onDone();
+            return;
+        }
+
         if (recipeEffects.length > 0) {
-            for (var rei = 0; rei < Math.min(reSingleSeedTop, recipeEffects.length); rei++) {
-                for (var pos1 = 0; pos1 < 3; pos1++) {
+            for (var rei = 0; rei < Math.min(reSingleSeedTop, recipeEffects.length) && !seedEarlyExit; rei++) {
+                for (var pos1 = 0; pos1 < 3 && !seedEarlyExit; pos1++) {
                     _initSimState();
                     _simSetRecipe(pos1, 0, recipeEffects[rei].recipeId);
                     _greedyFillAll();
@@ -3815,7 +4149,7 @@ var DefaultCompetitionOptimizer = (function() {
                 }
             }
 
-            for (var comboIdx = 0; comboIdx < reCombos.length; comboIdx++) {
+            for (var comboIdx = 0; comboIdx < reCombos.length && !seedEarlyExit; comboIdx++) {
                 var combo = reCombos[comboIdx];
                 _initSimState();
                 var comboNames = [];
@@ -3827,11 +4161,11 @@ var DefaultCompetitionOptimizer = (function() {
                 pushCurrent('RE组合-' + comboNames.join('+'));
             }
 
-            for (var rc = 0; rc < Math.min(reChefSeedTop, recipeEffects.length); rc++) {
+            for (var rc = 0; rc < Math.min(reChefSeedTop, recipeEffects.length) && !seedEarlyExit; rc++) {
                 _initSimState();
                 _simSetRecipe(0, 0, recipeEffects[rc].recipeId);
                 var chefRk = _fastGetChefRanking(0, true);
-                for (var cc = 0; cc < Math.min(3, chefRk.length); cc++) {
+                for (var cc = 0; cc < Math.min(3, chefRk.length) && !seedEarlyExit; cc++) {
                     if (chefRk[cc].skillOk === false) continue;
                     _initSimState();
                     _simSetChef(0, chefRk[cc].chefId);
@@ -3850,9 +4184,9 @@ var DefaultCompetitionOptimizer = (function() {
                 var topChefsForRE = Math.min(reMaxChefTop, rankedChefsForRE.length);
                 var reMaxCount = 0;
 
-                for (var ciRE = 0; ciRE < topChefsForRE && reMaxCount < reMaxSeedCap; ciRE++) {
-                    for (var cjRE = ciRE + 1; cjRE < topChefsForRE && reMaxCount < reMaxSeedCap; cjRE++) {
-                        for (var ckRE = cjRE + 1; ckRE < topChefsForRE && reMaxCount < reMaxSeedCap; ckRE++) {
+                for (var ciRE = 0; ciRE < topChefsForRE && reMaxCount < reMaxSeedCap && !seedEarlyExit; ciRE++) {
+                    for (var cjRE = ciRE + 1; cjRE < topChefsForRE && reMaxCount < reMaxSeedCap && !seedEarlyExit; cjRE++) {
+                        for (var ckRE = cjRE + 1; ckRE < topChefsForRE && reMaxCount < reMaxSeedCap && !seedEarlyExit; ckRE++) {
                             var trio = [rankedChefsForRE[ciRE], rankedChefsForRE[cjRE], rankedChefsForRE[ckRE]];
                             _initSimState();
                             for (var posRE = 0; posRE < 3; posRE++) _simSetChef(posRE, trio[posRE].chefId);
@@ -3936,14 +4270,14 @@ var DefaultCompetitionOptimizer = (function() {
                 console.log('[厨神大赛] RE全排列: ' + reCount + '个RE菜谱, ' + reAssignments.length + '种分配 × ' + chefTriosForPerm.length + '个厨师三元组');
 
                 var permTries = 0;
-                for (var trioIdx = 0; trioIdx < chefTriosForPerm.length && permTries < rePermTryCap; trioIdx++) {
+                for (var trioIdx = 0; trioIdx < chefTriosForPerm.length && permTries < rePermTryCap && !seedEarlyExit; trioIdx++) {
                     var trioRef = chefTriosForPerm[trioIdx];
                     var trioChefs = [rankedChefsForPerm[trioRef[0]], rankedChefsForPerm[trioRef[1]], rankedChefsForPerm[trioRef[2]]];
                     var chefPerms = _getChefPermutations(false);
 
-                    for (var permIdx = 0; permIdx < chefPerms.length && permTries < rePermTryCap; permIdx++) {
+                    for (var permIdx = 0; permIdx < chefPerms.length && permTries < rePermTryCap && !seedEarlyExit; permIdx++) {
                         var cperm = chefPerms[permIdx];
-                        for (var assignIdx = 0; assignIdx < reAssignments.length && permTries < rePermTryCap; assignIdx++) {
+                        for (var assignIdx = 0; assignIdx < reAssignments.length && permTries < rePermTryCap && !seedEarlyExit; assignIdx++) {
                             var assign = reAssignments[assignIdx];
                             permTries++;
 
@@ -3988,7 +4322,11 @@ var DefaultCompetitionOptimizer = (function() {
                             }
 
                             var permScore = _calcScore();
-                            _topCandidates.push({ state: _cloneSimState(_simState), score: permScore, source: 'RE排列-' + trioChefs[cperm[0]].chefName + '+' + trioChefs[cperm[1]].chefName + '+' + trioChefs[cperm[2]].chefName });
+                            var permState = _cloneSimState(_simState);
+                            _topCandidates.push({ state: permState, score: permScore, source: 'RE排列-' + trioChefs[cperm[0]].chefName + '+' + trioChefs[cperm[1]].chefName + '+' + trioChefs[cperm[2]].chefName });
+                            if (_trackCandidateState(permScore, permState)) {
+                                seedEarlyExit = true;
+                            }
                         }
                     }
                 }
@@ -3997,7 +4335,13 @@ var DefaultCompetitionOptimizer = (function() {
         }
         console.log('[厨神大赛] 种子2(RE)完成: ' + _topCandidates.length + '个候选');
 
-        for (var ti = 0; ti < Math.min(3, chefTagEffects.length); ti++) {
+        if (seedEarlyExit) {
+            console.log('[厨神大赛-简化版] 种子生成阶段命中目标分数，提前结束');
+            if (typeof onDone === 'function') onDone();
+            return;
+        }
+
+        for (var ti = 0; ti < Math.min(3, chefTagEffects.length) && !seedEarlyExit; ti++) {
             _initSimState();
             _simSetChef(0, chefTagEffects[ti].chefId);
             fillOtherPositions();
@@ -4005,7 +4349,13 @@ var DefaultCompetitionOptimizer = (function() {
         }
         console.log('[厨神大赛] 种子3(ChefTag)完成: ' + _topCandidates.length + '个候选');
 
-        for (var si = 0; si < Math.min(5, synergyPairs.length); si++) {
+        if (seedEarlyExit) {
+            console.log('[厨神大赛-简化版] 种子生成阶段命中目标分数，提前结束');
+            if (typeof onDone === 'function') onDone();
+            return;
+        }
+
+        for (var si = 0; si < Math.min(5, synergyPairs.length) && !seedEarlyExit; si++) {
             _initSimState();
             _simSetChef(0, synergyPairs[si].chefId);
             _simSetRecipe(0, 0, synergyPairs[si].recipeId);
@@ -4014,10 +4364,22 @@ var DefaultCompetitionOptimizer = (function() {
         }
         console.log('[厨神大赛] 种子4(协同)完成: ' + _topCandidates.length + '个候选');
 
+        if (seedEarlyExit) {
+            console.log('[厨神大赛-简化版] 种子生成阶段命中目标分数，提前结束');
+            if (typeof onDone === 'function') onDone();
+            return;
+        }
+
         _initSimState();
         _greedyFillAll();
         pushCurrent('贪心');
         console.log('[厨神大赛] 种子5(贪心)完成: ' + _topCandidates.length + '个候选, 贪心分=' + _topCandidates[_topCandidates.length - 1].score);
+
+        if (seedEarlyExit) {
+            console.log('[厨神大赛-简化版] 种子生成阶段命中目标分数，提前结束');
+            if (typeof onDone === 'function') onDone();
+            return;
+        }
 
         console.log('[厨神大赛] 开始生成食材感知种子...');
         var materialSeedStart = Date.now();
@@ -4052,9 +4414,9 @@ var DefaultCompetitionOptimizer = (function() {
                 }
 
                 var rankedChefsMS = _rankChefsForSeed();
-                for (var mci = 0; mci < Math.min(3, rankedChefsMS.length) && materialSeedCount < materialSeedCap1; mci++) {
-                    for (var mcj = mci + 1; mcj < Math.min(4, rankedChefsMS.length) && materialSeedCount < materialSeedCap1; mcj++) {
-                        for (var mck = mcj + 1; mck < Math.min(5, rankedChefsMS.length) && materialSeedCount < materialSeedCap1; mck++) {
+                for (var mci = 0; mci < Math.min(3, rankedChefsMS.length) && materialSeedCount < materialSeedCap1 && !seedEarlyExit; mci++) {
+                    for (var mcj = mci + 1; mcj < Math.min(4, rankedChefsMS.length) && materialSeedCount < materialSeedCap1 && !seedEarlyExit; mcj++) {
+                        for (var mck = mcj + 1; mck < Math.min(5, rankedChefsMS.length) && materialSeedCount < materialSeedCap1 && !seedEarlyExit; mck++) {
                             _initSimState();
                             _simSetChef(0, rankedChefsMS[mci].chefId);
                             _simSetChef(1, rankedChefsMS[mcj].chefId);
@@ -4113,9 +4475,9 @@ var DefaultCompetitionOptimizer = (function() {
 
             var groupKeys = Object.keys(materialGroups);
             if (groupKeys.length >= 3) {
-                for (var gi = 0; gi < Math.min(3, groupKeys.length) && materialSeedCount < materialSeedCap2; gi++) {
-                    for (var gj = gi + 1; gj < Math.min(4, groupKeys.length) && materialSeedCount < materialSeedCap2; gj++) {
-                        for (var gk = gj + 1; gk < Math.min(5, groupKeys.length) && materialSeedCount < materialSeedCap2; gk++) {
+                for (var gi = 0; gi < Math.min(3, groupKeys.length) && materialSeedCount < materialSeedCap2 && !seedEarlyExit; gi++) {
+                    for (var gj = gi + 1; gj < Math.min(4, groupKeys.length) && materialSeedCount < materialSeedCap2 && !seedEarlyExit; gj++) {
+                        for (var gk = gj + 1; gk < Math.min(5, groupKeys.length) && materialSeedCount < materialSeedCap2 && !seedEarlyExit; gk++) {
                             var group1 = materialGroups[groupKeys[gi]];
                             var group2 = materialGroups[groupKeys[gj]];
                             var group3 = materialGroups[groupKeys[gk]];
@@ -4140,12 +4502,22 @@ var DefaultCompetitionOptimizer = (function() {
         }
         console.log('[厨神大赛] 种子5d(食材感知)完成: ' + materialSeedCount + '个种子, ' + _topCandidates.length + '个候选, 耗时=' + ((Date.now() - materialSeedStart) / 1000).toFixed(1) + 's');
 
+        if (seedEarlyExit) {
+            console.log('[厨神大赛-简化版] 种子生成阶段命中目标分数，提前结束');
+            if (typeof onDone === 'function') onDone();
+            return;
+        }
+
         var rankedChefs = _rankChefsForSeed();
         var topNames = [];
         for (var i = 0; i < Math.min(5, rankedChefs.length); i++) topNames.push(rankedChefs[i].chefName);
         console.log('[厨神大赛] 厨师排名top5: ' + topNames.join(', '));
 
         _generateChefTripleSeeds(rankedChefs, function(tripleSeeds) {
+            if (_finalizeTargetReachedState()) {
+                if (typeof onDone === 'function') onDone();
+                return;
+            }
             console.log('[厨神大赛] 三元组种子生成: ' + tripleSeeds.length + '个');
             for (var ti = 0; ti < tripleSeeds.length; ti++) _topCandidates.push(tripleSeeds[ti]);
 
@@ -4192,6 +4564,14 @@ var DefaultCompetitionOptimizer = (function() {
         var roundStartScore = _bestScore;
         var improved = { chef: false, dualChef: false, swap: false, recipe: false, recipeSwap: false, joint: false, reselect: false, reInject: false, quantity: false, postQty: false, lowQty: false, rebuild: false, newbieEquip: false };
         var steps = [];
+
+        function stopClimbIfTargetReached() {
+            if (_finalizeTargetReachedState()) {
+                if (typeof onDone === 'function') onDone();
+                return true;
+            }
+            return false;
+        }
 
         if (!_singleTrio) {
             steps.push(function() {
@@ -4276,7 +4656,7 @@ var DefaultCompetitionOptimizer = (function() {
                     _bestSimState = _cloneSimState(_simState);
                 }
             }
-            if (_isTargetReached()) {
+            if (_finalizeTargetReachedState()) {
                 if (typeof onDone === 'function') onDone();
                 return;
             }
@@ -4310,6 +4690,7 @@ var DefaultCompetitionOptimizer = (function() {
             }
             setTimeout(function() {
                 steps[index]();
+                if (stopClimbIfTargetReached()) return;
                 runStep(index + 1);
             }, 0);
         }
@@ -4351,7 +4732,7 @@ var DefaultCompetitionOptimizer = (function() {
                 _generateInitialSolution(function() {
                     try {
                         _setProgressTarget(10);
-                        if (_isTargetReached()) {
+                        if (_finalizeTargetReachedState()) {
                             _finishOptimization(onComplete, startTime);
                             return;
                         }
@@ -4412,6 +4793,11 @@ var DefaultCompetitionOptimizer = (function() {
                         var globalBestSource = _topCandidates.length ? _topCandidates[0].source : '';
 
                         function runSeed() {
+                            if (_finalizeTargetReachedState()) {
+                                _finishOptimization(onComplete, startTime);
+                                return;
+                            }
+
                             if (seedIdx >= totalSeeds) {
                                 _bestScore = globalBestScore;
                                 _bestSimState = globalBestState;
@@ -4441,6 +4827,24 @@ var DefaultCompetitionOptimizer = (function() {
                             console.log('[厨神大赛] 搜索种子 ' + seedIdx + '/' + totalSeeds + ': ' + seed.source + ' 初始分=' + seed.score);
 
                             _runClimbingPhase(0, function() {
+                                if (_finalizeTargetReachedState()) {
+                                    if (_bestScore > globalBestScore) {
+                                        globalBestScore = _bestScore;
+                                        globalBestState = _cloneSimState(_bestSimState);
+                                        globalBestSource = seed.source;
+                                        _updateProgressBest(globalBestScore, globalBestState);
+                                    } else if (globalBestState && globalBestScore >= _bestScore) {
+                                        _bestScore = globalBestScore;
+                                        _bestSimState = _cloneSimState(globalBestState);
+                                        _simState = _cloneSimState(_bestSimState);
+                                    }
+                                    _bestSeedSource = globalBestSource;
+                                    _bestScore = globalBestScore;
+                                    _bestSimState = globalBestState;
+                                    _simState = _cloneSimState(_bestSimState);
+                                    _finishOptimization(onComplete, startTime);
+                                    return;
+                                }
                                 _simState = _cloneSimState(_bestSimState);
                                 if (_isAnyAutoPoolEquipEnabled()) {
                                     _fitAutoPoolEquipsForCurrentState();
@@ -4477,7 +4881,7 @@ var DefaultCompetitionOptimizer = (function() {
                                         }
                                     }
                                 }
-                                if (_isTargetReached()) {
+                                if (_finalizeTargetReachedState()) {
                                     _bestSeedSource = globalBestSource;
                                     _bestScore = globalBestScore;
                                     _bestSimState = globalBestState;
@@ -4525,9 +4929,11 @@ var DefaultCompetitionOptimizer = (function() {
         }
 
         var memTotal = 0;
+        var targetQuickFinish = false;
         if (_bestSimState) {
             _simState = _cloneSimState(_bestSimState);
-            if (_isAnyAutoPoolEquipEnabled()) {
+            targetQuickFinish = _finalizeTargetReachedState();
+            if (_isAnyAutoPoolEquipEnabled() && !targetQuickFinish) {
                 _fitAutoPoolEquipsForCurrentState();
             }
             var usedChefIds = {};
@@ -4547,7 +4953,12 @@ var DefaultCompetitionOptimizer = (function() {
                 }
             }
 
-            _normalizeBestState('简化版最终收尾');
+            if (!targetQuickFinish) {
+                _normalizeBestState('简化版最终收尾');
+            } else {
+                _simState = _cloneSimState(_bestSimState);
+                console.log('[厨神大赛-简化版] 目标分数已达成，跳过最终重复优化');
+            }
             _simState = _cloneSimState(_bestSimState);
             _syncRecipeDataFromMenus();
             _applyChefData();

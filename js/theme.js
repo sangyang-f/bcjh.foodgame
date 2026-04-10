@@ -39,8 +39,15 @@
 
         if (window.jQuery && window.jQuery.fn && window.jQuery.fn.bootstrapToggle) {
             var $toggle = window.jQuery(toggle);
-            if ($toggle.parent().hasClass('toggle')) {
-                $toggle.bootstrapToggle(isDark ? 'on' : 'off', true);
+            var toggleInstance = $toggle.data('bs.toggle');
+            if (toggleInstance) {
+                if (isDark) {
+                    toggleInstance.on(true);
+                } else {
+                    toggleInstance.off(true);
+                }
+            } else if ($toggle.parent().hasClass('toggle')) {
+                $toggle.parent().toggleClass('off', !isDark);
             }
         }
     }
@@ -61,11 +68,7 @@
     }
 
     document.addEventListener('DOMContentLoaded', function () {
-        var savedTheme = getSavedTheme();
-        if (savedTheme) {
-            document.documentElement.setAttribute(THEME_ATTR, savedTheme);
-        }
-        initThemeToggle();
+        applyTheme(getSavedTheme() || getCurrentTheme());
 
         if (window.jQuery) {
             window.jQuery(document).on('change', '#chk-setting-theme', function () {

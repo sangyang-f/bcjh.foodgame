@@ -598,8 +598,13 @@ table.dataTable tbody>tr.selected,table.dataTable tbody>tr>.selected {
 }
 
 .recipe-box .red {
-    color: red;
+    color: #ff5b5b;
     font-weight: 700
+}
+
+.recipe-box .recipe-box-1 .name.guest-conflict-highlight {
+    color: #ff5b5b !important;
+    font-weight: 700 !important
 }
 
 .recipe-box .recipe-box-2 {
@@ -1287,6 +1292,7 @@ div.dataTables_wrapper .table-top div.dataTables_info {
 /* 自定义toggle开关颜色，和btn-primary一致 */
 #chk-cultivation-mode + .toggle-group .btn-primary,
 #chk-guest-query-mode + .toggle-group .btn-primary,
+#chk-guest-rate-submode + .toggle-group .btn-primary,
 .toggle.btn.btn-primary {
     background-color: #337ab7 !important;
     border-color: #2e6da4 !important;
@@ -1347,7 +1353,8 @@ table.dataTable tr.selected td.select-checkbox:after,table.dataTable tr.selected
     }
 
     #cultivation-mode-switch-wrapper .toggle.btn,
-    #guest-query-mode-switch-wrapper .toggle.btn {
+    #guest-query-mode-switch-wrapper .toggle.btn,
+    #guest-rate-submode-switch-wrapper .toggle.btn {
         width: 80px !important;
         min-width: 80px !important;
     }
@@ -2076,6 +2083,46 @@ table.dataTable tr.selected td.select-checkbox:after,table.dataTable tr.selected
     min-width: 0;
 }
 
+.calc-result-row.calc-material-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+    padding: 5px 0;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+}
+
+.calc-result-row.calc-material-row .calc-material-label {
+    flex: 0 0 auto;
+}
+
+.calc-result-row.calc-material-row .calc-material-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex: 0 0 auto;
+    min-width: 0;
+}
+
+.calc-result-row.calc-material-row .calc-result-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 0;
+    min-width: 0;
+    white-space: nowrap;
+}
+
+.calc-result-row.calc-material-row .calc-result-item:first-child {
+    flex: 0 1 auto;
+}
+
+.calc-result-row.calc-material-row .calc-result-item:last-child {
+    flex: 0 0 auto;
+    margin-left: 0;
+}
+
 .calc-result-item {
     display: inline-flex;
     align-items: center;
@@ -2134,6 +2181,27 @@ table.dataTable tr.selected td.select-checkbox:after,table.dataTable tr.selected
 .calc-result-item .value.highlight {
     color: #337ab7;
     font-size: 14px;
+}
+
+.calc-result-item .bootstrap-select.material-daily-select,
+.calc-result-item .bootstrap-select.material-daily-select > .dropdown-toggle {
+    min-width: 80px;
+    max-width: none;
+    height: 30px;
+    font-size: 13px;
+}
+
+.calc-result-item .bootstrap-select.material-daily-select > .dropdown-toggle {
+    padding-top: 4px;
+    padding-bottom: 4px;
+}
+
+.calc-result-item .bootstrap-select.material-daily-select .filter-option,
+.calc-result-item .bootstrap-select.material-daily-select .filter-option-inner,
+.calc-result-item .bootstrap-select.material-daily-select .filter-option-inner-inner {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .calc-controls {
@@ -2275,8 +2343,115 @@ table.dataTable tr.selected td.select-checkbox:after,table.dataTable tr.selected
     height: 30px;
 }
 
+#btn-material-detail-jade {
+    white-space: nowrap;
+    padding: 5px 12px;
+    font-size: 13px;
+    height: 30px;
+}
+
+#jade-material-detail-modal .modal-dialog {
+    width: fit-content;
+    max-width: calc(100vw - 30px);
+}
+
+#jade-material-detail-modal .modal-body {
+    max-height: 65vh;
+    overflow-y: auto;
+}
+
+.jade-material-detail-empty {
+    color: #666;
+    text-align: center;
+    padding: 20px 0;
+}
+
+.jade-material-recipe-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, 280px);
+    width: fit-content;
+    max-width: 100%;
+    justify-content: center;
+    gap: 12px;
+}
+
+@media (min-width: 769px) {
+    #jade-material-detail-modal .modal-dialog {
+        width: 914px;
+    }
+
+    .jade-material-recipe-grid {
+        grid-template-columns: repeat(3, 280px);
+    }
+}
+
+.jade-material-recipe-card {
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 12px 14px;
+    background: #fff;
+    width: 280px;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.jade-material-recipe-title {
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 8px;
+}
+
+.jade-material-recipe-subtitle {
+    color: #666;
+    font-size: 12px;
+    margin-left: 8px;
+    font-weight: normal;
+}
+
+.jade-material-detail-list {
+    margin: 0;
+    padding-left: 18px;
+}
+
+.jade-material-detail-list li {
+    margin-bottom: 4px;
+    color: #333;
+}
+
 /* 响应式调整 */
 @media (max-width: 768px) {
+    #jade-material-detail-modal.in {
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        padding: 10px;
+    }
+
+    #jade-material-detail-modal .modal-dialog {
+        margin: 0 auto;
+    }
+
+    .calc-result-row.calc-material-row {
+        display: inline-flex !important;
+        width: auto !important;
+        max-width: 100%;
+        justify-content: flex-start !important;
+        align-self: flex-start;
+        gap: 6px;
+    }
+
+    .calc-result-row.calc-material-row .calc-result-item,
+    .calc-result-row.calc-material-row .calc-result-item:first-child,
+    .calc-result-row.calc-material-row .calc-result-item:last-child,
+    .calc-result-row.calc-material-row .calc-material-actions {
+        flex: 0 0 auto !important;
+    }
+
+    #daily-material-select-jade + .bootstrap-select,
+    #daily-material-select-jade + .bootstrap-select > .dropdown-toggle {
+        min-width: 100px !important;
+    }
+
     .calc-result-row {
         /* 保持横向排列，自动换行 */
         flex-wrap: wrap;
@@ -2309,9 +2484,21 @@ table.dataTable tr.selected td.select-checkbox:after,table.dataTable tr.selected
         white-space: nowrap;
         width: 100%;
     }
+
+    #btn-material-detail-jade {
+        width: auto;
+        padding: 5px 8px;
+        font-size: 12px;
+    }
     
     /* 确保包含按钮的容器不会超出 */
     .calc-result-row.calc-data-row {
+        gap: 8px;
+    }
+
+    .calc-result-row.calc-material-row {
+        flex-wrap: nowrap;
+        align-items: center;
         gap: 8px;
     }
     
@@ -2324,10 +2511,42 @@ table.dataTable tr.selected td.select-checkbox:after,table.dataTable tr.selected
     .calc-result-row.calc-data-row .calc-result-item:last-child {
         justify-content: flex-start;
     }
+
+    .calc-result-row.calc-material-row .calc-result-item {
+        max-width: none;
+        padding: 0;
+    }
+
+    .calc-result-row.calc-material-row .calc-result-item:first-child {
+        flex: 0 1 auto;
+    }
+
+    .calc-result-row.calc-material-row .calc-result-item:last-child {
+        flex: 0 0 auto;
+    }
+
+    .calc-result-row.calc-material-row .calc-result-item .bootstrap-select.material-daily-select,
+    .calc-result-row.calc-material-row .calc-result-item .bootstrap-select.material-daily-select > .dropdown-toggle {
+        min-width: 0;
+        width: auto;
+        max-width: none;
+    }
 }
 
 /* 超小屏幕 */
 @media (max-width: 450px) {
+    .calc-result-row.calc-material-row {
+        display: inline-flex !important;
+        width: auto !important;
+        max-width: 100%;
+        justify-content: flex-start !important;
+        gap: 6px;
+    }
+
+    .calc-result-row.calc-material-row .calc-material-actions {
+        gap: 6px;
+    }
+
     /* 调整为2+1布局：前两项一行，按钮单独一行 */
     .calc-result-row.calc-data-row {
         display: grid;
@@ -2341,11 +2560,40 @@ table.dataTable tr.selected td.select-checkbox:after,table.dataTable tr.selected
         grid-column: 1 / -1;
         justify-content: flex-start;
     }
+
+    .calc-result-row.calc-material-row {
+        display: flex;
+        grid-template-columns: none;
+        gap: 6px;
+        flex-wrap: nowrap;
+    }
+
+    .calc-result-row.calc-material-row .calc-result-item {
+        padding: 0;
+        max-width: none;
+    }
     
     #sync-guest-double {
         font-size: 13px;
         padding: 6px 12px;
         width: auto;
+    }
+
+    #daily-material-select-jade + .bootstrap-select,
+    #daily-material-select-jade + .bootstrap-select > .dropdown-toggle {
+        min-width: 100px !important;
+    }
+
+    .calc-result-item .bootstrap-select.material-daily-select,
+    .calc-result-item .bootstrap-select.material-daily-select > .dropdown-toggle {
+        min-width: 0;
+        width: auto;
+        max-width: none;
+    }
+
+    #btn-material-detail-jade {
+        padding: 5px 6px;
+        font-size: 12px;
     }
 }
 
@@ -2564,6 +2812,27 @@ table.dataTable tr.selected td.select-checkbox:after,table.dataTable tr.selected
 
 /* 响应式调整 */
 @media (max-width: 768px) {
+    #oneclick-settings-modal .modal-dialog {
+        margin: 10px;
+        max-height: calc(100vh - 20px);
+    }
+
+    #oneclick-settings-modal .modal-content {
+        max-height: calc(100vh - 20px);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    #oneclick-settings-modal .modal-body {
+        flex: 1 1 auto;
+        min-height: 0;
+        max-height: none;
+        overflow-y: auto;
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
+    }
+
     .calc-header-buttons {
         display: flex;
         margin-left: 0;
@@ -2577,9 +2846,210 @@ table.dataTable tr.selected td.select-checkbox:after,table.dataTable tr.selected
     #oneclick-settings-modal .rune-item {
         min-width: calc(50% - 4px);
     }
+
+    #oneclick-settings-modal .rune-section,
+    #oneclick-settings-modal .rune-list,
+    #oneclick-settings-modal .collapse {
+        max-width: 100%;
+    }
+
+    #oneclick-settings-modal .settings-row:first-of-type > .col-xs-6 > .setting-card {
+        height: 44px;
+        min-height: 44px;
+        box-sizing: border-box;
+        padding-top: 0;
+        padding-bottom: 0;
+    }
+
+    #oneclick-settings-modal .switch-label {
+        width: 30px;
+        min-width: 30px;
+        max-width: 30px;
+        height: 18px;
+        border-radius: 9px;
+        overflow: hidden;
+        flex: 0 0 30px;
+    }
+
+    #oneclick-settings-modal .switch-label::after {
+        width: 14px;
+        height: 14px;
+        top: 2px;
+        left: 2px;
+    }
+
+    #oneclick-settings-modal input[type="checkbox"]:checked + .switch-label::after {
+        left: calc(100% - 16px);
+    }
+
+    #oneclick-settings-modal .setting-card .switch-container {
+        flex: 0 0 30px;
+        width: 30px;
+        min-width: 30px;
+        max-width: 30px;
+        display: flex;
+        justify-content: flex-end;
+        overflow: hidden;
+    }
+
+    #oneclick-settings-modal .settings-row:first-of-type > .col-xs-6:first-child .setting-card {
+        justify-content: flex-start;
+        gap: 4px;
+    }
+
+    #oneclick-settings-modal .settings-row:first-of-type > .col-xs-6:first-child .setting-card label {
+        width: 2em;
+        flex: 0 0 2em;
+        min-width: 0;
+        margin-right: 0;
+    }
+
+    #oneclick-settings-modal .settings-row:first-of-type > .col-xs-6:first-child .setting-card .input-group {
+        width: 100%;
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    #oneclick-settings-modal #setting-defaultTime {
+        width: 100%;
+        min-width: 4.8em;
+        max-width: none;
+        padding-left: 6px;
+        padding-right: 6px;
+        text-align: center;
+    }
+
+    #oneclick-settings-modal .settings-row:first-of-type > .col-xs-6:first-child .input-group-addon {
+        padding-left: 6px;
+        padding-right: 6px;
+        white-space: nowrap;
+    }
 }
 
 @media (max-width: 480px) {
+    #oneclick-settings-modal .settings-row {
+        margin-bottom: 10px;
+    }
+
+    #oneclick-settings-modal .settings-row > .col-xs-6 {
+        width: 50%;
+        float: left;
+        padding-left: 5px;
+        padding-right: 5px;
+    }
+
+    #oneclick-settings-modal .settings-row > .col-xs-12 {
+        width: 100%;
+        float: none;
+        padding-left: 5px;
+        padding-right: 5px;
+    }
+
+    #oneclick-settings-modal .setting-card {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+    }
+
+    #oneclick-settings-modal .setting-card label {
+        width: auto;
+        flex: 0 0 auto;
+        flex-shrink: 0;
+        min-width: 52px;
+        white-space: nowrap;
+        word-break: keep-all;
+    }
+
+    #oneclick-settings-modal .setting-card label.switch-label {
+        width: 30px;
+        min-width: 30px;
+        max-width: 30px;
+        flex: 0 0 30px;
+        margin: 0;
+    }
+
+    #oneclick-settings-modal .setting-card .input-group {
+        width: auto;
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    #oneclick-settings-modal .settings-row:first-of-type > .col-xs-6 > .setting-card {
+        height: 44px;
+        min-height: 44px;
+        box-sizing: border-box;
+        padding-top: 0;
+        padding-bottom: 0;
+    }
+
+    #oneclick-settings-modal .settings-row:first-of-type > .col-xs-6:first-child .setting-card {
+        justify-content: flex-start;
+        gap: 4px;
+    }
+
+    #oneclick-settings-modal .settings-row:first-of-type > .col-xs-6:first-child .setting-card label {
+        width: 2em;
+        flex: 0 0 2em;
+        min-width: 0;
+        margin-right: 0;
+    }
+
+    #oneclick-settings-modal .settings-row:first-of-type > .col-xs-6:first-child .setting-card .input-group {
+        width: 100%;
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    #oneclick-settings-modal #setting-defaultTime {
+        width: 100%;
+        min-width: 4.8em;
+        max-width: none;
+        padding-left: 6px;
+        padding-right: 6px;
+        text-align: center;
+    }
+
+    #oneclick-settings-modal .settings-row:first-of-type > .col-xs-6:first-child .input-group-addon {
+        padding-left: 6px;
+        padding-right: 6px;
+        white-space: nowrap;
+    }
+
+    #oneclick-settings-modal .setting-card .switch-container {
+        flex: 0 0 auto;
+        flex-shrink: 0;
+    }
+
+    #oneclick-settings-modal .setting-card .form-control {
+        width: 100%;
+    }
+
+    #oneclick-settings-modal .settings-modal-header {
+        flex-wrap: nowrap;
+        align-items: center;
+    }
+
+    #oneclick-settings-modal .settings-modal-header .modal-title {
+        width: auto;
+        margin-bottom: 0;
+    }
+
+    #oneclick-settings-modal .settings-modal-header #btn-query-reference-table {
+        order: 2;
+        width: auto;
+        margin-top: 0;
+        margin-left: 8px;
+        font-size: 12px;
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+
+    #oneclick-settings-modal .settings-modal-header .close {
+        margin-left: auto;
+    }
+
     #oneclick-settings-modal .rune-item {
         min-width: 100%;
     }
@@ -3019,9 +3489,202 @@ table.dataTable tr.selected td.select-checkbox:after,table.dataTable tr.selected
     margin-left: 15px;
 }
 
-#oneclick-settings-modal .settings-modal-header #btn-guest-portion-table {
+#oneclick-settings-modal .settings-modal-header #btn-query-reference-table {
     order: 2;
     white-space: nowrap;
+}
+
+#jade-ranking-table-modal .modal-dialog {
+    max-width: none;
+}
+
+#jade-ranking-table-modal .jade-ranking-modal-header {
+    padding-right: 15px;
+}
+
+#jade-ranking-table-modal .jade-ranking-modal-header-main {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+#jade-ranking-table-modal .jade-ranking-modal-header .modal-title {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+#jade-ranking-table-modal .jade-ranking-filter-wrapper {
+    flex: 0 0 auto;
+}
+
+#jade-ranking-table-modal .jade-ranking-filter-wrapper .bootstrap-select,
+#jade-ranking-table-modal .jade-ranking-filter-wrapper .btn-group.bootstrap-select {
+    width: 96px !important;
+    min-width: 96px !important;
+    max-width: 96px !important;
+}
+
+#jade-ranking-table-modal .jade-ranking-filter-wrapper .dropdown-toggle {
+    height: 30px;
+    padding: 4px 24px 4px 10px;
+    border-radius: 4px;
+}
+
+#jade-ranking-table-modal .jade-ranking-filter-wrapper .filter-option {
+    padding-right: 0;
+}
+
+#jade-ranking-table-modal .jade-ranking-filter-wrapper .dropdown-menu {
+    left: auto;
+    right: 0;
+}
+
+#jade-ranking-table-modal .jade-ranking-close {
+    float: none;
+    margin-top: 0;
+    margin-left: 0;
+    flex: 0 0 auto;
+}
+
+#jade-ranking-table-modal .modal-body {
+    padding: 12px;
+    max-height: 78vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    background: #fff;
+}
+
+.jade-ranking-table-container {
+    overflow-x: visible;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+}
+
+.jade-ranking-table-container.jade-ranking-draggable {
+    cursor: grab;
+}
+
+.jade-ranking-table-container.drag-scrolling {
+    cursor: grabbing;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.jade-ranking-loading {
+    padding: 40px 0;
+    text-align: center;
+    color: #666;
+    font-size: 14px;
+}
+
+.jade-ranking-table-stage {
+    display: block;
+}
+
+.jade-ranking-table-stage.is-pending {
+    visibility: hidden;
+}
+
+.jade-ranking-table-stage.is-ready {
+    visibility: visible;
+}
+
+.jade-ranking-error {
+    color: #d9534f;
+}
+
+.jade-ranking-sheet {
+    overflow-x: visible;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    width: max-content;
+    min-width: 0;
+    max-width: none;
+}
+
+.jade-ranking-table {
+    margin-bottom: 0;
+    width: auto;
+    min-width: 780px;
+    table-layout: auto;
+    background: #fff;
+}
+
+.jade-ranking-table .jade-ranking-title-row th {
+    background: #fff;
+    color: #4874cb;
+    font-size: 16px;
+    font-weight: 700;
+    text-align: center;
+    padding: 10px 8px;
+    min-width: 0;
+    border: none !important;
+}
+
+.jade-ranking-table .jade-ranking-header-row th {
+    background: #4874cb;
+    color: #fff;
+    font-weight: 700;
+    text-align: center;
+    vertical-align: middle;
+    white-space: nowrap;
+    border-color: #b5c7ea !important;
+}
+
+.jade-ranking-table td {
+    text-align: center;
+    vertical-align: middle !important;
+    white-space: nowrap;
+    font-size: 12px;
+    border-color: #b5c7ea !important;
+}
+
+.jade-ranking-table .jade-ranking-empty-cell {
+    padding: 24px 12px;
+    color: #666;
+    text-align: center;
+}
+
+.jade-ranking-table th,
+.jade-ranking-table td {
+    min-width: 60px;
+}
+
+.jade-ranking-table th:nth-child(1),
+.jade-ranking-table td:nth-child(1) {
+    min-width: 56px;
+}
+
+.jade-ranking-table th:nth-child(2),
+.jade-ranking-table td:nth-child(2) {
+    min-width: 118px;
+}
+
+.jade-ranking-table th:nth-child(3),
+.jade-ranking-table td:nth-child(3) {
+    min-width: 72px;
+}
+
+.jade-ranking-table th:nth-child(4),
+.jade-ranking-table td:nth-child(4) {
+    min-width: 60px;
+}
+
+.jade-ranking-table th:nth-child(5),
+.jade-ranking-table td:nth-child(5) {
+    min-width: 92px;
+}
+
+.jade-ranking-table th:nth-child(6),
+.jade-ranking-table td:nth-child(6) {
+    min-width: 110px;
+}
+
+.jade-ranking-table th:nth-child(7),
+.jade-ranking-table td:nth-child(7) {
+    min-width: 240px;
 }
 
 /* 响应式调整 */
@@ -3038,6 +3701,62 @@ table.dataTable tr.selected td.select-checkbox:after,table.dataTable tr.selected
     .guest-portion-table td {
         padding: 4px 3px;
     }
+
+    #jade-ranking-table-modal .modal-dialog {
+        margin: 10px;
+    }
+
+    #jade-ranking-table-modal .jade-ranking-modal-header {
+        padding-right: 12px;
+    }
+
+    #jade-ranking-table-modal .jade-ranking-modal-header-main {
+        align-items: flex-start;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    #jade-ranking-table-modal .jade-ranking-modal-header .modal-title {
+        flex: 1 1 calc(100% - 40px);
+        margin-right: 0;
+    }
+
+    #jade-ranking-table-modal .jade-ranking-filter-wrapper {
+        order: 3;
+        width: calc(100% - 40px);
+    }
+
+    #jade-ranking-table-modal .jade-ranking-filter-wrapper .bootstrap-select,
+    #jade-ranking-table-modal .jade-ranking-filter-wrapper .btn-group.bootstrap-select {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: none !important;
+    }
+
+    #jade-ranking-table-modal .jade-ranking-close {
+        margin-left: auto;
+    }
+
+    #jade-ranking-table-modal .modal-body {
+        padding: 8px;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .jade-ranking-sheet {
+        overflow-x: visible;
+        overflow-y: hidden;
+        max-width: none;
+    }
+
+    .jade-ranking-table {
+        min-width: 780px;
+    }
+
+    .jade-ranking-table-container {
+        overflow-x: auto;
+        touch-action: pan-x pan-y;
+    }
 }
 
 /* 手机版顶部模式切换容器样式 */
@@ -3045,6 +3764,11 @@ table.dataTable tr.selected td.select-checkbox:after,table.dataTable tr.selected
     display: flex;
     align-items: center;
     gap: 5px;
+}
+
+#mobile-mode-switch-container #guest-query-mode-switch-wrapper,
+#mobile-mode-switch-container #guest-rate-submode-switch-wrapper {
+    margin-left: 0 !important;
 }
 
 #mobile-mode-switch-container .btn-group {

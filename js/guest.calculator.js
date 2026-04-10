@@ -64,6 +64,8 @@ var GuestRateCalculator = (function($) {
     var SILVER_RUNES = ['刀嘴鹦鹉', '一昧真火', '蒸汽宝石', '耐煮的水草', '焦虫', '暖石'];
     var BRONZE_RUNES = ['剪刀蟹', '油火虫', '蒸汽耳环', '防水的柠檬', '烤焦的菊花', '五香果'];
     var ALL_RUNES = [].concat(GOLD_RUNES, SILVER_RUNES, BRONZE_RUNES);
+    var isSyncingJadeMode = false;
+    var jadeRecipeValueMap = {};
     
     // ========================================
     // 私有函数 - 输入验证
@@ -221,6 +223,122 @@ var GuestRateCalculator = (function($) {
     function formatNumber(value) {
         return parseFloat(value.toFixed(2)).toString();
     }
+
+    function normalizeRecipeRankValue(rankValue, recipe) {
+        var normalizedRank = parseInt(rankValue, 10);
+        if (!isNaN(normalizedRank) && normalizedRank > 0) {
+            return normalizedRank;
+        }
+
+        var rankText = '';
+        if (recipe) {
+            rankText = recipe.rankDisp || (recipe.data && recipe.data.rank) || '';
+        }
+
+        switch (rankText) {
+            case '可':
+                return 1;
+            case '优':
+                return 2;
+            case '特':
+                return 3;
+            case '神':
+                return 4;
+            case '传':
+                return 5;
+            default:
+                return 0;
+        }
+    }
+
+    function getAverageQualityLevelFromCurrentCustom(custom) {
+        if (!custom) {
+            return null;
+        }
+
+        var rankSum = 0;
+        var rankCount = 0;
+
+        for (var c in custom) {
+            if (!custom.hasOwnProperty(c) || !custom[c] || !custom[c].recipes) {
+                continue;
+            }
+
+            var recipes = custom[c].recipes;
+            for (var r in recipes) {
+                if (!recipes.hasOwnProperty(r)) {
+                    continue;
+                }
+                var recipe = recipes[r];
+                if (!recipe || !recipe.data) {
+                    continue;
+                }
+                if (Number(recipe.quantity) === 1) {
+                    continue;
+                }
+
+                var normalizedRank = normalizeRecipeRankValue(recipe.rankVal, recipe);
+                if (normalizedRank <= 0) {
+                    continue;
+                }
+
+                rankSum += normalizedRank;
+                rankCount++;
+            }
+        }
+
+        if (rankCount <= 0) {
+            return null;
+        }
+
+        var averageRank = Math.floor(rankSum / rankCount);
+        if (averageRank < 1) {
+            averageRank = 1;
+        } else if (averageRank > 5) {
+            averageRank = 5;
+        }
+
+        return String(averageRank);
+    }
+
+    var guestRateQualitySyncState = {
+        lastRecipeSignature: null
+    };
+
+    function buildGuestRecipeSignature(custom) {
+        if (!custom) {
+            return '';
+        }
+
+        var parts = [];
+
+        for (var c = 0; c < 3; c++) {
+            var slot = custom[c] || {};
+            var recipes = slot.recipes || [];
+            for (var r = 0; r < 3; r++) {
+                var recipe = recipes[r];
+                var recipeId = recipe && recipe.data && recipe.data.recipeId ? recipe.data.recipeId : '';
+                parts.push(String(recipeId));
+            }
+        }
+
+        return parts.join('|');
+    }
+
+    function syncQualityLevelByRecipeChanges(custom) {
+        var recipeSignature = buildGuestRecipeSignature(custom);
+        var hasRecipeChanged = guestRateQualitySyncState.lastRecipeSignature !== recipeSignature;
+
+        guestRateQualitySyncState.lastRecipeSignature = recipeSignature;
+        if (!hasRecipeChanged) {
+            return;
+        }
+
+        var averagedQualityLevel = getAverageQualityLevelFromCurrentCustom(custom);
+        if (averagedQualityLevel) {
+            setSelectpickerValueSilently("#quality-level", averagedQualityLevel);
+        }
+    }
     
     function getActiveSelfUltimateEffects(chef, activeSelfUltimateMap) {
         if (!chef) {
@@ -371,6 +489,482 @@ var GuestRateCalculator = (function($) {
         
         return 100 + +(timeAddition.toFixed(2));
     }
+
+    function setSelectpickerValueSilently(selector, value) {
+        var $select = $(selector);
+        if (!$select.length) {
+            return;
+        }
+        if ($select.val() == value) {
+            return;
+        }
+        $select.val(value);
+        $select.selectpicker('render');
+    }
+
+    function parseTimeTextToSeconds(timeText) {
+        if (!timeText) {
+            return 0;
+        }
+        var hoursMatch = timeText.match(/(\d+)\s*小时/);
+        var minutesMatch = timeText.match(/(\d+)\s*分/);
+        var secondsMatch = timeText.match(/(\d+)\s*秒/);
+        var hours = hoursMatch ? parseInt(hoursMatch[1], 10) : 0;
+        var minutes = minutesMatch ? parseInt(minutesMatch[1], 10) : 0;
+        var seconds = secondsMatch ? parseInt(secondsMatch[1], 10) : 0;
+        return hours * 3600 + minutes * 60 + seconds;
+    }
+
+    function getCurrentTotalTimeSeconds() {
+        var rule = calCustomRule && calCustomRule.rules && calCustomRule.rules[0];
+        var custom = rule && rule.custom;
+        var rawTotalTime = 0;
+        var hasRecipe = false;
+
+        if (custom) {
+            for (var c in custom) {
+                if (!custom.hasOwnProperty(c)) {
+                    continue;
+                }
+                var recipes = custom[c].recipes || [];
+                for (var r in recipes) {
+                    if (!recipes.hasOwnProperty(r)) {
+                        continue;
+                    }
+                    var recipe = recipes[r];
+                    if (recipe && recipe.data && recipe.totalTime) {
+                        rawTotalTime += recipe.totalTime;
+                        hasRecipe = true;
+                    }
+                }
+            }
+        }
+
+        if (hasRecipe && rule) {
+            var timePercentage = calculateCurrentTimePercentage(custom, rule);
+            return Math.ceil(+(rawTotalTime * timePercentage / 100).toFixed(2));
+        }
+
+        var selectedSumText = $(".cal-custom-item:eq(0) .selected-sum").text() || "";
+        var totalTimeMatch = selectedSumText.match(/总时间：([^\s]+)/);
+        return totalTimeMatch ? parseTimeTextToSeconds(totalTimeMatch[1]) : 0;
+    }
+
+    function normalizeJadeRecipeValueMap(data) {
+        var map = {};
+        if (!data) {
+            return map;
+        }
+
+        if ($.isArray(data)) {
+            for (var i = 0; i < data.length; i++) {
+                var item = data[i];
+                if (!item || !item.name) {
+                    continue;
+                }
+                var recipeName = $.trim(String(item.name));
+                var jadeValue = Number(item.value);
+                if (!recipeName || isNaN(jadeValue)) {
+                    continue;
+                }
+                map[recipeName] = jadeValue;
+            }
+            return map;
+        }
+
+        for (var key in data) {
+            if (!data.hasOwnProperty(key)) {
+                continue;
+            }
+            var normalizedName = $.trim(String(key));
+            var normalizedValue = Number(data[key]);
+            if (!normalizedName || isNaN(normalizedValue)) {
+                continue;
+            }
+            map[normalizedName] = normalizedValue;
+        }
+
+        return map;
+    }
+
+    function loadJadeRecipeValueMap() {
+        $.ajax({
+            url: 'data/jade-values.json?v=' + Date.now(),
+            dataType: 'json',
+            cache: false
+        }).done(function(data) {
+            jadeRecipeValueMap = normalizeJadeRecipeValueMap(data);
+            syncJadeModeFields();
+        }).fail(function() {
+            jadeRecipeValueMap = {};
+            syncJadeModeFields();
+        });
+    }
+
+    function getCurrentJadeRecipeValueTotal() {
+        var rule = calCustomRule && calCustomRule.rules && calCustomRule.rules[0];
+        var custom = rule && rule.custom;
+        var totalValue = 0;
+
+        if (!custom) {
+            return 0;
+        }
+
+        for (var c in custom) {
+            if (!custom.hasOwnProperty(c)) {
+                continue;
+            }
+            var recipes = custom[c].recipes || [];
+            for (var r in recipes) {
+                if (!recipes.hasOwnProperty(r)) {
+                    continue;
+                }
+                var recipeItem = recipes[r];
+                var recipeData = recipeItem && recipeItem.data;
+                var recipeQuantity = parseInt(recipeItem && recipeItem.quantity, 10) || 0;
+                if (!recipeData || !recipeData.name || recipeQuantity <= 0) {
+                    continue;
+                }
+
+                totalValue += Number(jadeRecipeValueMap[recipeData.name]) || 0;
+            }
+        }
+
+        return totalValue;
+    }
+
+    function calculateJadeModeOutputs() {
+        var jadeBusinessIntervalSeconds = 30;
+        var totalTimeSeconds = getCurrentTotalTimeSeconds();
+        var actualGuestRate = parseFloat($("#actual-guest-rate").text()) || 0;
+        var runeRate = parseFloat($("#rune-rate").text()) || 0;
+        var critRate = parseFloat($("#total-crit-rate").text()) || 0;
+        var scatterRate = Math.max(0, 100 - runeRate);
+        var dailyCycles = totalTimeSeconds > 0 ? 86400 / (totalTimeSeconds + jadeBusinessIntervalSeconds) : 0;
+        var critMultiplier = critRate / 100;
+        var recipeJadeValueTotal = getCurrentJadeRecipeValueTotal();
+        var dailyJade = dailyCycles * (actualGuestRate / 100) * (scatterRate / 100) * critMultiplier * recipeJadeValueTotal;
+        var materialDetails = getJadeMaterialDetails(dailyCycles);
+        var dailyMaterial = materialDetails.totalDailyAmount;
+
+        return {
+            scatterRate: scatterRate,
+            dailyJade: dailyJade,
+            dailyMaterial: dailyMaterial,
+            materialDetails: materialDetails
+        };
+    }
+
+    function getJadeMaterialDetails(dailyCycles) {
+        var rule = calCustomRule && calCustomRule.rules && calCustomRule.rules[0];
+        var custom = rule && rule.custom;
+        var materialMap = {};
+        var totalByMaterial = {};
+        var recipeDetails = [];
+        var totalDailyAmount = 0;
+
+        if (rule && rule.materials) {
+            for (var mi = 0; mi < rule.materials.length; mi++) {
+                if (rule.materials[mi] && rule.materials[mi].materialId) {
+                    materialMap[String(rule.materials[mi].materialId)] = rule.materials[mi];
+                }
+            }
+        }
+
+        if (!custom) {
+            return {
+                totalMaterials: [],
+                recipeDetails: [],
+                totalDailyAmount: 0
+            };
+        }
+
+        for (var c in custom) {
+            if (!custom.hasOwnProperty(c)) {
+                continue;
+            }
+            var recipes = custom[c].recipes || [];
+            for (var r in recipes) {
+                if (!recipes.hasOwnProperty(r)) {
+                    continue;
+                }
+                var recipeItem = recipes[r];
+                var recipeData = recipeItem && recipeItem.data;
+                if (!recipeData || !recipeData.materials || !recipeData.materials.length) {
+                    continue;
+                }
+
+                var recipeQuantity = parseInt(recipeItem.quantity, 10) || 0;
+                if (recipeQuantity <= 0) {
+                    continue;
+                }
+
+                var recipeDetail = {
+                    recipeName: recipeData.name || ("菜谱" + (Number(r) + 1)),
+                    quantity: recipeQuantity,
+                    positionIndex: Number(c) + 1,
+                    slotIndex: Number(r) + 1,
+                    materials: [],
+                    totalDailyAmount: 0
+                };
+
+                for (var rm = 0; rm < recipeData.materials.length; rm++) {
+                    var materialItem = recipeData.materials[rm];
+                    if (!materialItem) {
+                        continue;
+                    }
+                    var materialId = String(materialItem.material);
+                    var perPortionAmount = Number(materialItem.quantity) || 0;
+                    var perCycleAmount = recipeQuantity * perPortionAmount;
+                    var dailyAmount = dailyCycles * perCycleAmount;
+                    var materialInfo = materialMap[materialId] || {};
+                    var materialName = materialInfo.name || ("食材" + materialId);
+
+                    recipeDetail.materials.push({
+                        materialId: materialId,
+                        materialName: materialName,
+                        perPortionAmount: perPortionAmount,
+                        perCycleAmount: perCycleAmount,
+                        dailyAmount: dailyAmount
+                    });
+                    recipeDetail.totalDailyAmount += dailyAmount;
+                    totalDailyAmount += dailyAmount;
+
+                    if (!totalByMaterial[materialId]) {
+                        totalByMaterial[materialId] = {
+                            materialId: materialId,
+                            materialName: materialName,
+                            dailyAmount: 0
+                        };
+                    }
+                    totalByMaterial[materialId].dailyAmount += dailyAmount;
+                }
+
+                recipeDetail.materials.sort(function(a, b) {
+                    return b.dailyAmount - a.dailyAmount;
+                });
+                recipeDetails.push(recipeDetail);
+            }
+        }
+
+        var totalMaterials = [];
+        for (var materialKey in totalByMaterial) {
+            if (totalByMaterial.hasOwnProperty(materialKey)) {
+                totalMaterials.push(totalByMaterial[materialKey]);
+            }
+        }
+
+        totalMaterials.sort(function(a, b) {
+            return b.dailyAmount - a.dailyAmount;
+        });
+        recipeDetails.sort(function(a, b) {
+            return b.totalDailyAmount - a.totalDailyAmount;
+        });
+
+        return {
+            totalMaterials: totalMaterials,
+            recipeDetails: recipeDetails,
+            totalDailyAmount: totalDailyAmount
+        };
+    }
+
+    function escapeHtml(text) {
+        return String(text == null ? '' : text)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function measureJadeMaterialTextWidth(text, font) {
+        var canvas = measureJadeMaterialTextWidth.canvas;
+        if (!canvas) {
+            canvas = document.createElement('canvas');
+            measureJadeMaterialTextWidth.canvas = canvas;
+        }
+
+        var context = canvas.getContext && canvas.getContext('2d');
+        if (!context) {
+            return Math.max(0, String(text || '').length * 12);
+        }
+
+        context.font = font || '13px Arial';
+        return context.measureText(String(text || '')).width;
+    }
+
+    function applyJadeMaterialSelectLayout() {
+        var $row = $("#daily-material-select-jade").closest(".calc-result-row.calc-material-row");
+        var $select = $("#daily-material-select-jade");
+        var $button = $("#btn-material-detail-jade");
+        if (!$row.length || !$select.length || !$button.length) {
+            return;
+        }
+
+        var $wrapper = $select.siblings(".bootstrap-select");
+        if (!$wrapper.length) {
+            return;
+        }
+
+        var $toggle = $wrapper.find("> .dropdown-toggle");
+        var $text = $toggle.find(".filter-option-inner-inner");
+        var visibleText = $.trim($text.text()) || $.trim($toggle.attr("title")) || $.trim($select.find("option:selected").text()) || "";
+        var textStyleTarget = $text.length ? $text.get(0) : $toggle.get(0);
+        var computedStyle = textStyleTarget ? window.getComputedStyle(textStyleTarget) : null;
+        var font = computedStyle && computedStyle.font ? computedStyle.font : '13px Arial';
+        var textWidth = Math.ceil(measureJadeMaterialTextWidth(visibleText, font));
+        var basePadding = 34;
+        var desiredWidth = Math.max(100, textWidth + basePadding);
+        var rowWidth = $row.innerWidth() || 0;
+        var labelWidth = $row.find(".calc-result-item:first-child > label").outerWidth(true) || 0;
+        var buttonWidth = $button.outerWidth(true) || 0;
+        var gap = parseFloat($row.css("column-gap")) || parseFloat($row.css("gap")) || 0;
+        var availableWidth = rowWidth ? Math.max(100, rowWidth - labelWidth - buttonWidth - gap * 2 - 16) : desiredWidth;
+        var targetWidth = Math.min(desiredWidth, availableWidth);
+
+        $wrapper.css("width", targetWidth + "px");
+        $toggle.css("width", targetWidth + "px");
+    }
+
+    function scheduleJadeMaterialSelectLayout() {
+        if (typeof window.requestAnimationFrame === 'function') {
+            window.requestAnimationFrame(function() {
+                window.requestAnimationFrame(applyJadeMaterialSelectLayout);
+            });
+            return;
+        }
+
+        setTimeout(applyJadeMaterialSelectLayout, 0);
+    }
+
+    function renderJadeMaterialSelect(materialDetails) {
+        var $select = $("#daily-material-select-jade");
+        if (!$select.length) {
+            return;
+        }
+
+        var currentValue = $select.val();
+        $select.empty();
+
+        if (!materialDetails || !materialDetails.totalMaterials.length) {
+            $select.append('<option value="">无耗材</option>');
+            $select.prop('selectedIndex', 0);
+            $select.prop('disabled', false);
+            if ($select.data('selectpicker')) {
+                $select.selectpicker('refresh');
+            }
+            scheduleJadeMaterialSelectLayout();
+            return;
+        }
+
+        for (var i = 0; i < materialDetails.totalMaterials.length; i++) {
+            var item = materialDetails.totalMaterials[i];
+            var value = formatNumber(Math.floor(item.dailyAmount * 100) / 100);
+            $select.append(
+                $('<option>')
+                    .val(item.materialId)
+                    .text(item.materialName + ' ' + value + '/天')
+            );
+        }
+
+        if (currentValue && $select.find('option[value="' + currentValue + '"]').length) {
+            $select.val(currentValue);
+        } else {
+            $select.prop('selectedIndex', 0);
+        }
+        $select.prop('disabled', false);
+        if ($select.data('selectpicker')) {
+            $select.selectpicker('refresh');
+        }
+        scheduleJadeMaterialSelectLayout();
+    }
+
+    function renderJadeMaterialDetailModal(materialDetails) {
+        var $body = $("#jade-material-detail-body");
+        if (!$body.length) {
+            return;
+        }
+
+        if (!materialDetails || !materialDetails.recipeDetails.length) {
+            $body.html('<div class="jade-material-detail-empty">暂无耗材数据</div>');
+            $("#btn-material-detail-jade").prop('disabled', true);
+            return;
+        }
+
+        $("#btn-material-detail-jade").prop('disabled', false);
+
+        var html = '<div class="jade-material-recipe-grid">';
+        for (var i = 0; i < materialDetails.recipeDetails.length; i++) {
+            var recipeDetail = materialDetails.recipeDetails[i];
+            html += '<div class="jade-material-recipe-card">';
+            html += '<div class="jade-material-recipe-title">' + escapeHtml(recipeDetail.recipeName) + ' <span class="jade-material-recipe-subtitle">单轮份数：' + recipeDetail.quantity + '</span></div>';
+            html += '<ul class="jade-material-detail-list">';
+            for (var j = 0; j < recipeDetail.materials.length; j++) {
+                var materialItem = recipeDetail.materials[j];
+                html += '<li>' + escapeHtml(materialItem.materialName) +
+                    ' x ' + formatNumber(materialItem.perPortionAmount) +
+                    '  ' + formatNumber(materialItem.perCycleAmount) + '/轮' +
+                    ' ' + formatNumber(Math.floor(materialItem.dailyAmount * 100) / 100) + '/天' +
+                    '</li>';
+            }
+            html += '</ul>';
+            html += '</div>';
+        }
+        html += '</div>';
+        $body.html(html);
+    }
+
+    function syncJadeModeFields() {
+        isSyncingJadeMode = true;
+        $("#guest-rate-value-jade").text($("#guest-rate-value").text());
+        $("#total-crit-rate-jade").text($("#total-crit-rate").text());
+        $("#time-percentage-jade").text($("#time-percentage").text());
+        $("#actual-guest-rate-jade").text($("#actual-guest-rate").text());
+        var jadeOutputs = calculateJadeModeOutputs();
+        $("#rune-rate-jade").text(formatNumber(Math.floor(jadeOutputs.scatterRate * 100) / 100) + "%");
+        $("#hundred-pot-output-jade").text((Math.floor(jadeOutputs.dailyJade * 100) / 100).toFixed(2));
+        renderJadeMaterialSelect(jadeOutputs.materialDetails);
+        renderJadeMaterialDetailModal(jadeOutputs.materialDetails);
+
+        setSelectpickerValueSilently("#star-level-jade", $("#star-level").val());
+        setSelectpickerValueSilently("#quality-level-jade", $("#quality-level").val());
+        $("#quantity-value-jade").val($("#quantity-value").val());
+
+        $("#guest-rate-input-jade").val($("#guest-rate-input").val());
+        setSelectpickerValueSilently("#star-level-2-jade", $("#star-level-2").val());
+        setSelectpickerValueSilently("#star-level-3-jade", $("#star-level-3").val());
+        $("#quantity-value-2-jade").val($("#quantity-value-2").val());
+        $("#quantity-value-3-jade").val($("#quantity-value-3").val());
+
+        $("#actual-guest-rate-2-jade").text($("#actual-guest-rate-2").text());
+        $("#actual-guest-rate-3-jade").text($("#actual-guest-rate-3").text());
+        $("#rune-a-probability-jade").text($("#rune-a-probability").text());
+        $("#rune-b-probability-jade").text($("#rune-b-probability").text());
+        $("#scatter-probability-jade").text($("#scatter-probability").text());
+        $("#total-guest-rate-jade").text($("#total-guest-rate").text());
+
+        $("#sync-guest-double-jade").closest(".calc-result-row").hide();
+        $("#guest-jade-result .double-recipe-section").hide();
+        isSyncingJadeMode = false;
+    }
+
+    function syncJadeControlToSource() {
+        isSyncingJadeMode = true;
+        setSelectpickerValueSilently("#star-level", $("#star-level-jade").val());
+        setSelectpickerValueSilently("#quality-level", $("#quality-level-jade").val());
+        $("#quantity-value").val($("#quantity-value-jade").val());
+        isSyncingJadeMode = false;
+    }
+
+    function syncJadeDualControlToSource() {
+        isSyncingJadeMode = true;
+        $("#guest-rate-input").val($("#guest-rate-input-jade").val());
+        setSelectpickerValueSilently("#star-level-2", $("#star-level-2-jade").val());
+        setSelectpickerValueSilently("#star-level-3", $("#star-level-3-jade").val());
+        $("#quantity-value-2").val($("#quantity-value-2-jade").val());
+        $("#quantity-value-3").val($("#quantity-value-3-jade").val());
+        isSyncingJadeMode = false;
+    }
     
     // ========================================
     // 公共函数
@@ -387,6 +981,18 @@ var GuestRateCalculator = (function($) {
         $("#quality-level").selectpicker();
         $("#star-level-2").selectpicker();
         $("#star-level-3").selectpicker();
+        $("#star-level-jade").selectpicker();
+        $("#quality-level-jade").selectpicker();
+        $("#star-level-2-jade").selectpicker();
+        $("#star-level-3-jade").selectpicker();
+        $("#daily-material-select-jade").selectpicker();
+        $("#daily-material-select-jade").on("changed.bs.select change", function() {
+            scheduleJadeMaterialSelectLayout();
+        });
+        $(window).off("resize.jadeMaterialLayout").on("resize.jadeMaterialLayout", function() {
+            scheduleJadeMaterialSelectLayout();
+        });
+        loadJadeRecipeValueMap();
         
         // 初始化厨师选择框的分类标签
         initChefCategoryTabs('chef');
@@ -405,6 +1011,17 @@ var GuestRateCalculator = (function($) {
                 calCustomResults();
             }
         });
+
+        $("#quantity-value-jade").on("input change", function() {
+            if (isSyncingJadeMode) {
+                return;
+            }
+            validateQuantity($(this));
+            syncJadeControlToSource();
+            if (typeof calCustomResults === 'function') {
+                calCustomResults();
+            }
+        });
         
         // 给双菜谱份数输入框添加验证（最小值0），不触发 calCustomResults
         $("#quantity-value-2, #quantity-value-3").on("input change", function() {
@@ -416,15 +1033,48 @@ var GuestRateCalculator = (function($) {
             }
             calculateDualRecipe();
         });
+
+        $("#quantity-value-2-jade, #quantity-value-3-jade").on("input change", function() {
+            if (isSyncingJadeMode) {
+                return;
+            }
+            var val = parseInt($(this).val());
+            if (isNaN(val) || val < 0) {
+                $(this).val(0);
+            } else if (val > 999) {
+                $(this).val(999);
+            }
+            syncJadeDualControlToSource();
+            calculateDualRecipe();
+        });
         
         // 给贵客率输入框添加验证
         $("#guest-rate-input").on("input change", function() {
             validateGuestRate($(this));
         });
+
+        $("#guest-rate-input-jade").on("input change", function() {
+            if (isSyncingJadeMode) {
+                return;
+            }
+            validateGuestRate($(this));
+            syncJadeDualControlToSource();
+            calculateDualRecipe();
+        });
         
         // 监听星级和品级变化
         $("#star-level, #quality-level").on("changed.bs.select", function() {
             // 触发正常营业计算，这会调用 updateCalSummaryDisplay 并更新贵客率计算器
+            if (typeof calCustomResults === 'function') {
+                calCustomResults();
+            }
+        });
+
+        $("#star-level-jade, #quality-level-jade").on("changed.bs.select", function() {
+            if (isSyncingJadeMode) {
+                return;
+            }
+            syncJadeControlToSource();
             if (typeof calCustomResults === 'function') {
                 calCustomResults();
             }
@@ -455,6 +1105,20 @@ var GuestRateCalculator = (function($) {
                 }
             }
         });
+
+        $("#quantity-plus-jade").off("click").on("click", function() {
+            var input = $("#quantity-value-jade");
+            var val = parseInt(input.val()) || 0;
+            input.val(val + 1).trigger("change");
+        });
+
+        $("#quantity-minus-jade").off("click").on("click", function() {
+            var input = $("#quantity-value-jade");
+            var val = parseInt(input.val()) || 0;
+            if (val > 1) {
+                input.val(val - 1).trigger("change");
+            }
+        });
         
         // 数量加减按钮 - 双菜谱1
         $("#quantity-plus-2").off("click").on("click", function() {
@@ -470,6 +1134,20 @@ var GuestRateCalculator = (function($) {
             if (val > 0) {
                 input.val(val - 1);
                 calculateDualRecipe();
+            }
+        });
+
+        $("#quantity-plus-2-jade").off("click").on("click", function() {
+            var input = $("#quantity-value-2-jade");
+            var val = parseInt(input.val()) || 0;
+            input.val(val + 1).trigger("change");
+        });
+
+        $("#quantity-minus-2-jade").off("click").on("click", function() {
+            var input = $("#quantity-value-2-jade");
+            var val = parseInt(input.val()) || 0;
+            if (val > 0) {
+                input.val(val - 1).trigger("change");
             }
         });
         
@@ -489,6 +1167,20 @@ var GuestRateCalculator = (function($) {
                 calculateDualRecipe();
             }
         });
+
+        $("#quantity-plus-3-jade").off("click").on("click", function() {
+            var input = $("#quantity-value-3-jade");
+            var val = parseInt(input.val()) || 0;
+            input.val(val + 1).trigger("change");
+        });
+
+        $("#quantity-minus-3-jade").off("click").on("click", function() {
+            var input = $("#quantity-value-3-jade");
+            var val = parseInt(input.val()) || 0;
+            if (val > 0) {
+                input.val(val - 1).trigger("change");
+            }
+        });
         
         // 同贵客双菜谱按钮
         $("#sync-guest-double").off("click").on("click", function() {
@@ -506,11 +1198,31 @@ var GuestRateCalculator = (function($) {
                 calculateDualRecipe();
             }
         });
+
+        $("#sync-guest-double-jade").off("click").on("click", function() {
+            syncJadeControlToSource();
+            $("#sync-guest-double").trigger("click");
+            syncJadeModeFields();
+        });
+
+        $("#btn-material-detail-jade").off("click").on("click", function() {
+            $("#jade-material-detail-modal").modal("show");
+        });
         
         // 监听同贵客双菜谱区域的输入变化（份数输入框已在上方单独绑定）
         $("#guest-rate-input, #star-level-2, #star-level-3").on("change input", function() {
             calculateDualRecipe();
         });
+
+        $("#star-level-2-jade, #star-level-3-jade").on("changed.bs.select", function() {
+            if (isSyncingJadeMode) {
+                return;
+            }
+            syncJadeDualControlToSource();
+            calculateDualRecipe();
+        });
+
+        syncJadeModeFields();
         
         // 覆盖 getCalRecipeDisp 函数，在贵客率计算模式下显示符文信息，在碰瓷查询模式下显示碰瓷贵客
         if (typeof window.getCalRecipeDisp === 'function') {
@@ -823,6 +1535,7 @@ var GuestRateCalculator = (function($) {
         $("#hundred-pot-output").text(hundredPotOutput.toFixed(2));
         $("#unit-material").text(unitFood.toFixed(2));
         $("#unit-time").text(unitTime.toFixed(2));
+        syncJadeModeFields();
     }
     
     /**
@@ -881,6 +1594,7 @@ var GuestRateCalculator = (function($) {
         // 总实际贵客率显示时，如果超过100则显示100，但保留原始值用于计算
         var displayTotalGuestRate = totalGuestRate > 100.0 ? 100.0 : totalGuestRate;
         $("#total-guest-rate").text((Math.floor(displayTotalGuestRate * 100) / 100).toFixed(2) + "%");
+        syncJadeModeFields();
     }
     
     /**
@@ -1325,12 +2039,15 @@ var GuestRateCalculator = (function($) {
     function updateSummaryDisplay(calCustomRule) {
         // 计算并更新贵客率计算器的所有字段
         if (calCustomRule.isGuestRate && calCustomRule.rules.length > 0) {
+            var currentCustom = calCustomRule.rules[0].custom;
+            syncQualityLevelByRecipeChanges(currentCustom);
+
             // 获取星级、份数和品级
             var starLevel = parseInt($("#star-level").val()) || 5;
             var quantity = parseInt($("#quantity-value").val()) || 7;
             var qualityLevel = $("#quality-level").val() || "1";
             
-            var fields = calculateFields(calCustomRule.rules[0].custom, calCustomRule.rules[0], starLevel, quantity, qualityLevel);
+            var fields = calculateFields(currentCustom, calCustomRule.rules[0], starLevel, quantity, qualityLevel);
             
             // 更新显示（所有数值都使用截断取整，不使用四舍五入）
             $("#guest-rate-value").text(fields.guestRate + "%");
@@ -1360,6 +2077,7 @@ var GuestRateCalculator = (function($) {
             if (fields.unitTimeOutput !== undefined) {
                 $("#unit-time").text((Math.floor(fields.unitTimeOutput * 100) / 100).toFixed(2));
             }
+            syncJadeModeFields();
         }
     }
     
@@ -1450,11 +2168,14 @@ var GuestRateCalculator = (function($) {
         // 以下是厨师的分析逻辑
         var chef = chefOrEquip;
         var activeSelfUltimateEffects = [];
+        var activeUltimateTimeEffects = [];
         var isPartialUltimateActive = false;
-        
+        var isChefUltimatedFlag = false;
+
         if (chef.ultimateSkillEffect && chef.ultimateSkillEffect.length > 0) {
             var selfUltimateActive = isUltimateConditionActiveForChef(chef, 'Self', localData, configUltimatedIds);
             isPartialUltimateActive = isUltimateConditionActiveForChef(chef, 'Partial', localData, configUltimatedIds);
+            isChefUltimatedFlag = isChefUltimated(chef.chefId, localData, configUltimatedIds);
             
             if (selfUltimateActive) {
                 for (var se = 0; se < chef.ultimateSkillEffect.length; se++) {
@@ -1499,7 +2220,11 @@ var GuestRateCalculator = (function($) {
             for (var i = 0; i < chef.ultimateSkillEffect.length; i++) {
                 var skill = chef.ultimateSkillEffect[i];
                 var isActiveUltimateSkill = false;
-                if (skill.condition === 'Self') {
+
+                // 时间类修炼词条只看词条本身的 type/value，已修炼即可参与分类排序
+                if (isChefUltimatedFlag && (skill.type === 'OpenTime' || skill.type === 'CookbookTime')) {
+                    isActiveUltimateSkill = true;
+                } else if (skill.condition === 'Self') {
                     isActiveUltimateSkill = activeSelfUltimateEffects.length > 0;
                 } else if (skill.condition === 'Partial' || skill.condition === 'Next') {
                     isActiveUltimateSkill = isPartialUltimateActive;
@@ -1507,6 +2232,9 @@ var GuestRateCalculator = (function($) {
                 if (isActiveUltimateSkill && targetSkillTypes.indexOf(skill.type) >= 0) {
                     result.hasSkills = true;
                     markCategoryBySkill(skill);
+                    if (skill.type === 'OpenTime' || skill.type === 'CookbookTime') {
+                        activeUltimateTimeEffects.push(skill);
+                    }
                     allSkillSources.push({
                         skill: skill,
                         type: 'ultimate',
@@ -1623,8 +2351,8 @@ var GuestRateCalculator = (function($) {
                 totalTimeAddition += getTimeAddition(chef.specialSkillEffect);
             }
             
-            if (activeSelfUltimateEffects.length > 0 && typeof getTimeAddition === 'function') {
-                totalTimeAddition += getTimeAddition(activeSelfUltimateEffects);
+            if (activeUltimateTimeEffects.length > 0 && typeof getTimeAddition === 'function') {
+                totalTimeAddition += getTimeAddition(activeUltimateTimeEffects);
             }
             
             if (useEquip && chef.equip && chef.equip.effect && typeof getTimeAddition === 'function') {
@@ -2513,15 +3241,15 @@ var GuestRateCalculator = (function($) {
                 var isCrossRuneConflict = crossRuneConflictGuests.indexOf(guestName) !== -1;
                 // 检查是否与场上菜谱冲突（优先级最高，红色加粗）
                 if (isFieldConflict) {
-                    return '<span style="color: red; font-weight: bold;">' + guestName + '</span>';
+                    return '<span style="color: #ff5b5b; font-weight: bold;">' + guestName + '</span>';
                 }
                 // 检查是否在同一符文内有冲突（红色）
                 if (isSameRuneConflict) {
-                    return '<span style="color: red;">' + guestName + '</span>';
+                    return '<span style="color: #ff5b5b;">' + guestName + '</span>';
                 }
-                // 检查是否跨符文冲突（橙色）
+                // 检查是否跨符文冲突
                 if (isCrossRuneConflict) {
-                    return '<span style="color: #FF8C00;">' + guestName + '</span>';
+                    return '<span style="color: #ff5b5b;">' + guestName + '</span>';
                 }
                 // 无冲突
                 return guestName;
@@ -2618,16 +3346,19 @@ var GuestRateCalculator = (function($) {
         });
         
         // 先清除所有菜谱的冲突标记
-        $(".cal-custom-item:eq(" + ruleIndex + ") .selected-item .recipe-box .recipe-box-1 .name").css({
-            "color": "",
-            "font-weight": ""
-        });
+        $(".cal-custom-item:eq(" + ruleIndex + ") .selected-item .recipe-box .recipe-box-1 .name")
+            .removeClass("guest-conflict-highlight")
+            .css({
+                "color": "",
+                "font-weight": ""
+            });
         
         // 标记有冲突的菜谱名字为红色
         conflictRecipes.forEach(function(recipeInfo) {
             var selector = ".cal-custom-item:eq(" + ruleIndex + ") .selected-item:eq(" + recipeInfo.itemIndex + ") .recipe-box:eq(" + recipeInfo.recipeIndex + ") .recipe-box-1 .name";
             var $recipeName = $(selector);
             if ($recipeName.length > 0) {
+                $recipeName.addClass("guest-conflict-highlight");
                 $recipeName.css({
                     "color": "red",
                     "font-weight": "bold"
@@ -2952,7 +3683,7 @@ var GuestRateCalculator = (function($) {
         var conflictInfo = checkGuestConflictsForSelectedRecipes(ruleIndex, gameDataToUse);
         
         if (conflictInfo && conflictInfo.length > 0) {
-            var conflictHtml = "<div style='color:red; margin-top: 5px;'>";
+            var conflictHtml = "<div style='color:#ff5b5b; margin-top: 5px;'>";
             conflictHtml += "<span style='display: inline-block; vertical-align: top;'>冲突提示：</span>";
             conflictHtml += "<span style='display: inline-block;'>";
             conflictInfo.forEach(function(conflict, index) {

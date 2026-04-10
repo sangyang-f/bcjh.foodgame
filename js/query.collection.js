@@ -2647,9 +2647,111 @@
         });
     }
 
+    function getContextSkillMap(context) {
+        var skillMap = context && context.__collectionSkillMap;
+        var ruleSkills;
+        var gameSkills;
+
+        if (!context) {
+            return {};
+        }
+        if (skillMap) {
+            return skillMap;
+        }
+
+        skillMap = {};
+        gameSkills = (context.gameData && context.gameData.skills) || [];
+        ruleSkills = (context.rule && context.rule.skills) || [];
+
+        gameSkills.forEach(function(skill) {
+            if (skill && typeof skill.skillId !== 'undefined' && skill.skillId !== null) {
+                skillMap[String(skill.skillId)] = skill;
+            }
+        });
+        ruleSkills.forEach(function(skill) {
+            if (skill && typeof skill.skillId !== 'undefined' && skill.skillId !== null) {
+                skillMap[String(skill.skillId)] = skill;
+            }
+        });
+
+        context.__collectionSkillMap = skillMap;
+        return skillMap;
+    }
+
+    function hydrateCollectionEquip(context, equip) {
+        var hydratedEquip;
+        var effects = [];
+        var skillDescriptions = [];
+        var skillMap;
+
+        if (!context || !equip) {
+            return null;
+        }
+
+        hydratedEquip = cloneData(equip);
+        skillMap = getContextSkillMap(context);
+
+        (hydratedEquip.skill || []).forEach(function(skillId) {
+            var skill = skillMap[String(skillId || '')];
+            if (!skill) {
+                return;
+            }
+            if (skill.desc) {
+                skillDescriptions.push(String(skill.desc));
+            }
+            if (Array.isArray(skill.effect) && skill.effect.length) {
+                effects = effects.concat(cloneData(skill.effect));
+            }
+        });
+
+        if (!Array.isArray(hydratedEquip.effect) || !hydratedEquip.effect.length) {
+            hydratedEquip.effect = effects;
+        }
+        if (!hydratedEquip.skillDisp && skillDescriptions.length) {
+            hydratedEquip.skillDisp = skillDescriptions.join('<br>');
+        }
+
+        return hydratedEquip;
+    }
+
+    function getContextEquipList(context) {
+        var equipMap;
+        var ruleEquips;
+        var gameEquips;
+
+        if (!context) {
+            return [];
+        }
+        if (Array.isArray(context.__collectionEquipList)) {
+            return context.__collectionEquipList;
+        }
+
+        equipMap = {};
+        gameEquips = (context.gameData && context.gameData.equips) || [];
+        ruleEquips = (context.rule && context.rule.equips) || [];
+
+        gameEquips.forEach(function(equip) {
+            if (!equip || typeof equip.equipId === 'undefined' || equip.equipId === null) {
+                return;
+            }
+            equipMap[String(equip.equipId)] = hydrateCollectionEquip(context, equip);
+        });
+        ruleEquips.forEach(function(equip) {
+            if (!equip || typeof equip.equipId === 'undefined' || equip.equipId === null) {
+                return;
+            }
+            equipMap[String(equip.equipId)] = hydrateCollectionEquip(context, equip);
+        });
+
+        context.__collectionEquipList = Object.keys(equipMap).map(function(equipId) {
+            return equipMap[equipId];
+        });
+        return context.__collectionEquipList;
+    }
+
     // 在规则或gameData中按ID查找厨具。
     function getEquipById(context, equipId) {
-        var equips = context.rule.equips || context.gameData.equips || [];
+        var equips = getContextEquipList(context);
         for (var i = 0; i < equips.length; i++) {
             if (String(equips[i].equipId) === String(equipId)) {
                 return equips[i];
@@ -2659,17 +2761,7 @@
     }
 
     function getSkillById(context, skillId) {
-        var skills = (context && context.rule && context.rule.skills) || (context && context.gameData && context.gameData.skills) || [];
-        var skillMap = context.__collectionSkillMap;
-        if (!skillMap) {
-            skillMap = {};
-            skills.forEach(function(skill) {
-                if (skill && typeof skill.skillId !== 'undefined' && skill.skillId !== null) {
-                    skillMap[String(skill.skillId)] = skill;
-                }
-            });
-            context.__collectionSkillMap = skillMap;
-        }
+        var skillMap = getContextSkillMap(context);
         return skillMap[String(skillId || '')] || null;
     }
 
@@ -2777,6 +2869,7 @@
     }
 
     function getLabTechniqueEffectType(areaName) {
+        var normalizedAreaName = String(areaName || '').replace(/技法$/, '');
         var effectTypeMap = {
             '炒': 'Stirfry',
             '煮': 'Boil',
@@ -2785,7 +2878,7 @@
             '烤': 'Bake',
             '蒸': 'Steam'
         };
-        return effectTypeMap[areaName] || '';
+        return effectTypeMap[normalizedAreaName] || '';
     }
 
     function getLabAmberEffectType(areaName) {
@@ -3467,6 +3560,47 @@
         };
     }
 
+    function getCollectionEquipSelectKey(areaName, chefId, chefName) {
+        return [
+            String(areaName || ''),
+            String(chefId || ''),
+            String(chefName || '')
+        ].join('::');
+    }
+
+    function getLabCollectionEquipTechniqueInfo(context, equip, areaName) {
+        var effectType = getLabTechniqueEffectType(areaName);
+        var skillIds = equip && Array.isArray(equip.skill) ? equip.skill : [];
+        var info = {
+            matches: false,
+            abs: 0,
+            percent: 0
+        };
+
+        if (!effectType || !context || !equip) {
+            return info;
+        }
+
+        skillIds.forEach(function(skillId) {
+            var skill = getSkillById(context, skillId);
+            var effects = skill && Array.isArray(skill.effect) ? skill.effect : [];
+
+            effects.forEach(function(effect) {
+                if (!effect || String(effect.type || '') !== effectType) {
+                    return;
+                }
+                info.matches = true;
+                if (String(effect.cal || '') === 'Percent') {
+                    info.percent += Number(effect.value || 0);
+                } else {
+                    info.abs += Number(effect.value || 0);
+                }
+            });
+        });
+
+        return info;
+    }
+
     function buildCollectionEquipOptions(item, areaName) {
         var areaResult = getCollectionAreaResult(areaName);
         var areaItem = areaResult ? createAreaItemFromResult(areaResult) : {
@@ -3477,15 +3611,13 @@
         };
         var context = state.queryChefPool && state.queryChefPool.context ? state.queryChefPool.context : getCurrentCollectionContext();
         var chefPoolData = state.queryChefPool && state.queryChefPool.chefs ? state.queryChefPool : null;
-        var equips = context && context.rule && Array.isArray(context.rule.equips) && context.rule.equips.length
-            ? context.rule.equips
-            : ((context && context.gameData && Array.isArray(context.gameData.equips)) ? context.gameData.equips : []);
+        var equips = getContextEquipList(context);
         var selectedEquipId = String(item.equipId || '');
         var baseChef;
         var noEquipResult;
         var baseExpectation = 0;
         var baseRawValue = 0;
-        var options = selectedEquipId ? [] : [buildHiddenCollectionNoEquipOption()];
+        var options = [buildHiddenCollectionNoEquipOption()];
         var candidateOptions = [];
         var currentDiskState = item && item.disk ? cloneData(item.disk) : null;
 
@@ -3524,35 +3656,50 @@
 
         equips.forEach(function(equip) {
             var equipId = String(equip.equipId || '');
-            var trialResult = buildCollectionChefResultForManualEquip(baseChef, areaItem, chefPoolData, equipId, currentDiskState ? {
-                disk: currentDiskState,
-                applyAmbers: true,
-                skipLabAutoAmber: true,
-                skipGreenAutoAmber: true
-            } : null);
+            var labTechniqueInfo = areaItem.prefix === 'lab'
+                ? getLabCollectionEquipTechniqueInfo(chefPoolData.context, equip, areaItem.name)
+                : null;
             var equipName = String(equip.name || equip.disp || ('厨具' + equipId));
             var skillText = String(equip.skillDisp || '').replace(/<br>/g, ' ').replace(/\s+/g, ' ').trim();
             var originText = String(equip.origin || '').replace(/<br>/g, ' ').replace(/\s+/g, ' ').trim();
+            var trialResult;
             var rawValue;
             var expectation;
             var rawDelta;
             var expectationDelta;
 
-            if (!trialResult) {
-                return;
-            }
-
-            rawValue = toInt(trialResult.rawValue, 0);
-            expectation = Number(trialResult.collectionExpectation || 0);
-            rawDelta = rawValue - baseRawValue;
-            expectationDelta = expectation - baseExpectation;
-
             if (areaItem.prefix === 'lab') {
-                if (rawDelta <= 0) {
+                if (!labTechniqueInfo || !labTechniqueInfo.matches) {
                     return;
                 }
-            } else if (rawDelta <= 0 && expectationDelta <= 0) {
-                return;
+            }
+
+            trialResult = buildCollectionChefResultForManualEquip(baseChef, areaItem, chefPoolData, equipId, currentDiskState ? {
+                disk: currentDiskState,
+                applyAmbers: true,
+                skipLabAutoAmber: true,
+                skipGreenAutoAmber: true
+            } : null);
+
+            if (trialResult) {
+                rawValue = toInt(trialResult.rawValue, 0);
+                expectation = Number(trialResult.collectionExpectation || 0);
+                rawDelta = rawValue - baseRawValue;
+                expectationDelta = expectation - baseExpectation;
+            } else {
+                rawValue = 0;
+                expectation = 0;
+                rawDelta = 0;
+                expectationDelta = 0;
+            }
+
+            if (areaItem.prefix !== 'lab') {
+                if (!trialResult) {
+                    return;
+                }
+                if (rawDelta <= 0 && expectationDelta <= 0) {
+                    return;
+                }
             }
 
             candidateOptions.push({
@@ -3562,17 +3709,28 @@
                 tokens: [equipName, skillText, originText].join(' '),
                 rawValue: rawValue,
                 expectation: expectation,
-                deltaValue: rawDelta
+                deltaValue: rawDelta,
+                techniqueAbs: labTechniqueInfo ? Number(labTechniqueInfo.abs || 0) : 0,
+                techniquePercent: labTechniqueInfo ? Number(labTechniqueInfo.percent || 0) : 0
             });
         });
 
         candidateOptions.sort(function(left, right) {
             if (areaItem.prefix === 'lab') {
-                if (right.deltaValue !== left.deltaValue) {
-                    return right.deltaValue - left.deltaValue;
+                if (right.techniqueAbs !== left.techniqueAbs) {
+                    return right.techniqueAbs - left.techniqueAbs;
+                }
+                if (right.techniquePercent !== left.techniquePercent) {
+                    return right.techniquePercent - left.techniquePercent;
                 }
                 if (right.rawValue !== left.rawValue) {
                     return right.rawValue - left.rawValue;
+                }
+                if (right.expectation !== left.expectation) {
+                    return right.expectation - left.expectation;
+                }
+                if (right.deltaValue !== left.deltaValue) {
+                    return right.deltaValue - left.deltaValue;
                 }
             } else if (areaItem.prefix === 'cond') {
                 if (right.rawValue !== left.rawValue) {
@@ -3619,6 +3777,7 @@
         var $searchBox;
         var $actions;
         var isEmptyEquip;
+        var selectKey = String($select.data('select-key') || '');
 
         if (!picker) {
             return;
@@ -3632,6 +3791,9 @@
         }
         if (picker.$bsContainer && picker.$bsContainer.length) {
             picker.$bsContainer.addClass('collection-result-equip-menu-container');
+            if (selectKey) {
+                picker.$bsContainer.attr('data-select-key', selectKey);
+            }
         }
 
         if (picker.$menu && picker.$menu.length) {
@@ -3658,9 +3820,56 @@
         }
     }
 
+    function getCollectionEquipSelectByKey(selectKey) {
+        if (!selectKey) {
+            return $();
+        }
+        return $('#collection-team-root .collection-result-equip-select').filter(function() {
+            return String($(this).data('select-key') || '') === String(selectKey);
+        }).first();
+    }
+
+    function closeCollectionEquipPicker($select) {
+        var picker;
+        var isOpen;
+        if (!$select || !$select.length) {
+            $('body').removeClass('m-no-scroll');
+            return;
+        }
+
+        picker = $select.data('selectpicker');
+        isOpen = !!(picker && (
+            (picker.$button && picker.$button.parent().hasClass('open')) ||
+            (picker.$bsContainer && picker.$bsContainer.hasClass('open')) ||
+            $select.parent().hasClass('open')
+        ));
+        try {
+            if (picker && isOpen) {
+                $select.selectpicker('toggle');
+            }
+        } catch (err) {}
+
+        try {
+            picker = $select.data('selectpicker');
+            if (picker && picker.$menu && picker.$menu.length) {
+                picker.$menu.removeClass('show open');
+            }
+            if (picker && picker.$bsContainer && picker.$bsContainer.length) {
+                picker.$bsContainer.removeClass('show open');
+            }
+            if (picker && picker.$button && picker.$button.length) {
+                picker.$button.parent().removeClass('open');
+                picker.$button.attr('aria-expanded', 'false');
+            }
+            $select.parent().removeClass('open');
+        } catch (innerErr) {}
+
+        $('body').removeClass('m-no-scroll');
+    }
+
     function getCollectionEquipSelectHtml(item, areaName) {
-        // 查询和切换分组时只渲染当前厨具，不在这里计算候选厨具过滤结果。
         var options = buildInitialCollectionEquipOptions(item);
+        var selectKey = getCollectionEquipSelectKey(areaName, item.id, item.name);
         var optionsHtml = typeof window.getOptionsString === 'function'
             ? window.getOptionsString(options)
             : options.map(function(option) {
@@ -3677,6 +3886,7 @@
                     ' data-area-name="', escapeHtml(areaName), '"',
                     ' data-chef-id="', escapeHtml(String(item.id || '')), '"',
                     ' data-chef-name="', escapeHtml(String(item.name || '')), '"',
+                    ' data-select-key="', escapeHtml(selectKey), '"',
                     ' data-current-value="', escapeHtml(String(options[0].value || '')), '">',
                     optionsHtml,
                 '</select>',
@@ -3702,8 +3912,8 @@
                 }
                 $select.selectpicker();
                 decorateCollectionEquipPicker($select);
-                $select.selectpicker('val', String($select.data('current-value') || $select.find('option:first').val() || ''));
-                syncCollectionEquipPickerSelection($select, String($select.data('current-value') || $select.find('option:first').val() || ''));
+                $select.selectpicker('val', String($select.data('current-value') || ''));
+                syncCollectionEquipPickerSelection($select, String($select.data('current-value') || ''));
             } catch (e) {}
         });
     }
@@ -3762,6 +3972,7 @@
         var areaResult = getCollectionAreaResult(areaName);
         var chefItem;
         var options;
+        var currentValue;
 
         if (!areaResult) {
             return;
@@ -3777,12 +3988,24 @@
         // 只有用户真正展开下拉时，才计算过滤和排序后的厨具列表。
         options = buildCollectionEquipOptions(chefItem, areaName);
         $select.html(typeof window.getOptionsString === 'function' ? window.getOptionsString(options) : '');
+        currentValue = String(chefItem.equipId || '');
+        $select.attr('data-current-value', currentValue).data('current-value', currentValue);
         try {
             $select.selectpicker('refresh');
             decorateCollectionEquipPicker($select);
-            $select.selectpicker('val', String(chefItem.equipId || ''));
-            syncCollectionEquipPickerSelection($select, String(chefItem.equipId || ''));
+            $select.selectpicker('val', currentValue);
+            syncCollectionEquipPickerSelection($select, currentValue);
+            $select.data('options-populated', true);
         } catch (e) {}
+    }
+
+    function isCollectionEquipPickerEventInside(picker, $target) {
+        var insideToggle = picker && picker.$button && picker.$button.length &&
+            (picker.$button.is($target) || picker.$button.has($target).length);
+        var insideMenu = picker && picker.$bsContainer && picker.$bsContainer.length &&
+            (picker.$bsContainer.is($target) || picker.$bsContainer.has($target).length);
+
+        return !!(insideToggle || insideMenu);
     }
 
     function alignCollectionEquipSelectMenu($select) {
@@ -3943,6 +4166,9 @@
             applyEquip: true,
             applyAmbers: typeof options.applyAmbers === 'boolean' ? options.applyAmbers : undefined
         });
+        if (!nextEquip) {
+            setChefEquip(clonedChef, null);
+        }
 
         if (areaItem.prefix === 'lab') {
             if (!options.skipLabAutoAmber) {
@@ -3958,7 +4184,7 @@
                 expectation: metric.expectation,
                 meta: metric.meta
             }, areaItem);
-            return enrichLabChefResult(result, clonedChef, areaItem, chefPoolData, auraInfo, getLabTeamChefsForAreaResult(getCollectionAreaResult(areaItem.name), -1, null));
+            return enrichLabChefResult(result, clonedChef, areaItem, chefPoolData, auraInfo, buildLabTeamChefsForAreaResult(getCollectionAreaResult(areaItem.name), -1, null));
         }
 
         if (areaItem.prefix === 'jade' && !options.skipGreenAutoAmber) {
@@ -8537,13 +8763,32 @@
     });
 
     $(document).on('show.bs.select', '#collection-team-root .collection-result-equip-select', function() {
+        var $select = $(this);
         if (state.queryLoading || !state.queryResults || !state.queryResults.items) {
             return;
         }
         if (isCollectionMobileViewport()) {
             $('body').addClass('m-no-scroll');
         }
-        populateCollectionEquipSelect($(this));
+        if (String($select.attr('data-options-populated') || $select.data('options-populated') || '') === 'true') {
+            return;
+        }
+        if (!$select.data('options-populated') && !$select.data('reopening-after-populate')) {
+            populateCollectionEquipSelect($select);
+            $select.data('reopening-after-populate', true);
+            window.setTimeout(function() {
+                var picker = $select.data('selectpicker');
+                $select.removeData('reopening-after-populate');
+                if (!picker) {
+                    return;
+                }
+                if (!(picker.$button && picker.$button.parent().hasClass('open'))) {
+                    try {
+                        $select.selectpicker('toggle');
+                    } catch (err) {}
+                }
+            }, 0);
+        }
     });
 
     $(document).on('hide.bs.select', '#collection-team-root .collection-result-equip-select', function() {
@@ -8580,7 +8825,6 @@
         var chefName = $select.data('chef-name');
         var option;
         var selectedValue;
-        var picker;
 
         // 程序触发的 refresh/val 不处理，只响应用户真实点击的选项。
         if (clickedIndex === null || clickedIndex === undefined || clickedIndex < 0 || !isSelected) {
@@ -8598,16 +8842,8 @@
             return;
         }
 
-        picker = $select.data('selectpicker');
-        try {
-            if (picker && picker.$bsContainer && picker.$bsContainer.length) {
-                picker.$bsContainer.remove();
-            }
-            if ($select.data('selectpicker')) {
-                $select.selectpicker('destroy');
-            }
-        } catch (err) {}
-        $('body').removeClass('m-no-scroll');
+        $select.attr('data-current-value', selectedValue).data('current-value', selectedValue);
+        closeCollectionEquipPicker($select);
 
         updateCollectionChefEquip(
             areaName,
@@ -8617,18 +8853,24 @@
         );
     });
 
+    $(document).on('click', '.collection-result-equip-menu .bs-donebutton button', function(e) {
+        var $container = $(this).closest('.collection-result-equip-menu-container');
+        var selectKey = String($container.data('select-key') || '');
+        var $select = getCollectionEquipSelectByKey(selectKey);
+
+        e.preventDefault();
+        e.stopPropagation();
+        closeCollectionEquipPicker($select);
+    });
+
     $(document).on('click', '.collection-result-equip-clear-btn', function(e) {
         var $button = $(this);
-        var $menu = $button.closest('.collection-result-equip-menu');
-        var $container = $menu.parent('.collection-result-equip-menu-container');
-        var $select = $('#collection-team-root .collection-result-equip-select').filter(function() {
-            var picker = $(this).data('selectpicker');
-            return !!(picker && picker.$bsContainer && picker.$bsContainer.length && $container.length && picker.$bsContainer[0] === $container[0]);
-        }).first();
+        var $container = $button.closest('.collection-result-equip-menu-container');
+        var selectKey = String($container.data('select-key') || '');
+        var $select = getCollectionEquipSelectByKey(selectKey);
         var areaName;
         var chefId;
         var chefName;
-        var picker;
 
         e.preventDefault();
         e.stopPropagation();
@@ -8640,19 +8882,40 @@
         areaName = $select.data('area-name');
         chefId = $select.data('chef-id');
         chefName = $select.data('chef-name');
-        picker = $select.data('selectpicker');
 
         try {
-            if (picker && picker.$bsContainer && picker.$bsContainer.length) {
-                picker.$bsContainer.remove();
-            }
-            if ($select.data('selectpicker')) {
-                $select.selectpicker('destroy');
-            }
+            $select.attr('data-current-value', '').data('current-value', '');
+            syncCollectionEquipPickerSelection($select, '');
+            closeCollectionEquipPicker($select);
         } catch (err) {}
-        $('body').removeClass('m-no-scroll');
 
         updateCollectionChefEquip(areaName, chefId, chefName, '');
+    });
+
+    $(document).on('mousedown touchstart', function(e) {
+        var $target = $(e.target);
+        $('#collection-team-root .collection-result-equip-select').each(function() {
+            var $select = $(this);
+            var picker = $select.data('selectpicker');
+            var isOpen;
+
+            if (!picker) {
+                return;
+            }
+            isOpen = !!(
+                (picker.$button && picker.$button.parent().hasClass('open')) ||
+                (picker.$bsContainer && picker.$bsContainer.hasClass('open')) ||
+                $select.parent().hasClass('open')
+            );
+            if (!isOpen) {
+                return;
+            }
+
+            if (isCollectionEquipPickerEventInside(picker, $target)) {
+                return;
+            }
+            closeCollectionEquipPicker($select);
+        });
     });
 
     $(document).on('click', '.collection-result-save-btn', function(e) {
