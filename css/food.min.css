@@ -2114,6 +2114,19 @@ table.dataTable tr.selected td.select-checkbox:after,table.dataTable tr.selected
     white-space: nowrap;
 }
 
+.calc-material-group {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+}
+
+.calc-material-group .calc-result-row.calc-material-row {
+    flex: 0 0 auto;
+    min-width: auto;
+}
+
 .calc-result-row.calc-material-row .calc-result-item:first-child {
     flex: 0 1 auto;
 }
@@ -2343,6 +2356,7 @@ table.dataTable tr.selected td.select-checkbox:after,table.dataTable tr.selected
     height: 30px;
 }
 
+#btn-material-detail,
 #btn-material-detail-jade {
     white-space: nowrap;
     padding: 5px 12px;
@@ -2350,11 +2364,13 @@ table.dataTable tr.selected td.select-checkbox:after,table.dataTable tr.selected
     height: 30px;
 }
 
+#guest-material-detail-modal .modal-dialog,
 #jade-material-detail-modal .modal-dialog {
     width: fit-content;
     max-width: calc(100vw - 30px);
 }
 
+#guest-material-detail-modal .modal-body,
 #jade-material-detail-modal .modal-body {
     max-height: 65vh;
     overflow-y: auto;
@@ -2376,6 +2392,7 @@ table.dataTable tr.selected td.select-checkbox:after,table.dataTable tr.selected
 }
 
 @media (min-width: 769px) {
+    #guest-material-detail-modal .modal-dialog,
     #jade-material-detail-modal .modal-dialog {
         width: 914px;
     }
@@ -2420,6 +2437,7 @@ table.dataTable tr.selected td.select-checkbox:after,table.dataTable tr.selected
 
 /* 响应式调整 */
 @media (max-width: 768px) {
+    #guest-material-detail-modal.in,
     #jade-material-detail-modal.in {
         display: flex !important;
         align-items: center;
@@ -2427,6 +2445,7 @@ table.dataTable tr.selected td.select-checkbox:after,table.dataTable tr.selected
         padding: 10px;
     }
 
+    #guest-material-detail-modal .modal-dialog,
     #jade-material-detail-modal .modal-dialog {
         margin: 0 auto;
     }
@@ -2438,6 +2457,7 @@ table.dataTable tr.selected td.select-checkbox:after,table.dataTable tr.selected
         justify-content: flex-start !important;
         align-self: flex-start;
         gap: 6px;
+        margin-bottom: 2px;
     }
 
     .calc-result-row.calc-material-row .calc-result-item,
@@ -2447,6 +2467,8 @@ table.dataTable tr.selected td.select-checkbox:after,table.dataTable tr.selected
         flex: 0 0 auto !important;
     }
 
+    #daily-material-select + .bootstrap-select,
+    #daily-material-select + .bootstrap-select > .dropdown-toggle,
     #daily-material-select-jade + .bootstrap-select,
     #daily-material-select-jade + .bootstrap-select > .dropdown-toggle {
         min-width: 100px !important;
@@ -2531,6 +2553,16 @@ table.dataTable tr.selected td.select-checkbox:after,table.dataTable tr.selected
         width: auto;
         max-width: none;
     }
+
+    .calc-material-group {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .calc-material-group .calc-result-row.calc-material-row {
+        flex: 0 0 auto;
+    }
 }
 
 /* 超小屏幕 */
@@ -2566,11 +2598,18 @@ table.dataTable tr.selected td.select-checkbox:after,table.dataTable tr.selected
         grid-template-columns: none;
         gap: 6px;
         flex-wrap: nowrap;
+        margin-bottom: 1px;
     }
 
     .calc-result-row.calc-material-row .calc-result-item {
         padding: 0;
         max-width: none;
+    }
+
+    .calc-material-group {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
     }
     
     #sync-guest-double {
