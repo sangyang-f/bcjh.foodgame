@@ -29,7 +29,7 @@
     <script type="text/javascript" src="js/banquet.optimizer.js?v=7"></script>
     <script type="text/javascript" src="js/jianghu.optimizer.js?v=2"></script>
     <script type="text/javascript" src="js/competition.optimizer.simple.js?v=2"></script>
-    <link rel="stylesheet" type="text/css" href="css/image.css?v=13" />
+    <link rel="stylesheet" type="text/css" href="css/image.css?v=14" />
     <link rel="stylesheet" type="text/css" href="css/query.collection.css?v=2" />
     <link rel="stylesheet" type="text/css" href="css/theme.css?v=2" />
     <script type="text/javascript" src="js/theme.js?v=2"></script>
@@ -40,7 +40,7 @@
                 xhr: function () {
                     var xhr = $.ajaxSettings.xhr();
                     xhr.addEventListener("progress", function (e) {
-                        var total = 1949029;
+                        var total = 1949583;
                         if (e.lengthComputable) {
                             total = e.total;
                         }
@@ -58,7 +58,7 @@
                 complete: function () {
                     $("#loading-progress").remove();
                 },
-                url: 'data/data.min.json?v=12'
+                url: 'data/data.min.json?v=13'
             });
         });
     </script>
