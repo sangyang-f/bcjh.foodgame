@@ -65,33 +65,27 @@ var OneClickQuery = (function($) {
      */
     function getUserMaxQuantity(starLevel) {
         var baseMax = BASE_MAX_QUANTITY_MAP[starLevel] || 15;
-        var ultimateBonus = 0;
-        var ruleBonus = 0;
+        var totalBonus = 0;
         
-        // 从 calCustomRule.rules[0].calGlobalUltimateData 获取修炼加成
+        // 与菜谱卡的 limitVal 保持一致：只叠加当前生效的全局和活动上限效果。
         if (typeof calCustomRule !== 'undefined' && calCustomRule.rules && calCustomRule.rules[0]) {
             var rule = calCustomRule.rules[0];
-            
-            // 获取修炼加成 (MaxEquipLimit)
-            if (rule.calGlobalUltimateData && Array.isArray(rule.calGlobalUltimateData)) {
-                for (var i = 0; i < rule.calGlobalUltimateData.length; i++) {
-                    var data = rule.calGlobalUltimateData[i];
-                    if (data.type === 'MaxEquipLimit' && data.rarity === starLevel) {
-                        ultimateBonus = data.value || 0;
-                        break;
+            var limitEffectSources = [rule.calGlobalUltimateData, rule.calActivityUltimateData];
+            for (var sourceIndex = 0; sourceIndex < limitEffectSources.length; sourceIndex++) {
+                var effects = limitEffectSources[sourceIndex];
+                if (!Array.isArray(effects)) {
+                    continue;
+                }
+                for (var i = 0; i < effects.length; i++) {
+                    var data = effects[i];
+                    if (data && data.type === 'MaxEquipLimit' && Number(data.rarity) === Number(starLevel)) {
+                        totalBonus += Number(data.value) || 0;
                     }
                 }
             }
-            
-            // 获取规则加成 (skill.MaxLimit)
-            if (rule.skill && rule.skill.MaxLimit) {
-                ruleBonus = Number(rule.skill.MaxLimit[starLevel]) || 0;
-            }
         }
         
-        var totalMax = baseMax + ultimateBonus + ruleBonus;
-        
-        return totalMax;
+        return baseMax + totalBonus;
     }
 
     /**
@@ -125,7 +119,8 @@ var OneClickQuery = (function($) {
         defaultTime: 8.0,                // 制作时间（小时）
         queryMode: true,                 // 查询模式：true=查询效率，false=查询必来
         useExistingConfig: true,         // 使用场上已有配置：true=使用场上厨师/厨具/心法盘，false=每次重新筛选
-        singleRecipePerRune: false,      // 每种符文只查一个菜谱
+        singleRecipePerRune: false,      // 兼容旧设置：每种符文只查一个菜谱
+        jadeAssignmentMode: 'balanced', // 刷玉分配：balanced/single
         goldRuneSelections: [],          // 金符文选择
         silverRuneSelections: [],        // 银符文选择
         bronzeRuneSelections: [],        // 铜符文选择
@@ -160,6 +155,9 @@ var OneClickQuery = (function($) {
             if (stored) {
                 var parsed = JSON.parse(stored);
                 settings = $.extend({}, DEFAULT_SETTINGS, parsed);
+                if (!parsed.jadeAssignmentMode) {
+                    settings.jadeAssignmentMode = parsed.singleRecipePerRune ? 'single' : 'balanced';
+                }
                 // 强制更新默认时间为8小时（如果用户之前保存的是7小时）
                 if (parsed.defaultTime === 7.0 || parsed.defaultTime === 7) {
                     settings.defaultTime = 8.0;
@@ -278,6 +276,18 @@ var OneClickQuery = (function($) {
         return Number(jadeRecipeValueMapCache[recipeName]) || 0;
     }
 
+    function getJadeAssignmentMode() {
+        var mode = settings.jadeAssignmentMode;
+        return mode === 'single' ? mode : 'balanced';
+    }
+
+    function getJadeAssignmentModeLabel(mode) {
+        if (mode === 'single') {
+            return '每种只查一个';
+        }
+        return '符文平均分配';
+    }
+
     function flushJadeRankingTableCallbacks(data, error) {
         var callbacks = jadeRankingTablePendingCallbacks.slice();
         jadeRankingTablePendingCallbacks = [];
@@ -392,7 +402,7 @@ var OneClickQuery = (function($) {
             return 0;
         }
 
-        var actualGuestRateRounded = Math.floor((groupStats.actualGuestRate || 0) * 100) / 100;
+        var actualGuestRateRounded = Math.floor(Math.min(100, Math.max(0, groupStats.actualGuestRate || 0)) * 100) / 100;
         runeRateValue = Number(runeRateValue) || 0;
         var critRateRounded = Math.floor((groupStats.critRate || 0) * 100) / 100;
         var hundredPotOutput = 0.01 * actualGuestRateRounded * runeRateValue * critRateRounded;
@@ -560,9 +570,9 @@ var OneClickQuery = (function($) {
      * 贵客率公式（来自 guest.calculator.js）：
      * - 1星: actualRate = (0.05 + (quantity - 20) * 0.013) * (100 + baseGuestRate)
      * - 2星: actualRate = (0.08 + (quantity - 15) * 0.02) * (100 + baseGuestRate)
-     * - 3星: actualRate = (0.083 + (quantity - 12) * 0.016) * (100 + baseGuestRate)
-     * - 4星: actualRate = (0.1142 + (quantity - 10) * 0.0059) * (100 + baseGuestRate)
-     * - 5星: actualRate = (0.1006 + (quantity - 7) * 0.0084) * (100 + baseGuestRate)
+     * - 3星: actualRate = (0.08 + (quantity - 12) * 0.0162) * (100 + baseGuestRate)
+     * - 4星: actualRate = (0.1 + (quantity - 10) * 0.01) * (100 + baseGuestRate)
+     * - 5星: actualRate = (0.1 + (quantity - 7) * 0.0085) * (100 + baseGuestRate)
      * 
      * 反推公式（令 actualRate = 100）：
      * quantity = (100 / (100 + baseGuestRate) - baseCoeff) / stepCoeff + baseQuantity
@@ -576,9 +586,9 @@ var OneClickQuery = (function($) {
         var formulaParams = {
             1: { baseCoeff: 0.05, stepCoeff: 0.013, baseQuantity: 20 },
             2: { baseCoeff: 0.08, stepCoeff: 0.02, baseQuantity: 15 },
-            3: { baseCoeff: 0.083, stepCoeff: 0.016, baseQuantity: 12 },
-            4: { baseCoeff: 0.1142, stepCoeff: 0.0059, baseQuantity: 10 },
-            5: { baseCoeff: 0.1006, stepCoeff: 0.0084, baseQuantity: 7 }
+            3: { baseCoeff: 0.08, stepCoeff: 0.0162, baseQuantity: 12 },
+            4: { baseCoeff: 0.1, stepCoeff: 0.01, baseQuantity: 10 },
+            5: { baseCoeff: 0.1, stepCoeff: 0.0085, baseQuantity: 7 }
         };
         
         var params = formulaParams[starLevel];
@@ -833,7 +843,7 @@ var OneClickQuery = (function($) {
                 
             case 'GuestDropCount':
                 result.hasCritSkill = true;
-                var percentMatch = desc.match(/稀有客人赠礼数量(\d+)%/);
+                var percentMatch = desc.match(/(?:稀有客人|贵客)赠礼数量(\d+)%/);
                 if (percentMatch) {
                     var basePercent = parseInt(percentMatch[1]);
                     var multiplier = (skill.value || 100) / 100;
@@ -1509,6 +1519,7 @@ var OneClickQuery = (function($) {
                     conflictWith: recipesWithAdjustedTime[0].recipe.name
                 };
             }
+
         }
 
         for (r = 0; r < selectedRunes.length; r++) {
@@ -3459,20 +3470,136 @@ var OneClickQuery = (function($) {
         totalTimeSum = usageState.totalTimeSum;
         totalValueSum = usageState.totalValueSum;
 
+        var recipeExpectedTotal = calculateJadeSelectionExpectedTotal(selections, groupStats, totalTimeSum);
+
         var jadeBusinessIntervalSeconds = 30;
-        var actualGuestRate = groupStats ? (groupStats.actualGuestRate || 0) : 0;
-        var critRate = groupStats ? (groupStats.critRate || 0) : 0;
-        var scatterRate = Math.max(0, 100 - (groupStats ? (groupStats.runeRate || 0) : 0));
         var dailyCycles = totalTimeSum > 0 ? 86400 / (totalTimeSum + jadeBusinessIntervalSeconds) : 0;
-        var dailyJade = dailyCycles * (actualGuestRate / 100) * (scatterRate / 100) * (critRate / 100) * totalValueSum;
+        var dailyJade = dailyCycles * recipeExpectedTotal.totalExpected;
 
         return {
             selections: selections,
             totalCookingTime: totalTimeSum,
             recipeJadeValueTotal: totalValueSum,
+            recipeJadeExpectedTotal: recipeExpectedTotal.totalExpected,
             dailyJade: dailyJade,
-            scatterRate: scatterRate,
+            scatterRate: recipeExpectedTotal.scatterRate,
             dailyCycles: dailyCycles
+        };
+    }
+
+    function buildJadeSelectionCalculationCustom(groupStats, selections) {
+        var baseCustom = groupStats && groupStats._customForCalc;
+        var custom = {};
+        var c;
+
+        if (!baseCustom) {
+            return null;
+        }
+
+        for (c in baseCustom) {
+            if (!baseCustom.hasOwnProperty(c)) {
+                continue;
+            }
+            custom[c] = {
+                chef: baseCustom[c].chef || null,
+                equip: baseCustom[c].equip || null,
+                recipes: []
+            };
+        }
+
+        for (var i = 0; i < selections.length; i++) {
+            var selection = selections[i];
+            if (!selection || !selection.recipe) {
+                continue;
+            }
+
+            var chefIndex = Number(selection.chefIndex);
+            if (!custom[chefIndex]) {
+                custom[chefIndex] = { chef: null, equip: null, recipes: [] };
+            }
+
+            var quantity = Number(selection.quantityForTime || selection.quantity) || 0;
+            if (quantity <= 0) {
+                continue;
+            }
+
+            custom[chefIndex].recipes.push({
+                data: selection.recipe,
+                quantity: quantity,
+                totalTime: Number(selection.cookingTime) || 0,
+                rankVal: Number(selection.rank) || 1,
+                rankDisp: getJadeRankTextByValue(Number(selection.rank) || 1)
+            });
+        }
+
+        return custom;
+    }
+
+    function getJadeRankTextByValue(rankValue) {
+        return ['', '可', '优', '特', '神', '传'][Number(rankValue) || 1] || '可';
+    }
+
+    function calculateJadeSelectionExpectedTotal(selections, groupStats, totalTimeSeconds) {
+        var totalExpected = 0;
+        var totalValue = 0;
+        var weightedScatter = 0;
+        var custom = buildJadeSelectionCalculationCustom(groupStats, selections || []);
+        var rule = groupStats && groupStats._rule;
+
+        if (!custom || !rule || typeof GuestRateCalculator === 'undefined' ||
+            typeof GuestRateCalculator.calculateFields !== 'function') {
+            var fallbackActual = Math.min(100, Math.max(0, groupStats && groupStats.actualGuestRate || 0));
+            var fallbackCrit = Math.max(0, groupStats && groupStats.critRate || 0);
+            var fallbackScatter = Math.max(0, 100 - (groupStats && groupStats.runeRate || 0));
+            for (var f = 0; f < (selections || []).length; f++) {
+                var fallbackValue = Number(selections[f] && selections[f].jadeValue) || 0;
+                totalValue += fallbackValue;
+                totalExpected += fallbackValue * (fallbackActual / 100) * (fallbackScatter / 100) * (fallbackCrit / 100);
+                weightedScatter += fallbackValue * fallbackScatter;
+            }
+            return {
+                totalExpected: totalExpected,
+                totalValue: totalValue,
+                scatterRate: totalValue > 0 ? weightedScatter / totalValue : 0
+            };
+        }
+
+        var fieldsOptions = {
+            effectiveOpenTimeSeconds: Number(totalTimeSeconds) || 0,
+            useEmptyRecipePerRankFallback: false
+        };
+        for (var i = 0; i < (selections || []).length; i++) {
+            var selection = selections[i];
+            var recipe = selection && selection.recipe;
+            var quantity = Number(selection && (selection.quantityForTime || selection.quantity)) || 0;
+            var jadeValue = Number(selection && selection.jadeValue) || 0;
+            if (!recipe || quantity <= 0 || jadeValue <= 0) {
+                continue;
+            }
+
+            var rankValue = Number(selection.rank) || 1;
+            var fields = GuestRateCalculator.calculateFields(
+                custom,
+                rule,
+                Number(recipe.rarity) || 5,
+                quantity,
+                String(rankValue),
+                fieldsOptions
+            );
+            var actualGuestRate = Math.min(100, Math.max(0, Number(fields.actualGuestRate) || 0));
+            var scatterRate = Math.max(0, 100 - (Number(fields.runeRate) || 0));
+            var critRate = Math.max(0, Number(fields.critRate) || 0);
+            var recipeExpected = jadeValue * (actualGuestRate / 100) * (scatterRate / 100) * (critRate / 100);
+
+            totalValue += jadeValue;
+            totalExpected += recipeExpected;
+            weightedScatter += jadeValue * scatterRate;
+        }
+
+        return {
+            totalExpected: totalExpected,
+            totalValue: totalValue,
+            scatterRate: totalValue > 0 ? weightedScatter / totalValue : 0
         };
     }
 
@@ -3481,7 +3608,7 @@ var OneClickQuery = (function($) {
             return 0;
         }
 
-        var actualGuestRate = groupStats.actualGuestRate || 0;
+        var actualGuestRate = Math.min(100, Math.max(0, groupStats.actualGuestRate || 0));
         var critRate = groupStats.critRate || 0;
         var scatterRate = Math.max(0, 100 - (groupStats.runeRate || 0));
         var timePercentage = Math.max(groupStats.timeBonus || 0, 0.01);
@@ -3739,7 +3866,7 @@ var OneClickQuery = (function($) {
                 }
                 chefs = ultimatedChefs;
             }
-            
+
             var selectedRunes = getSelectedRunes();
             var jadeBaseRecipeData = null;
             
@@ -3904,7 +4031,9 @@ var OneClickQuery = (function($) {
                     calcStarLevel: calcStarLevel,
                     calcQuantity: calcQuantity,
                     requiredPortions: requiredPortions,
-                    canAchieveBilai: canAchieve
+                    canAchieveBilai: canAchieve,
+                    _customForCalc: customForCalc,
+                    _rule: rule
                 };
                 
                 if (!isQueryEfficiencyMode) {
@@ -3966,7 +4095,7 @@ var OneClickQuery = (function($) {
                     step2Count++;
                 }
             }
-            
+
             // 步骤3：刺客厨师（OpenTime），取前3名（排除已选择的）
             var step3Chefs = getSortedChefs(chefs, onlyShowOwned, false, true, false);
             // 打印前10个刺客厨师，并标记已选中的，显示时间和贵客率
@@ -4172,7 +4301,9 @@ var OneClickQuery = (function($) {
                     requiredPortions: requiredPortions,
                     canAchieveBilai: canAchieve,
                     calcStarLevel: calcStarLevel,      // 计算使用的星级
-                    calcQuantity: actualQuantity       // 计算使用的份数
+                    calcQuantity: actualQuantity,       // 计算使用的份数
+                    _customForCalc: customForCalc,
+                    _rule: rule
                 };
                 
                 if (isJadeMode) {
@@ -4458,12 +4589,21 @@ var OneClickQuery = (function($) {
                 
                 // 计算应该使用的份数
                 var isQueryEfficiencyMode = settings.queryMode;
-                var defaultStarLevel = 5;
-                var calculatedQuantity = 7; // 默认7份
+                var defaultStarLevel = parseInt($('#star-level').val(), 10) || 5;
+                var defaultQualityLevel = $('#quality-level').val() || '1';
+                var calculatedQuantity = MIN_QUANTITY_MAP[defaultStarLevel] || 7;
+                var currentGuestRate = bestGroupStats ? Number(bestGroupStats.guestRate) : NaN;
+                if (!isFinite(currentGuestRate) && typeof GuestRateCalculator !== 'undefined' && GuestRateCalculator.calculateFields && rule.custom) {
+                    var currentFields = GuestRateCalculator.calculateFields(rule.custom, rule, defaultStarLevel, calculatedQuantity, defaultQualityLevel);
+                    currentGuestRate = Number(currentFields && currentFields.guestRate);
+                }
+                if (!isFinite(currentGuestRate)) {
+                    currentGuestRate = parseFloat(String($('#guest-rate-value').text() || '').replace('%', '')) || 0;
+                }
                 
-                if (!isQueryEfficiencyMode && bestGroupStats) {
+                if (!isQueryEfficiencyMode) {
                     // 查询必来模式：根据贵客率计算必来份数
-                    var requiredPortions = getRequiredPortionsForStarLevel(bestGroupStats.guestRate, defaultStarLevel);
+                    var requiredPortions = getRequiredPortionsForStarLevel(currentGuestRate, defaultStarLevel);
                     var maxQuantity = getUserMaxQuantity(defaultStarLevel); // 获取用户实际最大份数（含修炼加成）
                     calculatedQuantity = Math.min(requiredPortions, maxQuantity);
                     
@@ -4523,7 +4663,8 @@ var OneClickQuery = (function($) {
                 result.totalTimeBonus = totalTimeBonus;
                 result.totalCookingTime = 0;
                 result.timeReached = false;
-                result.qualityLevel = bestGroupStats ? bestGroupStats.qualityLevel : "4";
+                result.qualityLevel = bestGroupStats ? bestGroupStats.qualityLevel : defaultQualityLevel;
+                result.calculatedStarLevel = defaultStarLevel;
                 result.calculatedQuantity = calculatedQuantity; // 添加计算出的份数
                 
                 // 标记是否无法达到必来（从bestGroupStats继承）
@@ -5314,7 +5455,10 @@ var OneClickQuery = (function($) {
      */
     function createSettingsDialogHtml() {
         var isJadeMode = $("#chk-guest-rate-submode").prop("checked");
-        var referenceButtonText = isJadeMode ? '金符文效率排行表' : '贵客必来对照表';
+        var displayedAssignmentMode = isJadeMode
+            ? getJadeAssignmentMode()
+            : (settings.singleRecipePerRune ? 'single' : 'balanced');
+        var referenceButtonText = isJadeMode ? '符文效率排行表' : '贵客必来对照表';
         var html = '<div class="modal fade" id="oneclick-settings-modal" tabindex="-1">';
         html += '<div class="modal-dialog modal-lg">';
         html += '<div class="modal-content">';
@@ -5351,7 +5495,7 @@ var OneClickQuery = (function($) {
         html += '</div>';
         html += '</div>';
         
-        // 设置选项行2：使用场上已有配置 + 每种符文分配方式
+        // 设置选项行2：使用场上已有配置 + 刷玉菜谱分配方式
         html += '<div class="row settings-row">';
         html += '<div class="col-xs-6">';
         html += '<div class="setting-card">';
@@ -5364,11 +5508,9 @@ var OneClickQuery = (function($) {
         html += '</div>';
         html += '<div class="col-xs-6">';
         html += '<div class="setting-card">';
-        html += '<label id="singleRecipePerRuneLabel">' + (settings.singleRecipePerRune ? '每种查一个菜谱' : '符文平均分配') + '</label>';
-        html += '<div class="switch-container">';
-        html += '<input type="checkbox" id="setting-singleRecipePerRune"' + (settings.singleRecipePerRune ? ' checked' : '') + '>';
-        html += '<label for="setting-singleRecipePerRune" class="switch-label"></label>';
-        html += '</div>';
+        html += '<label>菜谱分配</label>';
+        html += '<button type="button" class="btn btn-default btn-sm jade-assignment-mode-btn" id="setting-jadeAssignmentMode" data-jade-mode="' + (isJadeMode ? '1' : '0') + '">' +
+            getJadeAssignmentModeLabel(displayedAssignmentMode) + '</button>';
         html += '</div>';
         html += '</div>';
         html += '</div>';
@@ -5397,6 +5539,126 @@ var OneClickQuery = (function($) {
             return -1;
         }
         return tableData.headers.indexOf('符文');
+    }
+
+    function getJadeRankingRecipeColumnIndex(tableData) {
+        if (!tableData || !Array.isArray(tableData.headers)) {
+            return -1;
+        }
+        return tableData.headers.indexOf('菜谱');
+    }
+
+    function getJadeRankingColumnIndex(tableData, columnName) {
+        if (!tableData || !Array.isArray(tableData.headers)) {
+            return -1;
+        }
+        return tableData.headers.indexOf(columnName);
+    }
+
+    function parseJadeRankingTimeSeconds(value) {
+        var match = String(value || '').trim().match(/^(\d+)分(?:(\d+(?:\.\d+)?)秒)?$/);
+        if (!match) {
+            return Number.POSITIVE_INFINITY;
+        }
+        return Number(match[1]) * 60 + Number(match[2] || 0);
+    }
+
+    function getJadeRankingRecipeStarMap() {
+        var starMap = {};
+        var gameData = (typeof calCustomRule !== 'undefined' && calCustomRule && calCustomRule.gameData)
+            ? calCustomRule.gameData : null;
+        var recipes = gameData && Array.isArray(gameData.recipes) ? gameData.recipes : [];
+        var i;
+
+        for (i = 0; i < recipes.length; i++) {
+            if (recipes[i] && recipes[i].name) {
+                starMap[recipes[i].name] = Number(recipes[i].rarity) || 0;
+            }
+        }
+
+        return starMap;
+    }
+
+    function getJadeRankingConflictRecipeMap(tableData) {
+        var gameData = (typeof calCustomRule !== 'undefined' && calCustomRule && calCustomRule.gameData)
+            ? calCustomRule.gameData : null;
+        var guests = gameData && Array.isArray(gameData.guests) ? gameData.guests : [];
+        var recipeColumnIndex = getJadeRankingRecipeColumnIndex(tableData);
+        var tableRecipeMap = {};
+        var tableRecipeNames = [];
+        var guestRecipes = {};
+        var conflictMap = {};
+        var i;
+        var j;
+
+        if (recipeColumnIndex < 0 || !guests.length || !tableData || !Array.isArray(tableData.rows)) {
+            return {};
+        }
+
+        for (i = 0; i < tableData.rows.length; i++) {
+            var tableRecipeName = String(tableData.rows[i][recipeColumnIndex] || '').trim();
+            if (tableRecipeName && !tableRecipeMap[tableRecipeName]) {
+                tableRecipeMap[tableRecipeName] = true;
+                tableRecipeNames.push(tableRecipeName);
+            }
+        }
+
+        for (i = 0; i < guests.length; i++) {
+            var guest = guests[i];
+            var gifts = guest && Array.isArray(guest.gifts) ? guest.gifts : [];
+            var guestName = guest && guest.name ? String(guest.name) : '';
+            if (!guestName) {
+                continue;
+            }
+
+            for (j = 0; j < gifts.length; j++) {
+                var giftRecipeName = gifts[j] && gifts[j].recipe ? String(gifts[j].recipe).trim() : '';
+                if (!giftRecipeName || !tableRecipeMap[giftRecipeName]) {
+                    continue;
+                }
+                if (!guestRecipes[guestName]) {
+                    guestRecipes[guestName] = [];
+                }
+                if (guestRecipes[guestName].indexOf(giftRecipeName) === -1) {
+                    guestRecipes[guestName].push(giftRecipeName);
+                }
+            }
+        }
+
+        Object.keys(guestRecipes).forEach(function(guestName) {
+            var recipes = guestRecipes[guestName];
+            if (recipes.length < 2) {
+                return;
+            }
+            for (var recipeIndex = 0; recipeIndex < recipes.length; recipeIndex++) {
+                var recipeName = recipes[recipeIndex];
+                if (!conflictMap[recipeName]) {
+                    conflictMap[recipeName] = [];
+                }
+                for (var otherIndex = 0; otherIndex < recipes.length; otherIndex++) {
+                    var otherRecipeName = recipes[otherIndex];
+                    if (otherRecipeName !== recipeName && conflictMap[recipeName].indexOf(otherRecipeName) === -1) {
+                        conflictMap[recipeName].push(otherRecipeName);
+                    }
+                }
+            }
+        });
+
+        // Keep the conflict names in the same recipe order used by the ranking table.
+        var orderedConflictMap = {};
+        for (i = 0; i < tableRecipeNames.length; i++) {
+            var currentRecipeName = tableRecipeNames[i];
+            var conflicts = conflictMap[currentRecipeName] || [];
+            var orderedConflicts = [];
+            for (j = 0; j < tableRecipeNames.length; j++) {
+                if (conflicts.indexOf(tableRecipeNames[j]) >= 0) {
+                    orderedConflicts.push(tableRecipeNames[j]);
+                }
+            }
+            orderedConflictMap[currentRecipeName] = orderedConflicts;
+        }
+
+        return orderedConflictMap;
     }
 
     function getJadeRankingAvailableRunes(tableData) {
@@ -5436,10 +5698,55 @@ var OneClickQuery = (function($) {
         return value.slice();
     }
 
+    function getJadeRankingSelectedFire() {
+        var rawValue = $('#jade-ranking-fire-filter').val();
+        if (rawValue === 'all') {
+            return 0;
+        }
+        var value = Number(rawValue);
+        return value >= 1 && value <= 5 ? value : 5;
+    }
+
+    function createJadeRankingFireFilterHtml() {
+        var html = '<div class="jade-ranking-filter-wrapper jade-ranking-fire-filter-wrapper">';
+        html += '<select id="jade-ranking-fire-filter" class="selectpicker" data-width="72px" title="5火">';
+        html += '<option value="all">全部</option>';
+        for (var fire = 5; fire >= 1; fire--) {
+            html += '<option value="' + fire + '"' + (fire === 5 ? ' selected' : '') + '>' + fire + '火</option>';
+        }
+        html += '</select>';
+        html += '</div>';
+        return html;
+    }
+
     function createJadeRankingRuneFilterHtml(tableData) {
         var availableRunes = getJadeRankingAvailableRunes(tableData);
         if (!availableRunes.length) {
             return '';
+        }
+
+        var availableRuneMap = {};
+        var runeGroups = [
+            { label: '金符文', runes: GOLD_RUNES },
+            { label: '银符文', runes: SILVER_RUNES },
+            { label: '铜符文', runes: BRONZE_RUNES }
+        ];
+        var groupedRunes = {};
+        var i;
+        var j;
+
+        for (i = 0; i < availableRunes.length; i++) {
+            availableRuneMap[availableRunes[i]] = true;
+        }
+
+        for (i = 0; i < runeGroups.length; i++) {
+            groupedRunes[runeGroups[i].label] = [];
+            for (j = 0; j < runeGroups[i].runes.length; j++) {
+                if (availableRuneMap[runeGroups[i].runes[j]]) {
+                    groupedRunes[runeGroups[i].label].push(runeGroups[i].runes[j]);
+                    delete availableRuneMap[runeGroups[i].runes[j]];
+                }
+            }
         }
 
         var html = '<div class="jade-ranking-filter-wrapper">';
@@ -5449,22 +5756,48 @@ var OneClickQuery = (function($) {
         html += ' data-none-selected-text="全部符文" data-selected-text-format="count > 1"';
         html += ' data-count-selected-text="已选{0}种" data-multiple-separator="、"';
         html += ' title="全部符文">';
-        for (var i = 0; i < availableRunes.length; i++) {
-            html += '<option value="' + escapeHtml(availableRunes[i]) + '" selected>' + escapeHtml(availableRunes[i]) + '</option>';
+
+        for (i = 0; i < runeGroups.length; i++) {
+            var groupRunes = groupedRunes[runeGroups[i].label];
+            if (!groupRunes.length) {
+                continue;
+            }
+            html += '<optgroup label="' + escapeHtml(runeGroups[i].label + ' (' + groupRunes.length + ')') + '">';
+            for (j = 0; j < groupRunes.length; j++) {
+                html += '<option value="' + escapeHtml(groupRunes[j]) + '" selected>' + escapeHtml(groupRunes[j]) + '</option>';
+            }
+            html += '</optgroup>';
+        }
+
+        // 保留数据中未归类的符文，避免新增符文在筛选框中消失。
+        var otherRunes = Object.keys(availableRuneMap);
+        if (otherRunes.length) {
+            html += '<optgroup label="其他符文">';
+            for (j = 0; j < otherRunes.length; j++) {
+                html += '<option value="' + escapeHtml(otherRunes[j]) + '" selected>' + escapeHtml(otherRunes[j]) + '</option>';
+            }
+            html += '</optgroup>';
         }
         html += '</select>';
         html += '</div>';
         return html;
     }
 
-    function createJadeRankingTableRowsHtml(tableData, selectedRunes) {
+    function createJadeRankingTableRowsHtml(tableData, selectedRunes, selectedFire) {
         if (!tableData || !tableData.rows || !tableData.rows.length) {
             return '<tr><td colspan="1" class="jade-ranking-empty-cell">暂无数据</td></tr>';
         }
 
         var runeColumnIndex = getJadeRankingRuneColumnIndex(tableData);
+        var recipeColumnIndex = getJadeRankingRecipeColumnIndex(tableData);
+        var rankColumnIndex = getJadeRankingColumnIndex(tableData, '排行');
+        var efficiencyColumnIndex = getJadeRankingColumnIndex(tableData, '时间/玉璧数');
+        var conflictColumnIndex = getJadeRankingColumnIndex(tableData, '冲突菜谱');
+        var recipeStarMap = getJadeRankingRecipeStarMap();
+        var conflictRecipeMap = getJadeRankingConflictRecipeMap(tableData);
         var runeFilterMap = {};
         var hasRuneFilter = Array.isArray(selectedRunes) && selectedRunes.length > 0;
+        var fireFilter = Number(selectedFire);
         var visibleRows = [];
         var html = '';
         var colSpan = tableData.headers && tableData.headers.length ? tableData.headers.length : 1;
@@ -5479,10 +5812,21 @@ var OneClickQuery = (function($) {
         for (i = 0; i < tableData.rows.length; i++) {
             var row = tableData.rows[i];
             var rowRune = runeColumnIndex >= 0 ? row[runeColumnIndex] : '';
+            var recipeName = recipeColumnIndex >= 0 ? row[recipeColumnIndex] : '';
             if (hasRuneFilter && !runeFilterMap[rowRune]) {
                 continue;
             }
+            if (fireFilter >= 1 && fireFilter <= 5 && recipeStarMap[recipeName] !== fireFilter) {
+                continue;
+            }
             visibleRows.push(row);
+        }
+
+        if (efficiencyColumnIndex >= 0) {
+            visibleRows.sort(function(a, b) {
+                return parseJadeRankingTimeSeconds(a[efficiencyColumnIndex]) -
+                    parseJadeRankingTimeSeconds(b[efficiencyColumnIndex]);
+            });
         }
 
         if (!visibleRows.length) {
@@ -5492,7 +5836,16 @@ var OneClickQuery = (function($) {
         for (i = 0; i < visibleRows.length; i++) {
             html += '<tr>';
             for (var c = 0; c < visibleRows[i].length; c++) {
-                html += '<td>' + escapeHtml(visibleRows[i][c]) + '</td>';
+                var cellValue;
+                if (c === rankColumnIndex) {
+                    cellValue = i + 1;
+                } else if (c === conflictColumnIndex) {
+                    var visibleRecipeName = visibleRows[i][recipeColumnIndex];
+                    cellValue = (conflictRecipeMap[visibleRecipeName] || []).join('、');
+                } else {
+                    cellValue = visibleRows[i][c];
+                }
+                html += '<td>' + escapeHtml(cellValue) + '</td>';
             }
             html += '</tr>';
         }
@@ -5500,7 +5853,7 @@ var OneClickQuery = (function($) {
         return html;
     }
 
-    function createJadeRankingTableContentHtml(tableData, errorMessage, selectedRunes) {
+    function createJadeRankingTableContentHtml(tableData, errorMessage, selectedRunes, selectedFire) {
         if (errorMessage) {
             return '<div class="jade-ranking-loading jade-ranking-error">' + escapeHtml(errorMessage) + '</div>';
         }
@@ -5509,7 +5862,7 @@ var OneClickQuery = (function($) {
             return '<div class="jade-ranking-loading jade-ranking-error">加载失败</div>';
         }
 
-        var title = escapeHtml(tableData.title || '金符文效率排行表');
+        var title = escapeHtml(tableData.title || '符文效率排行表');
         var html = '<div class="jade-ranking-table-container">';
         html += '<div class="jade-ranking-sheet">';
         html += '<table class="table table-bordered jade-ranking-table">';
@@ -5521,7 +5874,7 @@ var OneClickQuery = (function($) {
         }
         html += '</tr>';
         html += '</thead>';
-        html += '<tbody>' + createJadeRankingTableRowsHtml(tableData, selectedRunes) + '</tbody>';
+        html += '<tbody>' + createJadeRankingTableRowsHtml(tableData, selectedRunes, selectedFire) + '</tbody>';
         html += '</table>';
         html += '</div>';
         html += '</div>';
@@ -5533,21 +5886,143 @@ var OneClickQuery = (function($) {
         if (!$tbody.length || !tableData || !tableData.headers || !tableData.rows) {
             return;
         }
-        $tbody.html(createJadeRankingTableRowsHtml(tableData, getJadeRankingSelectedRunes()));
+        $tbody.html(createJadeRankingTableRowsHtml(
+            tableData,
+            getJadeRankingSelectedRunes(),
+            getJadeRankingSelectedFire()
+        ));
     }
 
-    function initJadeRankingRuneFilter(tableData) {
+    function syncJadeRankingFireFilter(tableData) {
+        var $fireFilter = $('#jade-ranking-fire-filter');
+        var selectedRunes = getJadeRankingSelectedRunes();
+        var selectedFire = getJadeRankingSelectedFire();
+        var runeColumnIndex;
+        var recipeColumnIndex;
+        var recipeStarMap;
+        var runeFilterMap = {};
+        var hasAnyRuneRow = false;
+        var hasCurrentFireRow = false;
+        var i;
+
+        if (!$fireFilter.length || !tableData || !tableData.rows || !tableData.rows.length ||
+            selectedFire === 0 || !selectedRunes.length) {
+            return;
+        }
+
+        runeColumnIndex = getJadeRankingRuneColumnIndex(tableData);
+        recipeColumnIndex = getJadeRankingRecipeColumnIndex(tableData);
+        recipeStarMap = getJadeRankingRecipeStarMap();
+        for (i = 0; i < selectedRunes.length; i++) {
+            runeFilterMap[selectedRunes[i]] = true;
+        }
+
+        for (i = 0; i < tableData.rows.length; i++) {
+            var row = tableData.rows[i];
+            var rowRune = runeColumnIndex >= 0 ? row[runeColumnIndex] : '';
+            var recipeName = recipeColumnIndex >= 0 ? row[recipeColumnIndex] : '';
+            if (!runeFilterMap[rowRune]) {
+                continue;
+            }
+            hasAnyRuneRow = true;
+            if (recipeStarMap[recipeName] === selectedFire) {
+                hasCurrentFireRow = true;
+                break;
+            }
+        }
+
+        if (hasAnyRuneRow && !hasCurrentFireRow) {
+            if ($.fn.selectpicker && $fireFilter.data('selectpicker')) {
+                $fireFilter.selectpicker('val', 'all');
+            } else {
+                $fireFilter.val('all');
+            }
+        }
+    }
+
+    function initJadeRankingRuneGroups() {
         var $filter = $('#jade-ranking-rune-filter');
-        if (!$filter.length || !tableData || !tableData.rows || !tableData.rows.length) {
+        var $container = $filter.closest('.bootstrap-select');
+        if (!$filter.length || !$container.length) {
+            return;
+        }
+
+        var groupExpandedState = {};
+
+        function initRuneGroupMenu() {
+            var $menu = $container.find('.dropdown-menu.inner');
+            if (!$menu.length) {
+                return;
+            }
+
+            $menu.find('.dropdown-header').each(function() {
+                var $header = $(this);
+                var $items = $header.nextUntil('.dropdown-header');
+                var groupKey = $.trim($header.text()).replace(/\s*\(\d+\)\s*$/, '');
+                var expanded = groupExpandedState[groupKey] === true;
+                if (!$header.find('.collapse-icon').length) {
+                    $header.addClass('collapsible');
+                    $header.append('<span class="collapse-icon glyphicon glyphicon-chevron-right"></span>');
+                }
+
+                var $icon = $header.find('.collapse-icon');
+                $header.data('jade-rune-group', groupKey);
+                $header.data('jade-rune-collapsed', !expanded);
+                if (expanded) {
+                    $items.show();
+                    $icon.removeClass('glyphicon-chevron-right').addClass('glyphicon-chevron-down');
+                    $icon.css('color', '#337ab7');
+                } else {
+                    $items.hide();
+                    $icon.removeClass('glyphicon-chevron-down').addClass('glyphicon-chevron-right');
+                    $icon.css('color', '#999');
+                }
+
+                $header.off('click.jadeRankingRuneGroups keydown.jadeRankingRuneGroups')
+                    .on('click.jadeRankingRuneGroups', function(event) {
+                        event.preventDefault();
+                        event.stopPropagation();
+
+                        var collapsed = $header.data('jade-rune-collapsed') !== false;
+                        var $groupItems = $header.nextUntil('.dropdown-header');
+                        groupExpandedState[groupKey] = collapsed;
+                        $header.data('jade-rune-collapsed', !collapsed);
+                        $groupItems[collapsed ? 'show' : 'hide']();
+                        $icon
+                            .toggleClass('glyphicon-chevron-right', !collapsed)
+                            .toggleClass('glyphicon-chevron-down', collapsed)
+                            .css('color', collapsed ? '#337ab7' : '#999');
+                    })
+                    .on('keydown.jadeRankingRuneGroups', function(event) {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            $header.trigger('click');
+                        }
+                    });
+            });
+        }
+
+        $container.off('shown.bs.dropdown.jadeRankingRuneGroups')
+            .on('shown.bs.dropdown.jadeRankingRuneGroups', initRuneGroupMenu);
+        initRuneGroupMenu();
+    }
+
+    function initJadeRankingFilters(tableData) {
+        var $filters = $('#jade-ranking-fire-filter, #jade-ranking-rune-filter');
+        if (!$filters.length || !tableData || !tableData.rows || !tableData.rows.length) {
             return;
         }
 
         if ($.fn.selectpicker) {
-            $filter.selectpicker();
+            $filters.selectpicker();
         }
+        initJadeRankingRuneGroups();
 
-        $filter.off('.jadeRankingFilter')
+        $filters.off('.jadeRankingFilter')
             .on('changed.bs.select.jadeRankingFilter change.jadeRankingFilter', function() {
+                if (this.id === 'jade-ranking-rune-filter') {
+                    syncJadeRankingFireFilter(tableData);
+                }
                 renderJadeRankingTableRows(tableData);
                 scheduleJadeRankingModalWidthUpdate();
             });
@@ -5561,13 +6036,14 @@ var OneClickQuery = (function($) {
         html += '<div class="modal-content">';
         html += '<div class="modal-header jade-ranking-modal-header">';
         html += '<div class="jade-ranking-modal-header-main">';
-        html += '<h4 class="modal-title">金符文效率排行表</h4>';
+        html += '<h4 class="modal-title">符文效率排行表</h4>';
+        html += createJadeRankingFireFilterHtml();
         html += createJadeRankingRuneFilterHtml(tableData);
         html += '<button type="button" class="close jade-ranking-close" data-dismiss="modal">&times;</button>';
         html += '</div>';
         html += '</div>';
         html += '<div class="modal-body">';
-        html += createJadeRankingTableContentHtml(tableData, errorMessage, getJadeRankingAvailableRunes(tableData));
+        html += createJadeRankingTableContentHtml(tableData, errorMessage, getJadeRankingAvailableRunes(tableData), 5);
         html += '</div>';
         html += '<div class="modal-footer">';
         html += '<button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>';
@@ -5575,7 +6051,7 @@ var OneClickQuery = (function($) {
         html += '</div></div></div>';
 
         $('body').append(html);
-        initJadeRankingRuneFilter(tableData);
+        initJadeRankingFilters(tableData);
         prepareJadeRankingModalWidth();
         $('#jade-ranking-table-modal')
             .off('shown.bs.modal.jadeRankingLayout')
@@ -5803,6 +6279,40 @@ var OneClickQuery = (function($) {
         html += '</div>';
         return html;
     }
+
+    // 查询模式切换后，立即按当前星级和场上贵客率更新主份数。
+    function updateCurrentQueryModeQuantity(skipRecalculate) {
+        if (typeof calCustomRule === 'undefined' || !calCustomRule || calCustomRule.isGuestRate !== true || !calCustomRule.rules || !calCustomRule.rules.length) {
+            return;
+        }
+
+        var starLevel = parseInt($('#star-level').val(), 10) || 5;
+        var qualityLevel = $('#quality-level').val() || '1';
+        var quantity = MIN_QUANTITY_MAP[starLevel] || 7;
+        var custom = calCustomRule.rules[0].custom;
+        var rule = calCustomRule.rules[0];
+        var baseGuestRate = NaN;
+
+        if (custom && typeof GuestRateCalculator !== 'undefined' && GuestRateCalculator.calculateFields) {
+            var fields = GuestRateCalculator.calculateFields(custom, rule, starLevel, quantity, qualityLevel);
+            baseGuestRate = Number(fields && fields.guestRate);
+        }
+        if (!isFinite(baseGuestRate)) {
+            baseGuestRate = parseFloat(String($('#guest-rate-value').text() || '').replace('%', '')) || 0;
+        }
+
+        if (!settings.queryMode) {
+            quantity = getRequiredPortionsForStarLevel(baseGuestRate, starLevel);
+        }
+
+        $('#quantity-value, #quantity-value-jade').val(quantity);
+        if (typeof GuestRateCalculator !== 'undefined' && GuestRateCalculator.syncSelectedRecipeQuantitiesFromGuestRateControls) {
+            GuestRateCalculator.syncSelectedRecipeQuantitiesFromGuestRateControls();
+        }
+        if (!skipRecalculate && typeof calCustomResults === 'function') {
+            calCustomResults();
+        }
+    }
     
     /**
      * 创建符文选择区域HTML
@@ -5848,9 +6358,20 @@ var OneClickQuery = (function($) {
             
             if (id === 'queryMode') {
                 $('#queryModeLabel').text(checked ? '查询效率' : '查询必来');
+                updateCurrentQueryModeQuantity();
             } else if (id === 'singleRecipePerRune') {
                 $('#singleRecipePerRuneLabel').text(checked ? '每种只查一个' : '符文平均分配');
             }
+        });
+
+        $modal.find('#setting-jadeAssignmentMode').on('click', function() {
+            var currentMode = getJadeAssignmentMode();
+            var nextMode;
+            nextMode = currentMode === 'balanced' ? 'single' : 'balanced';
+            setSetting('jadeAssignmentMode', nextMode);
+            // 继续同步旧字段，避免其它历史路径读取到过期设置。
+            setSetting('singleRecipePerRune', nextMode === 'single');
+            $(this).text(getJadeAssignmentModeLabel(nextMode));
         });
         
         // 制作时间输入事件
@@ -6311,6 +6832,7 @@ var OneClickQuery = (function($) {
         calculateRecipeQuantity: calculateRecipeQuantity,
         calculateCookingTime: calculateCookingTime,
         getRequiredPortionsForStarLevel: getRequiredPortionsForStarLevel,
+        updateCurrentQueryModeQuantity: updateCurrentQueryModeQuantity,
         getUserMaxQuantity: getUserMaxQuantity, // 获取用户实际最大份数
         // 常量
         GOLD_RUNES: GOLD_RUNES,

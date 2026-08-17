@@ -271,6 +271,63 @@ table.dataTable tbody>tr.selected,table.dataTable tbody>tr>.selected {
     font-size: 16px
 }
 
+.selected-sum-inline-materials {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-left: 6px;
+    vertical-align: middle
+}
+
+.selected-sum-inline-materials .material-label {
+    white-space: nowrap
+}
+
+.selected-sum-material-row {
+    display: flex;
+    margin-top: 6px;
+    margin-left: 0;
+    width: 100%
+}
+
+.selected-sum .bootstrap-select.normal-material-select,
+.selected-sum .bootstrap-select.normal-material-select>.dropdown-toggle {
+    min-width: 0;
+    width: auto !important;
+    max-width: none;
+    height: 30px;
+    font-size: 13px
+}
+
+.selected-sum .bootstrap-select.normal-material-select>.dropdown-toggle {
+    width: auto !important;
+    padding-top: 4px;
+    padding-bottom: 4px;
+    padding-right: 26px
+}
+
+.selected-sum .bootstrap-select.normal-material-select .filter-option,
+.selected-sum .bootstrap-select.normal-material-select .filter-option-inner,
+.selected-sum .bootstrap-select.normal-material-select .filter-option-inner-inner {
+    white-space: nowrap
+}
+
+.selected-sum .material-interval-dropdown,
+.selected-sum .material-interval-dropdown>.material-interval-toggle {
+    width: 86px;
+    min-width: 86px;
+    max-width: 86px;
+    height: 30px;
+    font-size: 13px
+}
+
+.selected-sum .material-interval-dropdown>.material-interval-toggle {
+    padding: 4px 8px;
+    text-align: center
+}
+
 .btn-resize {
     cursor: pointer
 }
@@ -659,13 +716,18 @@ table.dataTable tbody>tr.selected,table.dataTable tbody>tr>.selected {
     color: #337ab7
 }
 
-.recipe-box .recipe-quantity .available,.recipe-box .recipe-quantity .max {
+.recipe-box .recipe-quantity .available,.recipe-box .recipe-quantity .max,.recipe-box .recipe-quantity .guest-arrival-flag {
     font-size: 90%;
     white-space: nowrap
 }
 
 .recipe-box .recipe-quantity .available {
     color: red;
+    font-weight: 700
+}
+
+.recipe-box .recipe-quantity .guest-arrival-flag {
+    color: #2e8b57;
     font-weight: 700
 }
 
@@ -1102,6 +1164,25 @@ table.history-table tr td.history-dt {
     flex: 1 !important;
     text-align: center !important;
     margin: 0 !important;
+}
+
+.dropdown-menu .recipe-category-tabs .recipe-rarity-filter-item {
+    flex: 0 0 76px !important;
+    display: flex !important;
+    align-items: center;
+    padding-left: 6px;
+}
+
+.dropdown-menu .recipe-category-tabs .recipe-rarity-filter-item > .bootstrap-select {
+    width: 76px !important;
+}
+
+.dropdown-menu .recipe-category-tabs .recipe-rarity-filter-item > .bootstrap-select > .dropdown-toggle {
+    display: inline-flex !important;
+    height: 30px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    font-size: 12px;
 }
 
 .dropdown-menu .chef-category-tabs li a,
@@ -2103,6 +2184,59 @@ table.dataTable tr.selected td.select-checkbox:after,table.dataTable tr.selected
     gap: 6px;
     flex: 0 0 auto;
     min-width: 0;
+    position: relative;
+    isolation: isolate;
+}
+
+.calc-result-row.calc-material-row .calc-material-actions .bootstrap-select.material-daily-select {
+    position: relative;
+    z-index: 1;
+    flex: 0 0 auto;
+}
+
+.calc-result-row.calc-material-row .calc-material-actions .material-action-label {
+    white-space: nowrap;
+    font-size: 13px;
+    color: #333;
+}
+
+.guest-rate-calculator .calc-result-row.calc-material-row .calc-result-item label,
+.guest-rate-calculator .calc-result-row.calc-material-row .material-action-label {
+    color: #333;
+}
+
+.calc-result-row.calc-material-row .calc-material-actions .material-interval-dropdown {
+    position: relative;
+    z-index: 2;
+    flex: 0 0 auto;
+    width: 86px;
+    min-width: 86px;
+    max-width: 86px;
+    height: 30px;
+    font-size: 13px;
+}
+
+.calc-result-row.calc-material-row .calc-material-actions .material-interval-dropdown > .material-interval-toggle {
+    width: 86px;
+    min-width: 86px;
+    max-width: 86px;
+    height: 30px;
+    font-size: 13px;
+    padding: 4px 8px;
+    text-align: center;
+}
+
+.material-interval-dropdown .material-interval-menu {
+    max-height: 260px;
+    overflow-y: auto;
+    min-width: 86px;
+}
+
+.material-interval-floating-menu {
+    z-index: 1800 !important;
+    max-height: 260px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
 }
 
 .calc-result-row.calc-material-row .calc-result-item {
@@ -2357,23 +2491,37 @@ table.dataTable tr.selected td.select-checkbox:after,table.dataTable tr.selected
 }
 
 #btn-material-detail,
-#btn-material-detail-jade {
+#btn-material-detail-jade,
+.btn-normal-material-detail {
     white-space: nowrap;
     padding: 5px 12px;
     font-size: 13px;
     height: 30px;
+    position: relative;
+    z-index: 2;
 }
 
 #guest-material-detail-modal .modal-dialog,
-#jade-material-detail-modal .modal-dialog {
+#jade-material-detail-modal .modal-dialog,
+#normal-material-detail-modal .modal-dialog {
     width: fit-content;
     max-width: calc(100vw - 30px);
 }
 
 #guest-material-detail-modal .modal-body,
-#jade-material-detail-modal .modal-body {
+#jade-material-detail-modal .modal-body,
+#normal-material-detail-modal .modal-body {
     max-height: 65vh;
     overflow-y: auto;
+    display: flex;
+    justify-content: center;
+    padding: 16px;
+}
+
+#guest-material-detail-modal .modal-content,
+#jade-material-detail-modal .modal-content,
+#normal-material-detail-modal .modal-content {
+    overflow: hidden;
 }
 
 .jade-material-detail-empty {
@@ -2389,16 +2537,22 @@ table.dataTable tr.selected td.select-checkbox:after,table.dataTable tr.selected
     max-width: 100%;
     justify-content: center;
     gap: 12px;
+    margin: 0 auto;
 }
 
 @media (min-width: 769px) {
     #guest-material-detail-modal .modal-dialog,
-    #jade-material-detail-modal .modal-dialog {
+    #jade-material-detail-modal .modal-dialog,
+    #normal-material-detail-modal .modal-dialog {
         width: 914px;
     }
 
     .jade-material-recipe-grid {
         grid-template-columns: repeat(3, 280px);
+    }
+
+    .jade-material-recipe-card {
+        min-height: 150px;
     }
 }
 
@@ -2410,6 +2564,8 @@ table.dataTable tr.selected td.select-checkbox:after,table.dataTable tr.selected
     width: 280px;
     min-width: 0;
     max-width: 100%;
+    box-sizing: border-box;
+    align-self: start;
 }
 
 .jade-material-recipe-title {
@@ -2438,7 +2594,8 @@ table.dataTable tr.selected td.select-checkbox:after,table.dataTable tr.selected
 /* 响应式调整 */
 @media (max-width: 768px) {
     #guest-material-detail-modal.in,
-    #jade-material-detail-modal.in {
+    #jade-material-detail-modal.in,
+    #normal-material-detail-modal.in {
         display: flex !important;
         align-items: center;
         justify-content: center;
@@ -2446,8 +2603,27 @@ table.dataTable tr.selected td.select-checkbox:after,table.dataTable tr.selected
     }
 
     #guest-material-detail-modal .modal-dialog,
-    #jade-material-detail-modal .modal-dialog {
+    #jade-material-detail-modal .modal-dialog,
+    #normal-material-detail-modal .modal-dialog {
         margin: 0 auto;
+    }
+
+    #guest-material-detail-modal .modal-body,
+    #jade-material-detail-modal .modal-body,
+    #normal-material-detail-modal .modal-body {
+        padding: 12px;
+    }
+
+    .jade-material-recipe-grid {
+        grid-template-columns: minmax(0, 280px);
+        width: 100%;
+        justify-content: center;
+        justify-items: center;
+    }
+
+    .jade-material-recipe-card {
+        width: min(280px, 100%);
+        min-height: 0;
     }
 
     .calc-result-row.calc-material-row {
@@ -2716,6 +2892,11 @@ table.dataTable tr.selected td.select-checkbox:after,table.dataTable tr.selected
     font-size: 13px;
     font-weight: normal;
     color: #333;
+}
+
+#oneclick-settings-modal .jade-assignment-mode-btn {
+    min-width: 96px;
+    white-space: nowrap;
 }
 
 /* 开关样式 */
@@ -3562,6 +3743,13 @@ table.dataTable tr.selected td.select-checkbox:after,table.dataTable tr.selected
     width: 96px !important;
     min-width: 96px !important;
     max-width: 96px !important;
+}
+
+#jade-ranking-table-modal .jade-ranking-fire-filter-wrapper .bootstrap-select,
+#jade-ranking-table-modal .jade-ranking-fire-filter-wrapper .btn-group.bootstrap-select {
+    width: 72px !important;
+    min-width: 72px !important;
+    max-width: 72px !important;
 }
 
 #jade-ranking-table-modal .jade-ranking-filter-wrapper .dropdown-toggle {
